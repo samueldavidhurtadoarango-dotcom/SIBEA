@@ -20,7 +20,7 @@ especificación no menciona, se indica como **Error del original**.
 | Al final había un bloque de "AJUSTES" que modificaba tablas ya creadas (`ALTER TABLE`) y reemplazaba triggers. | Cada tabla se crea una sola vez con su forma final. | Evita que la estructura dependa del orden de los parches. |
 | Tablas creadas en orden alfabético con las llaves foráneas desactivadas. | Tablas creadas en orden de dependencias (primero catálogos, luego usuarios, convocatorias, postulaciones, pagos...). | El script no necesita desactivar las llaves foráneas para funcionar. |
 | Nombres de índices y restricciones mezclados (`fk_...` usado también para índices simples). | Prefijos claros: `uk_` (único), `idx_` (índice), `fk_` (llave foránea), `chk_` (regla CHECK). | Se entiende de un vistazo qué es cada cosa. |
-| Las reglas de negocio vivían solo en la aplicación (o no existían). | Las reglas clave se fuerzan en la base con triggers que lanzan errores en español (`SQLSTATE '45000'`). | La aplicación no puede saltarse las reglas por error. **Ojo:** los triggers no protegen contra quien tiene permisos totales (por ejemplo `root`), que puede borrar triggers o escribir directamente en las tablas. Por eso la aplicación debe conectarse con un usuario de permisos limitados (`usuario_aplicacion.sql`, ver la sección 7). |
+| Las reglas de negocio vivían solo en la aplicación (o no existían). | Las reglas clave se fuerzan en la base con triggers que lanzan errores en español (`SQLSTATE '45000'`). | La aplicación no puede saltarse las reglas por error. **Ojo:** los triggers no protegen contra quien tiene permisos totales (por ejemplo `root`), que puede borrar triggers o escribir directamente en las tablas. Por eso la aplicación debe conectarse con un usuario de permisos limitados (`usuario_aplicacion.sql`, ver la sección 8). |
 | Los triggers guardaban un usuario fijo o el aprendiz dueño. | Todos usan la variable de sesión `@app_id_usuario`. | **D9** (ver la sección 4). |
 
 ---
@@ -187,6 +187,12 @@ SET @app_ip = '10.0.0.7';  -- opcional: IP del cliente, para la auditoría
 Los triggers leen esa variable y la guardan en el historial, la auditoría, los pagos y las
 novedades. Si la aplicación no la define, se guarda `NULL` (nunca un id inventado).
 
+Desde la tercera ronda (sección 7), la variable también sirve para **comprobar el rol**: las
+acciones de gestión solo las puede hacer un Administrador con estado Activo. Si la variable es
+`NULL`, la base **permite** la acción y guarda `NULL` (así lo decidió D9). Por eso, **la aplicación
+SIEMPRE debe fijar `@app_id_usuario`** en cada conexión; si se le olvida, el control de rol no se
+aplica y la acción queda sin autor.
+
 ---
 
 ## 5. Decisiones que tomé y que la especificación no cubría
@@ -264,7 +270,56 @@ monto distinto del acordado, hay que escribir por qué (observación).
 
 ---
 
-## 7. Pendientes (solo documentados, no implementados todavía)
+## 7. Tercera ronda: solo un administrador activo gestiona (explicado fácil)
+
+**El problema.** La base guardaba *quién* hacía cada cambio, pero no revisaba *si tenía derecho* a
+hacerlo. Si la aplicación fallaba, un aprendiz podía, por ejemplo, aprobar su propia postulación, y
+la base lo aceptaba y lo dejaba anotado como si nada.
+
+**La corrección.** Ahora la base revisa, antes de cada acción de gestión, que el usuario de la
+sesión (`@app_id_usuario`) sea un **Administrador** con estado **Activo**. Si es un aprendiz, o un
+administrador inactivo (por ejemplo, alguien que ya no trabaja en Bienestar), la acción se rechaza
+con el mensaje `Solo un administrador activo puede <acción>`, por ejemplo
+`Solo un administrador activo puede aprobar una postulación`.
+
+Se revisa en estas acciones:
+
+| Acción | Trigger que lo revisa |
+|---|---|
+| Validar, aprobar o rechazar una postulación | `tr_postulacion_validar` |
+| Validar o rechazar un documento | `tr_validacion_documento` |
+| Pedir documentación adicional | `tr_solicitud_documentacion_validar` |
+| Crear una asignación | `tr_asignacion_validar_insercion` |
+| Modificar, suspender, reactivar o cancelar una asignación | `tr_asignacion_validar_estado` |
+| Registrar un pago | `tr_pago_validar` |
+| Anular un pago | `tr_pago_inmutable` |
+| Registrar una novedad | `tr_novedad_preparar` |
+| Cambiar los cupos o el estado de una convocatoria | `tr_convocatoria_validar` |
+
+Lo que el aprendiz sí puede seguir haciendo: crear su postulación y corregir su formulario mientras
+está Pendiente.
+
+**Cómo está hecho.** Para no repetir la misma consulta nueve veces, hay dos rutinas nuevas:
+
+- `fn_es_administrador(id)`: función que responde 1 si ese usuario existe, tiene rol Administrador
+  y está Activo, y 0 si no.
+- `pr_exigir_administrador(acción)`: procedimiento que los triggers llaman. Si `@app_id_usuario`
+  tiene un valor y no es un administrador activo, lanza el error.
+
+Las rutinas se ejecutan dentro de los triggers con los permisos de quien los creó (`root@localhost`),
+así que el usuario limitado `benefitrack_app` no necesita permisos extra (`EXECUTE`). Se probó: con
+`@app_id_usuario` de un aprendiz el rechazo falla con
+`Solo un administrador activo puede rechazar una postulación`; con el administrador 5, funciona.
+
+**Importante.** Si `@app_id_usuario` es `NULL`, la acción se permite (D9). Ver la sección 4: la
+aplicación SIEMPRE debe fijar la variable.
+
+No se agregaron ni cambiaron tablas, columnas ni triggers; solo las dos rutinas y las llamadas
+dentro de los triggers existentes.
+
+---
+
+## 8. Pendientes (solo documentados, no implementados todavía)
 
 - **Usuario de la aplicación.** Las protecciones de la sección 6 dependen de que la aplicación use
   el usuario limitado de `usuario_aplicacion.sql` y no `root`. Con `root` se pueden borrar

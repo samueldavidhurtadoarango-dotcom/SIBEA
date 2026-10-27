@@ -63,7 +63,7 @@ C:\xampp\mysql\bin\mysql.exe -u root --default-character-set=utf8mb4 --table < b
 La salida muestra la misma tabla de resumen. Resultado esperado:
 
 ```
-| TOTAL | OK | 146 casos: 146 OK, 0 FALLO | TODAS LAS PRUEBAS PASAN |
+| TOTAL | OK | 195 casos: 195 OK, 0 FALLO | TODAS LAS PRUEBAS PASAN |
 ```
 
 Si algún caso dice `FALLO`, la columna `detalle` explica qué pasó (por ejemplo, el
@@ -85,6 +85,14 @@ SET @app_ip = '<IP del cliente>';   -- opcional, para la auditoría
 Si no se define, la base guarda `NULL` en lugar del usuario. Si la aplicación reutiliza
 conexiones (pool), debe volver a fijar la variable cada vez que toma una conexión para otro
 usuario.
+
+**Control de rol.** Las acciones de gestión (validar, aprobar o rechazar postulaciones y
+documentos, pedir documentación, gestionar asignaciones, registrar o anular pagos, registrar
+novedades y cambiar cupos o estado de una convocatoria) solo se aceptan si `@app_id_usuario` es un
+usuario con rol Administrador y estado Activo. Si no, la base responde, por ejemplo,
+`Solo un administrador activo puede aprobar una postulación`. Si la variable es `NULL`, la base
+**permite** la acción (decisión D9); por eso la aplicación **siempre** debe fijarla. Las rutinas
+que hacen esta revisión son `fn_es_administrador` y `pr_exigir_administrador`.
 
 Si `@app_id_usuario` apunta a un id que **no existe** en `usuarios`, el cambio falla con el
 error **1452** de llave foránea (por ejemplo,
