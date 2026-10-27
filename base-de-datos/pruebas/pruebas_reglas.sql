@@ -95,7 +95,7 @@ CALL pr_verificar('A01', 'CA1: existen las 23 tablas esperadas',
                          'novedades','notificaciones','auditoria','migraciones')) = 23,
   CONCAT('Tablas encontradas: ', (SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE())));
 
-CALL pr_verificar('A02', 'CA1: existen los 26 triggers esperados',
+CALL pr_verificar('A02', 'CA1: existen los 28 triggers esperados',
   (SELECT COUNT(*) FROM information_schema.triggers
     WHERE trigger_schema = DATABASE()
       AND trigger_name IN ('tr_validacion_documento','tr_postulacion_inicial','tr_postulacion_creada',
@@ -107,7 +107,8 @@ CALL pr_verificar('A02', 'CA1: existen los 26 triggers esperados',
                            'tr_novedad_preparar','tr_novedad_registrada',
                            'tr_convocatoria_validar','tr_postulacion_no_eliminar','tr_asignacion_no_eliminar',
                            'tr_historial_no_modificar','tr_historial_no_eliminar',
-                           'tr_auditoria_no_modificar','tr_auditoria_no_eliminar')) = 26,
+                           'tr_auditoria_no_modificar','tr_auditoria_no_eliminar',
+                           'tr_usuario_validar','tr_usuario_validar_insercion')) = 28,
   CONCAT('Triggers encontrados: ', (SELECT COUNT(*) FROM information_schema.triggers WHERE trigger_schema = DATABASE())));
 
 CALL pr_verificar('A03', 'D7: roles semilla son exactamente Administrador y Aprendiz',
@@ -223,7 +224,7 @@ SET @ben = LAST_INSERT_ID();
 -- Convocatoria con 2 cupos y 3 pagos de 150.000 durante 3 meses.
 INSERT INTO convocatorias (id_beneficio, nombre, fecha_inicio, fecha_cierre, cupos, requisitos,
                            valor_pago, numero_pagos, duracion_meses, estado)
-VALUES (@ben, 'Convocatoria de pruebas', CURDATE() - INTERVAL 30 DAY, CURDATE() + INTERVAL 30 DAY, 2, 'Ser aprendiz activo',
+VALUES (@ben, 'Convocatoria de pruebas', CURDATE() - INTERVAL 150 DAY, CURDATE() + INTERVAL 30 DAY, 2, 'Ser aprendiz activo',
         150000, 3, 3, 'Activa');
 SET @conv = LAST_INSERT_ID();
 
@@ -632,7 +633,7 @@ CALL pr_esperar_error('G07', 'D10: un beneficio sin institución se rechaza',
 -- y una Activa ya cerrada por fechas.
 INSERT INTO convocatorias (id_beneficio, nombre, fecha_inicio, fecha_cierre, cupos, requisitos,
                            valor_pago, numero_pagos, duracion_meses, estado)
-VALUES (@ben, 'Convocatoria 2 de pruebas', CURDATE() - INTERVAL 30 DAY, CURDATE() + INTERVAL 30 DAY, 5,
+VALUES (@ben, 'Convocatoria 2 de pruebas', CURDATE() - INTERVAL 150 DAY, CURDATE() + INTERVAL 30 DAY, 5,
         'Ser aprendiz activo', 150000, 3, 3, 'Activa');
 SET @conv2 = LAST_INSERT_ID();
 INSERT INTO convocatorias (id_beneficio, nombre, fecha_inicio, fecha_cierre, cupos, requisitos,
@@ -978,6 +979,66 @@ CALL pr_esperar_exito('I47', 'D9: con @app_id_usuario = NULL se sigue permitiend
 CALL pr_verificar('I48', 'D9: esa novedad guarda id_usuario NULL',
   (SELECT COUNT(*) FROM novedades WHERE id_asignacion = @h4 AND descripcion = 'Registro sin usuario de sesión' AND id_usuario IS NULL) = 1,
   'novedades.id_usuario');
+SET @app_id_usuario = 5;
+
+-- =====================================================================
+-- Bloque J. Fecha de inicio de la asignación y cambios de rol (ronda 4)
+-- =====================================================================
+SET @app_id_usuario = NULL;
+INSERT INTO usuarios (documento, nombre, apellido, fecha_nacimiento, correo, password_hash, id_rol, id_programa, ficha)
+VALUES ('PRUEBA-A6', 'Aprendiz', 'Seis', '2005-01-01', 'a6@benefitrack.test', 'hash', @rol_aprendiz, @prog, '2900001');
+SET @a6 = LAST_INSERT_ID();
+INSERT INTO postulaciones (id_usuario, id_convocatoria, datos_formulario) VALUES (@a6, @conv2, '{}');
+SET @r1 = LAST_INSERT_ID();
+SET @app_id_usuario = 5;
+UPDATE postulaciones SET estado = 'Validada' WHERE id_postulacion = @r1;
+UPDATE postulaciones SET estado = 'Aprobada' WHERE id_postulacion = @r1;
+SELECT id_asignacion INTO @j1 FROM asignaciones_beneficio WHERE id_postulacion = @r1;
+SELECT fecha_inicio INTO @f_conv2 FROM convocatorias WHERE id_convocatoria = @conv2;
+
+CALL pr_esperar_error('J01', 'Fecha absurda: fecha_inicio de la asignación en 1900 se rechaza',
+  "UPDATE asignaciones_beneficio SET fecha_inicio = '1900-01-01' WHERE id_asignacion = @j1",
+  'La fecha de inicio de la asignación debe estar entre');
+CALL pr_esperar_error('J02', 'Fecha absurda: fecha_inicio más de un año en el futuro se rechaza',
+  "UPDATE asignaciones_beneficio SET fecha_inicio = CURDATE() + INTERVAL 2 YEAR WHERE id_asignacion = @j1",
+  'La fecha de inicio de la asignación debe estar entre');
+CALL pr_esperar_error('J03', 'Fecha absurda: fecha_inicio anterior al inicio de la convocatoria se rechaza',
+  "UPDATE asignaciones_beneficio SET fecha_inicio = @f_conv2 - INTERVAL 1 DAY WHERE id_asignacion = @j1",
+  'La fecha de inicio de la asignación debe estar entre');
+CALL pr_esperar_exito('J04', 'fecha_inicio exactamente un año después de hoy se permite',
+  "UPDATE asignaciones_beneficio SET fecha_inicio = CURDATE() + INTERVAL 1 YEAR WHERE id_asignacion = @j1");
+CALL pr_esperar_exito('J05', 'fecha_inicio igual al inicio de la convocatoria se permite',
+  "UPDATE asignaciones_beneficio SET fecha_inicio = @f_conv2 WHERE id_asignacion = @j1");
+CALL pr_esperar_error('J06', 'Fecha absurda: también se revisa al crear la asignación',
+  "INSERT INTO asignaciones_beneficio (id_postulacion, valor_pago, numero_pagos, duracion_meses, fecha_inicio) VALUES (@p1, 150000, 3, 3, '1900-01-01')",
+  'La fecha de inicio de la asignación debe estar entre');
+
+-- Cambios de rol y estado de usuarios
+SET @app_id_usuario = @a1;
+CALL pr_esperar_error('J07', 'Escalada: un aprendiz no puede darse el rol de Administrador',
+  "UPDATE usuarios SET id_rol = @rol_admin WHERE id_usuario = @a1", 'Solo un administrador activo puede');
+CALL pr_esperar_exito('J08', 'Un aprendiz sí puede actualizar sus datos de contacto',
+  "UPDATE usuarios SET telefono = '3001234567' WHERE id_usuario = @a1");
+CALL pr_esperar_exito('J09', 'El bloqueo por intentos fallidos (-> Bloqueado) no exige administrador',
+  "UPDATE usuarios SET estado = 'Bloqueado', intentos_fallidos = 3, fecha_bloqueo = NOW() WHERE id_usuario = @a1");
+CALL pr_esperar_error('J10', 'Un aprendiz bloqueado no puede desbloquearse solo',
+  "UPDATE usuarios SET estado = 'Activo', intentos_fallidos = 0 WHERE id_usuario = @a1", 'Solo un administrador activo puede');
+CALL pr_esperar_error('J11', 'Escalada: un aprendiz no puede crear un usuario Administrador',
+  "INSERT INTO usuarios (documento, nombre, apellido, correo, password_hash, id_rol) VALUES ('PRUEBA-FALSO', 'Falso', 'Admin', 'falso@benefitrack.test', 'hash', @rol_admin)",
+  'Solo un administrador activo puede');
+SET @app_id_usuario = @adm_inactivo;
+CALL pr_esperar_error('J12', 'Un administrador inactivo no puede reactivarse solo',
+  "UPDATE usuarios SET estado = 'Activo' WHERE id_usuario = @adm_inactivo", 'Solo un administrador activo puede');
+SET @app_id_usuario = 5;
+CALL pr_esperar_exito('J13', 'Un administrador activo puede desbloquear a un aprendiz',
+  "UPDATE usuarios SET estado = 'Activo', intentos_fallidos = 0, fecha_bloqueo = NULL WHERE id_usuario = @a1");
+CALL pr_esperar_exito('J14', 'Un administrador activo puede reactivar a otro administrador',
+  "UPDATE usuarios SET estado = 'Activo' WHERE id_usuario = @adm_inactivo");
+CALL pr_esperar_exito('J15', 'Un administrador activo puede crear un usuario Administrador',
+  "INSERT INTO usuarios (documento, nombre, apellido, correo, password_hash, id_rol) VALUES ('PRUEBA-ADM2', 'Otro', 'Admin', 'adm2@benefitrack.test', 'hash', @rol_admin)");
+SET @app_id_usuario = NULL;
+CALL pr_esperar_exito('J16', 'El registro de un aprendiz nuevo (sin sesión) se permite',
+  "INSERT INTO usuarios (documento, nombre, apellido, correo, password_hash, id_rol) VALUES ('PRUEBA-A7', 'Aprendiz', 'Siete', 'a7@benefitrack.test', 'hash', @rol_aprendiz)");
 SET @app_id_usuario = 5;
 
 -- =====================================================================
