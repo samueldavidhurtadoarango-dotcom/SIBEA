@@ -617,12 +617,23 @@ DROP PROCEDURE IF EXISTS pr_esperar_error;
 DROP PROCEDURE IF EXISTS pr_esperar_exito;
 DROP PROCEDURE IF EXISTS pr_verificar;
 
-SELECT caso, resultado, descripcion, detalle
-  FROM resultados_pruebas
- ORDER BY orden;
-
-SELECT COUNT(*)                   AS total_casos,
-       SUM(resultado = 'OK')      AS ok,
-       SUM(resultado = 'FALLO')   AS fallos,
-       IF(SUM(resultado = 'FALLO') = 0, 'TODAS LAS PRUEBAS PASAN', 'HAY PRUEBAS QUE FALLAN') AS veredicto
+-- Totales en variables (una tabla temporal no se puede leer dos veces en
+-- la misma consulta).
+SELECT COUNT(*), SUM(resultado = 'OK'), SUM(resultado = 'FALLO')
+  INTO @total_casos, @total_ok, @total_fallos
   FROM resultados_pruebas;
+
+-- Resumen: una fila por caso y, al final, la fila TOTAL con el veredicto.
+-- Es la última consulta del script para que phpMyAdmin la muestre.
+SELECT caso, resultado, descripcion, detalle
+  FROM (SELECT orden, caso, resultado, descripcion, detalle
+          FROM resultados_pruebas
+        UNION ALL
+        SELECT 1000000,
+               CONVERT('TOTAL' USING utf8mb4) COLLATE utf8mb4_unicode_ci,
+               CONVERT(IF(@total_fallos = 0, 'OK', 'FALLO') USING utf8mb4) COLLATE utf8mb4_unicode_ci,
+               CONVERT(CONCAT(@total_casos, ' casos: ', @total_ok, ' OK, ', @total_fallos, ' FALLO')
+                       USING utf8mb4) COLLATE utf8mb4_unicode_ci,
+               CONVERT(IF(@total_fallos = 0, 'TODAS LAS PRUEBAS PASAN', 'HAY PRUEBAS QUE FALLAN')
+                       USING utf8mb4) COLLATE utf8mb4_unicode_ci) AS resumen
+ ORDER BY orden;
