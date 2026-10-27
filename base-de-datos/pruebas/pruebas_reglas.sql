@@ -95,7 +95,7 @@ CALL pr_verificar('A01', 'CA1: existen las 23 tablas esperadas',
                          'novedades','notificaciones','auditoria','migraciones')) = 23,
   CONCAT('Tablas encontradas: ', (SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE())));
 
-CALL pr_verificar('A02', 'CA1: existen los 19 triggers esperados',
+CALL pr_verificar('A02', 'CA1: existen los 26 triggers esperados',
   (SELECT COUNT(*) FROM information_schema.triggers
     WHERE trigger_schema = DATABASE()
       AND trigger_name IN ('tr_validacion_documento','tr_postulacion_inicial','tr_postulacion_creada',
@@ -104,7 +104,10 @@ CALL pr_verificar('A02', 'CA1: existen los 19 triggers esperados',
                            'tr_solicitud_documentacion_validar','tr_asignacion_validar_insercion',
                            'tr_asignacion_validar_estado','tr_asignacion_cambio_estado','tr_pago_validar',
                            'tr_pago_registrado','tr_pago_inmutable','tr_pago_anulado','tr_pago_no_eliminar',
-                           'tr_novedad_preparar','tr_novedad_registrada')) = 19,
+                           'tr_novedad_preparar','tr_novedad_registrada',
+                           'tr_convocatoria_validar','tr_postulacion_no_eliminar','tr_asignacion_no_eliminar',
+                           'tr_historial_no_modificar','tr_historial_no_eliminar',
+                           'tr_auditoria_no_modificar','tr_auditoria_no_eliminar')) = 26,
   CONCAT('Triggers encontrados: ', (SELECT COUNT(*) FROM information_schema.triggers WHERE trigger_schema = DATABASE())));
 
 CALL pr_verificar('A03', 'D7: roles semilla son exactamente Administrador y Aprendiz',
@@ -176,7 +179,17 @@ CALL pr_verificar('A12', 'D7: ningún dato semilla menciona "Estudiante"',
 START TRANSACTION;
 
 SET @app_id_usuario = NULL;
-SELECT id_rol INTO @rol_admin    FROM roles WHERE nombre = 'Administrador';
+
+-- Fechas relativas a hoy: las pruebas siguen siendo válidas cualquier día
+-- (la convocatoria debe estar abierta hoy y los pagos no pueden ser futuros
+-- ni anteriores al inicio de la asignación).
+SET @f_inicio_asig = CURDATE() - INTERVAL 120 DAY;  -- inicio de las asignaciones de prueba
+SET @f_pago1       = CURDATE() - INTERVAL 90 DAY;
+SET @f_prog2       = CURDATE() - INTERVAL 60 DAY;   -- fecha programada del pago 2
+SET @f_pago2       = CURDATE() - INTERVAL 51 DAY;   -- pago 2 con 9 días de retraso
+SET @f_pago3       = CURDATE() - INTERVAL 30 DAY;
+
+SELECT id_rol INTO @rol_admin   FROM roles WHERE nombre = 'Administrador';
 SELECT id_rol INTO @rol_aprendiz FROM roles WHERE nombre = 'Aprendiz';
 SELECT id_institucion INTO @inst FROM instituciones ORDER BY id_institucion LIMIT 1;
 
@@ -210,7 +223,7 @@ SET @ben = LAST_INSERT_ID();
 -- Convocatoria con 2 cupos y 3 pagos de 150.000 durante 3 meses.
 INSERT INTO convocatorias (id_beneficio, nombre, fecha_inicio, fecha_cierre, cupos, requisitos,
                            valor_pago, numero_pagos, duracion_meses, estado)
-VALUES (@ben, 'Convocatoria de pruebas', '2026-01-01', '2026-12-31', 2, 'Ser aprendiz activo',
+VALUES (@ben, 'Convocatoria de pruebas', CURDATE() - INTERVAL 30 DAY, CURDATE() + INTERVAL 30 DAY, 2, 'Ser aprendiz activo',
         150000, 3, 3, 'Activa');
 SET @conv = LAST_INSERT_ID();
 
@@ -351,6 +364,11 @@ CALL pr_esperar_exito('C04', 'D2: segunda aprobación se acepta (cupo 2 de 2)',
 
 SELECT id_asignacion INTO @asig3 FROM asignaciones_beneficio WHERE id_postulacion = @p3;
 
+-- Preparación: mover el inicio de las dos asignaciones al pasado para poder
+-- registrar pagos con fechas anteriores a hoy (se permite porque aún no hay pagos).
+CALL pr_esperar_exito('C04a', 'Preparación: fecha_inicio de las asignaciones en el pasado (sin pagos)',
+  "UPDATE asignaciones_beneficio SET fecha_inicio = @f_inicio_asig WHERE id_asignacion IN (@asig1, @asig3)");
+
 CALL pr_esperar_error('C05', 'CA3: con 2 cupos y 2 aprobadas, aprobar otra se rechaza',
   "UPDATE postulaciones SET estado = 'Aprobada' WHERE id_postulacion = @p4",
   'No hay cupos disponibles');
@@ -375,7 +393,7 @@ CALL pr_esperar_error('C09', 'D3: una sola asignación por postulación aprobada
 -- Bloque D. Pagos (D4, D3 Finalizado, CA4, CA5, CA6)
 -- =====================================================================
 CALL pr_esperar_exito('D01', 'D4: registrar el pago 1 se acepta',
-  "INSERT INTO pagos (id_asignacion, numero_pago, monto, fecha_programada, fecha_pago) VALUES (@asig1, 1, 150000, '2026-02-01', '2026-02-01')");
+  "INSERT INTO pagos (id_asignacion, numero_pago, monto, fecha_programada, fecha_pago) VALUES (@asig1, 1, 150000, @f_pago1, @f_pago1)");
 
 CALL pr_verificar('D02', 'D4/D9: el pago guarda el usuario que lo registró (@app_id_usuario)',
   (SELECT id_usuario_registro FROM pagos WHERE id_asignacion = @asig1 AND numero_pago = 1) = 5,
@@ -383,31 +401,31 @@ CALL pr_verificar('D02', 'D4/D9: el pago guarda el usuario que lo registró (@ap
      FROM pagos WHERE id_asignacion = @asig1 AND numero_pago = 1));
 
 CALL pr_esperar_error('D03', 'CA5: un segundo pago Registrado con el mismo número se rechaza',
-  "INSERT INTO pagos (id_asignacion, numero_pago, monto, fecha_pago) VALUES (@asig1, 1, 150000, '2026-02-02')",
+  "INSERT INTO pagos (id_asignacion, numero_pago, monto, fecha_pago) VALUES (@asig1, 1, 150000, @f_pago1)",
   'Ya existe un pago registrado');
 
 CALL pr_esperar_error('D04', 'D4: el número de pago no puede superar el total de pagos (3)',
-  "INSERT INTO pagos (id_asignacion, numero_pago, monto, fecha_pago) VALUES (@asig1, 4, 150000, '2026-02-02')",
+  "INSERT INTO pagos (id_asignacion, numero_pago, monto, fecha_pago) VALUES (@asig1, 4, 150000, @f_pago1)",
   'supera el total de pagos');
 
 CALL pr_esperar_error('D05', 'D4: el número de pago debe ser mayor que cero',
-  "INSERT INTO pagos (id_asignacion, numero_pago, monto, fecha_pago) VALUES (@asig1, 0, 150000, '2026-02-02')",
+  "INSERT INTO pagos (id_asignacion, numero_pago, monto, fecha_pago) VALUES (@asig1, 0, 150000, @f_pago1)",
   'mayor que cero');
 
 CALL pr_esperar_error('D06', 'D4: el monto debe ser mayor que cero',
-  "INSERT INTO pagos (id_asignacion, numero_pago, monto, fecha_pago) VALUES (@asig1, 2, 0, '2026-03-01')",
+  "INSERT INTO pagos (id_asignacion, numero_pago, monto, fecha_pago) VALUES (@asig1, 2, 0, @f_prog2)",
   'chk_pago_monto');
 
 CALL pr_esperar_error('D07', 'CA6: pago con retraso y sin motivo se rechaza',
-  "INSERT INTO pagos (id_asignacion, numero_pago, monto, fecha_programada, fecha_pago, hubo_retraso) VALUES (@asig1, 2, 150000, '2026-03-01', '2026-03-10', 1)",
+  "INSERT INTO pagos (id_asignacion, numero_pago, monto, fecha_programada, fecha_pago, hubo_retraso) VALUES (@asig1, 2, 150000, @f_prog2, @f_pago2, 1)",
   'motivo del retraso es obligatorio');
 
 CALL pr_esperar_error('D08', 'CA6: pago con retraso y motivo en blanco se rechaza',
-  "INSERT INTO pagos (id_asignacion, numero_pago, monto, fecha_programada, fecha_pago, hubo_retraso, motivo_retraso) VALUES (@asig1, 2, 150000, '2026-03-01', '2026-03-10', 1, '  ')",
+  "INSERT INTO pagos (id_asignacion, numero_pago, monto, fecha_programada, fecha_pago, hubo_retraso, motivo_retraso) VALUES (@asig1, 2, 150000, @f_prog2, @f_pago2, 1, '  ')",
   'motivo del retraso es obligatorio');
 
 CALL pr_esperar_exito('D09', 'D4: pago con retraso y motivo se acepta',
-  "INSERT INTO pagos (id_asignacion, numero_pago, monto, fecha_programada, fecha_pago, hubo_retraso, motivo_retraso) VALUES (@asig1, 2, 150000, '2026-03-01', '2026-03-10', 1, 'Demora en el giro de la institución')");
+  "INSERT INTO pagos (id_asignacion, numero_pago, monto, fecha_programada, fecha_pago, hubo_retraso, motivo_retraso) VALUES (@asig1, 2, 150000, @f_prog2, @f_pago2, 1, 'Demora en el giro de la institución')");
 
 CALL pr_verificar('D10', 'D3: con 2 de 3 pagos la asignación sigue En curso',
   (SELECT estado FROM asignaciones_beneficio WHERE id_asignacion = @asig1) = 'En curso',
@@ -434,7 +452,7 @@ CALL pr_verificar('D15', 'D4/D9: la anulación guarda quién anuló y cuándo',
   'pagos.id_usuario_anulacion / pagos.fecha_anulacion');
 
 CALL pr_esperar_exito('D16', 'CA5: tras anular, registrar un pago nuevo con el mismo número se acepta',
-  "INSERT INTO pagos (id_asignacion, numero_pago, monto, fecha_programada, fecha_pago, hubo_retraso, motivo_retraso) VALUES (@asig1, 2, 150000, '2026-03-01', '2026-03-10', 1, 'Demora en el giro de la institución')");
+  "INSERT INTO pagos (id_asignacion, numero_pago, monto, fecha_programada, fecha_pago, hubo_retraso, motivo_retraso) VALUES (@asig1, 2, 150000, @f_prog2, @f_pago2, 1, 'Demora en el giro de la institución')");
 
 CALL pr_verificar('D17', 'CA5: el pago 2 queda con 1 Anulado y 1 Registrado',
   (SELECT COUNT(*) FROM pagos WHERE id_asignacion = @asig1 AND numero_pago = 2 AND estado = 'Anulado') = 1
@@ -446,7 +464,7 @@ CALL pr_esperar_error('D18', 'D4: un pago anulado no se puede volver a Registrad
   'no se pueden modificar');
 
 CALL pr_esperar_exito('D19', 'D4: registrar el 3.er pago se acepta',
-  "INSERT INTO pagos (id_asignacion, numero_pago, monto, fecha_pago) VALUES (@asig1, 3, 150000, '2026-04-01')");
+  "INSERT INTO pagos (id_asignacion, numero_pago, monto, fecha_pago) VALUES (@asig1, 3, 150000, @f_pago3)");
 
 CALL pr_verificar('D20', 'CA4: con el 3.er pago vigente la asignación pasa a Finalizado',
   (SELECT estado = 'Finalizado' AND fecha_fin IS NOT NULL
@@ -455,7 +473,7 @@ CALL pr_verificar('D20', 'CA4: con el 3.er pago vigente la asignación pasa a Fi
      FROM asignaciones_beneficio WHERE id_asignacion = @asig1));
 
 CALL pr_esperar_error('D21', 'D4: no se registran pagos en una asignación Finalizado',
-  "INSERT INTO pagos (id_asignacion, numero_pago, monto, fecha_pago) VALUES (@asig1, 1, 150000, '2026-04-02')",
+  "INSERT INTO pagos (id_asignacion, numero_pago, monto, fecha_pago) VALUES (@asig1, 1, 150000, @f_pago3)",
   'asignaciones En curso');
 
 CALL pr_esperar_exito('D22', 'D4: anular el último pago de una asignación finalizada se acepta',
@@ -466,7 +484,7 @@ CALL pr_verificar('D23', 'D3: al anular el último pago la asignación vuelve a 
   (SELECT estado FROM asignaciones_beneficio WHERE id_asignacion = @asig1));
 
 CALL pr_esperar_exito('D24', 'D4: registrar de nuevo el pago 3 se acepta',
-  "INSERT INTO pagos (id_asignacion, numero_pago, monto, fecha_pago) VALUES (@asig1, 3, 150000, '2026-04-03')");
+  "INSERT INTO pagos (id_asignacion, numero_pago, monto, fecha_pago) VALUES (@asig1, 3, 150000, @f_pago3)");
 
 CALL pr_verificar('D25', 'CA4: la asignación vuelve a Finalizado con el pago 3 corregido',
   (SELECT estado FROM asignaciones_beneficio WHERE id_asignacion = @asig1) = 'Finalizado',
@@ -500,7 +518,7 @@ CALL pr_verificar('E04', 'D5: al suspender se crea la novedad Suspensión',
   (SELECT CONCAT('Novedades: ', COUNT(*)) FROM novedades WHERE id_asignacion = @asig3));
 
 CALL pr_esperar_error('E05', 'D3: no se registran pagos en una asignación Suspendido',
-  "INSERT INTO pagos (id_asignacion, numero_pago, monto, fecha_pago) VALUES (@asig3, 1, 150000, '2026-02-01')",
+  "INSERT INTO pagos (id_asignacion, numero_pago, monto, fecha_pago) VALUES (@asig3, 1, 150000, @f_pago1)",
   'asignaciones En curso');
 
 CALL pr_esperar_exito('E06', 'D3: reactivar (Suspendido -> En curso) con motivo se acepta',
@@ -511,9 +529,9 @@ CALL pr_verificar('E07', 'D5: al reactivar se crea la novedad Reactivación',
   (SELECT GROUP_CONCAT(tipo) FROM novedades WHERE id_asignacion = @asig3));
 
 CALL pr_esperar_exito('E08a', 'Preparación: pago 1 de la asignación reactivada',
-  "INSERT INTO pagos (id_asignacion, numero_pago, monto, fecha_pago) VALUES (@asig3, 1, 150000, '2026-02-01')");
+  "INSERT INTO pagos (id_asignacion, numero_pago, monto, fecha_pago) VALUES (@asig3, 1, 150000, @f_pago1)");
 CALL pr_esperar_exito('E08b', 'Preparación: pago 2 de la asignación reactivada',
-  "INSERT INTO pagos (id_asignacion, numero_pago, monto, fecha_pago) VALUES (@asig3, 2, 150000, '2026-03-01')");
+  "INSERT INTO pagos (id_asignacion, numero_pago, monto, fecha_pago) VALUES (@asig3, 2, 150000, @f_prog2)");
 
 CALL pr_esperar_error('E08', 'D4: el total de pagos no puede quedar por debajo de los ya registrados',
   "UPDATE asignaciones_beneficio SET numero_pagos = 1 WHERE id_asignacion = @asig3",
@@ -606,6 +624,185 @@ CALL pr_esperar_error('G06', 'D11: exitosos + fallidos no pueden superar el tota
 CALL pr_esperar_error('G07', 'D10: un beneficio sin institución se rechaza',
   "INSERT INTO beneficios (id_institucion, nombre, descripcion, categoria) VALUES (NULL, 'Sin institución', 'x', 'Otro')",
   'id_institucion');
+
+-- =====================================================================
+-- Bloque H. Correcciones de la auditoría (ronda 2)
+-- =====================================================================
+-- Datos: una segunda convocatoria abierta (5 cupos, 3 pagos), una Inactiva
+-- y una Activa ya cerrada por fechas.
+INSERT INTO convocatorias (id_beneficio, nombre, fecha_inicio, fecha_cierre, cupos, requisitos,
+                           valor_pago, numero_pagos, duracion_meses, estado)
+VALUES (@ben, 'Convocatoria 2 de pruebas', CURDATE() - INTERVAL 30 DAY, CURDATE() + INTERVAL 30 DAY, 5,
+        'Ser aprendiz activo', 150000, 3, 3, 'Activa');
+SET @conv2 = LAST_INSERT_ID();
+INSERT INTO convocatorias (id_beneficio, nombre, fecha_inicio, fecha_cierre, cupos, requisitos,
+                           valor_pago, numero_pagos, duracion_meses, estado)
+VALUES (@ben, 'Convocatoria inactiva', CURDATE() - INTERVAL 30 DAY, CURDATE() + INTERVAL 30 DAY, 5,
+        'x', 150000, 3, 3, 'Inactiva');
+SET @conv3 = LAST_INSERT_ID();
+INSERT INTO convocatorias (id_beneficio, nombre, fecha_inicio, fecha_cierre, cupos, requisitos,
+                           valor_pago, numero_pagos, duracion_meses, estado)
+VALUES (@ben, 'Convocatoria vencida', CURDATE() - INTERVAL 60 DAY, CURDATE() - INTERVAL 1 DAY, 5,
+        'x', 150000, 3, 3, 'Activa');
+SET @conv4 = LAST_INSERT_ID();
+
+CALL pr_esperar_exito('H00a', 'Preparación: 4 postulaciones de aprendices en la convocatoria 2',
+  "INSERT INTO postulaciones (id_usuario, id_convocatoria, datos_formulario) VALUES (@a1, @conv2, '{}'), (@a2, @conv2, '{}'), (@a3, @conv2, '{}'), (@a4, @conv2, '{\"estrato\": 1}')");
+SELECT MAX(id_postulacion) INTO @q4 FROM postulaciones WHERE id_convocatoria = @conv2;
+SET @q3 = @q4 - 1, @q2 = @q4 - 2, @q1 = @q4 - 3;
+
+CALL pr_esperar_exito('H00b', 'Preparación: validar y aprobar 3 postulaciones de la convocatoria 2',
+  "UPDATE postulaciones SET estado = 'Validada' WHERE id_postulacion IN (@q1, @q2, @q3)");
+CALL pr_esperar_exito('H00c', 'Preparación: aprobar 3 postulaciones de la convocatoria 2',
+  "UPDATE postulaciones SET estado = 'Aprobada' WHERE id_postulacion IN (@q1, @q2, @q3)");
+SELECT id_asignacion INTO @h1 FROM asignaciones_beneficio WHERE id_postulacion = @q1;
+SELECT id_asignacion INTO @h2 FROM asignaciones_beneficio WHERE id_postulacion = @q2;
+SELECT id_asignacion INTO @h3 FROM asignaciones_beneficio WHERE id_postulacion = @q3;
+CALL pr_esperar_exito('H00d', 'Preparación: fecha_inicio de las nuevas asignaciones en el pasado',
+  "UPDATE asignaciones_beneficio SET fecha_inicio = @f_inicio_asig WHERE id_asignacion IN (@h1, @h2, @h3)");
+
+-- B2: valores de la asignación congelados cuando ya hay pagos o no está En curso
+CALL pr_esperar_exito('H01', 'B2: sin pagos, cambiar numero_pagos de una asignación En curso se permite',
+  "UPDATE asignaciones_beneficio SET numero_pagos = 4 WHERE id_asignacion = @h1");
+CALL pr_esperar_exito('H02a', 'Preparación: registrar solo el pago 3 de la asignación h1',
+  "INSERT INTO pagos (id_asignacion, numero_pago, monto, fecha_pago) VALUES (@h1, 3, 150000, @f_pago1)");
+CALL pr_esperar_error('H02', 'B2: con pagos, bajar numero_pagos (por debajo del pago 3 vigente) se rechaza',
+  "UPDATE asignaciones_beneficio SET numero_pagos = 2 WHERE id_asignacion = @h1",
+  'no se pueden cambiar');
+CALL pr_esperar_exito('H03a', 'Preparación: pago 1 de h2',
+  "INSERT INTO pagos (id_asignacion, numero_pago, monto, fecha_pago) VALUES (@h2, 1, 150000, @f_pago1)");
+CALL pr_esperar_exito('H03b', 'Preparación: anular el pago 1 de h2',
+  "UPDATE pagos SET estado = 'Anulado', motivo_anulacion = 'Prueba' WHERE id_asignacion = @h2 AND numero_pago = 1");
+CALL pr_esperar_error('H03', 'B2: con solo pagos anulados, cambiar valor_pago también se rechaza',
+  "UPDATE asignaciones_beneficio SET valor_pago = 200000 WHERE id_asignacion = @h2",
+  'no se pueden cambiar');
+CALL pr_esperar_exito('H04a', 'Preparación: suspender h3 (sin pagos)',
+  "UPDATE asignaciones_beneficio SET estado = 'Suspendido', motivo_estado = 'Motivo repetido' WHERE id_asignacion = @h3");
+CALL pr_esperar_error('H04', 'B2: en una asignación que no está En curso, cambiar duracion_meses se rechaza',
+  "UPDATE asignaciones_beneficio SET duracion_meses = 6 WHERE id_asignacion = @h3",
+  'no se pueden cambiar');
+CALL pr_esperar_error('H05', 'D3: cancelar repitiendo el motivo anterior se rechaza',
+  "UPDATE asignaciones_beneficio SET estado = 'Cancelado', motivo_estado = 'Motivo repetido' WHERE id_asignacion = @h3",
+  'motivo es obligatorio');
+CALL pr_esperar_exito('H06', 'D3: Suspendido -> Cancelado con motivo nuevo se acepta',
+  "UPDATE asignaciones_beneficio SET estado = 'Cancelado', motivo_estado = 'Retiro voluntario' WHERE id_asignacion = @h3");
+CALL pr_verificar('H07', 'D9: las novedades automáticas guardan @app_id_usuario (5)',
+  (SELECT COUNT(*) FROM novedades WHERE id_asignacion IN (@asig3, @h3)) = 5
+  AND (SELECT COUNT(*) FROM novedades WHERE id_asignacion IN (@asig3, @h3) AND NOT (id_usuario <=> 5)) = 0,
+  (SELECT GROUP_CONCAT(CONCAT(tipo, ':', IFNULL(id_usuario, 'NULL'))) FROM novedades WHERE id_asignacion IN (@asig3, @h3)));
+CALL pr_verificar('H08', 'D9: la asignación creada al aprobar guarda @app_id_usuario (5)',
+  (SELECT COUNT(*) FROM asignaciones_beneficio
+    WHERE id_asignacion IN (@asig1, @asig3, @h1, @h2, @h3) AND id_usuario_registro <=> 5) = 5,
+  (SELECT GROUP_CONCAT(IFNULL(id_usuario_registro, 'NULL')) FROM asignaciones_beneficio
+    WHERE id_asignacion IN (@asig1, @asig3, @h1, @h2, @h3)));
+
+-- I2: Finalizado -> En curso solo al anular un pago
+CALL pr_esperar_error('H09', 'I2: volver de Finalizado a En curso a mano (subiendo numero_pagos) se rechaza',
+  "UPDATE asignaciones_beneficio SET estado = 'En curso', numero_pagos = numero_pagos + 1, motivo_estado = 'Reabierta a mano' WHERE id_asignacion = @asig1",
+  'solo vuelve a En curso al anular');
+CALL pr_esperar_error('H10', 'B2: en una asignación Finalizado, cambiar valor_pago se rechaza',
+  "UPDATE asignaciones_beneficio SET valor_pago = 1 WHERE id_asignacion = @asig1",
+  'no se pueden cambiar');
+CALL pr_verificar('H11', 'I2/B2: la asignación 1 sigue Finalizado con 3 pagos y valor 150000',
+  (SELECT estado = 'Finalizado' AND numero_pagos = 3 AND valor_pago = 150000
+     FROM asignaciones_beneficio WHERE id_asignacion = @asig1),
+  (SELECT CONCAT(estado, ' numero_pagos=', numero_pagos, ' valor_pago=', valor_pago)
+     FROM asignaciones_beneficio WHERE id_asignacion = @asig1));
+
+-- I3: trazabilidad no falsificable
+CALL pr_esperar_error('H12', 'I3: escribir a mano quién aprobó (sin aprobar) se rechaza',
+  "UPDATE postulaciones SET id_usuario_aprobacion = @a1, fecha_aprobacion = '2020-01-01' WHERE id_postulacion = @p5",
+  'los registra la base de datos');
+CALL pr_esperar_error('H13', 'I3: reescribir fecha_validacion se rechaza',
+  "UPDATE postulaciones SET fecha_validacion = '2020-01-01' WHERE id_postulacion = @p1",
+  'los registra la base de datos');
+CALL pr_esperar_error('H14', 'I3: cambiar la justificación después de rechazar se rechaza',
+  "UPDATE postulaciones SET justificacion_rechazo = 'Otra razón distinta' WHERE id_postulacion = @p2",
+  'solo se registra al rechazar');
+CALL pr_esperar_error('H15', 'I3: cambiar datos_formulario de una postulación no Pendiente se rechaza',
+  "UPDATE postulaciones SET datos_formulario = '{\"estrato\": 6}' WHERE id_postulacion = @p1",
+  'mientras la postulación está Pendiente');
+CALL pr_esperar_exito('H16', 'I3: cambiar datos_formulario de una postulación Pendiente se permite',
+  "UPDATE postulaciones SET datos_formulario = '{\"estrato\": 2}' WHERE id_postulacion = @q4");
+CALL pr_esperar_exito('H17a', 'Preparación: cargar un documento a una postulación Pendiente',
+  "INSERT INTO documentos_postulacion (id_postulacion, id_tipo_documento, nombre_archivo, ruta_archivo, extension, tamano_mb) VALUES (@q4, 1, 'cc.pdf', 'docs/cc.pdf', 'pdf', 1.20)");
+SELECT MAX(id_documento) INTO @doc FROM documentos_postulacion WHERE id_postulacion = @q4;
+CALL pr_esperar_exito('H17', 'D6: validar un documento se acepta',
+  "UPDATE documentos_postulacion SET estado_validacion = 'Validado' WHERE id_documento = @doc");
+CALL pr_verificar('H18', 'D6/D9: tr_validacion_documento guarda fecha y usuario (5) de la validación',
+  (SELECT fecha_validacion IS NOT NULL AND id_usuario_validacion <=> 5
+     FROM documentos_postulacion WHERE id_documento = @doc),
+  (SELECT CONCAT('id_usuario_validacion=', IFNULL(id_usuario_validacion, 'NULL'))
+     FROM documentos_postulacion WHERE id_documento = @doc));
+CALL pr_esperar_error('H19', 'I3: escribir a mano quién validó un documento se rechaza',
+  "UPDATE documentos_postulacion SET id_usuario_validacion = @a1 WHERE id_documento = @doc",
+  'los registra la base de datos');
+
+-- I4: auditoría e historial solo de inserción; sin borrados directos
+CALL pr_esperar_error('H20', 'I4: modificar la auditoría se rechaza',
+  "UPDATE auditoria SET id_usuario = NULL WHERE entidad = 'postulaciones' AND id_entidad = @p1",
+  'La auditoría no se puede modificar ni eliminar');
+CALL pr_esperar_error('H21', 'I4: borrar la auditoría se rechaza',
+  "DELETE FROM auditoria WHERE entidad = 'postulaciones' AND id_entidad = @p1",
+  'La auditoría no se puede modificar ni eliminar');
+CALL pr_esperar_error('H22', 'I4: modificar el historial de estados se rechaza',
+  "UPDATE historial_estados SET justificacion = 'x' WHERE id_postulacion = @p1",
+  'El historial de estados no se puede modificar ni eliminar');
+CALL pr_esperar_error('H23', 'I4: borrar el historial de estados se rechaza',
+  "DELETE FROM historial_estados WHERE id_postulacion = @p1",
+  'El historial de estados no se puede modificar ni eliminar');
+CALL pr_esperar_error('H24', 'I4: borrar una asignación se rechaza',
+  "DELETE FROM asignaciones_beneficio WHERE id_asignacion = @h3",
+  'Las asignaciones no se pueden eliminar');
+CALL pr_esperar_error('H25', 'I4: borrar una postulación se rechaza',
+  "DELETE FROM postulaciones WHERE id_postulacion = @q4",
+  'Las postulaciones no se pueden eliminar');
+
+-- I5: fechas y monto del pago
+CALL pr_esperar_error('H26', 'I5: fecha_pago anterior al inicio de la asignación se rechaza',
+  "INSERT INTO pagos (id_asignacion, numero_pago, monto, fecha_pago) VALUES (@h1, 1, 150000, @f_inicio_asig - INTERVAL 1 DAY)",
+  'La fecha de pago debe estar entre');
+CALL pr_esperar_error('H27', 'I5: fecha_pago futura se rechaza',
+  "INSERT INTO pagos (id_asignacion, numero_pago, monto, fecha_pago) VALUES (@h1, 1, 150000, CURDATE() + INTERVAL 1 DAY)",
+  'La fecha de pago debe estar entre');
+CALL pr_esperar_error('H28', 'I5: fecha_programada anterior al inicio de la asignación se rechaza',
+  "INSERT INTO pagos (id_asignacion, numero_pago, monto, fecha_programada, fecha_pago) VALUES (@h1, 1, 150000, @f_inicio_asig - INTERVAL 1 DAY, @f_pago1)",
+  'La fecha programada no puede ser anterior');
+CALL pr_esperar_error('H29', 'I5: monto distinto del valor del pago sin observación se rechaza',
+  "INSERT INTO pagos (id_asignacion, numero_pago, monto, fecha_pago) VALUES (@h1, 1, 100000, @f_pago1)",
+  'la observación es obligatoria');
+CALL pr_esperar_exito('H30', 'I5: monto distinto del valor del pago con observación se acepta',
+  "INSERT INTO pagos (id_asignacion, numero_pago, monto, fecha_pago, observacion) VALUES (@h1, 1, 100000, @f_pago1, 'Descuento por inasistencia')");
+
+-- Menores
+CALL pr_esperar_error('H31', 'Menor: cambiar id_pago al anular se rechaza',
+  "UPDATE pagos SET id_pago = id_pago + 100000, estado = 'Anulado', motivo_anulacion = 'x' WHERE id_asignacion = @h1 AND numero_pago = 3",
+  'no se pueden modificar');
+CALL pr_esperar_error('H32', 'Menor: bajar los cupos por debajo de las aprobadas se rechaza',
+  "UPDATE convocatorias SET cupos = 1 WHERE id_convocatoria = @conv",
+  'Los cupos no pueden ser menores');
+CALL pr_esperar_exito('H33', 'Menor: bajar los cupos hasta el número de aprobadas se permite',
+  "UPDATE convocatorias SET cupos = 3 WHERE id_convocatoria = @conv2");
+CALL pr_esperar_error('H34', 'Menor: un Administrador no puede crear una postulación',
+  "INSERT INTO postulaciones (id_usuario, id_convocatoria) VALUES (5, @conv2)",
+  'Solo un usuario con rol Aprendiz');
+CALL pr_esperar_error('H35', 'Menor: no se puede postular a una convocatoria Inactiva',
+  "INSERT INTO postulaciones (id_usuario, id_convocatoria) VALUES (@a5, @conv3)",
+  'La convocatoria no está abierta');
+CALL pr_esperar_error('H36', 'Menor: no se puede postular a una convocatoria Activa fuera de sus fechas',
+  "INSERT INTO postulaciones (id_usuario, id_convocatoria) VALUES (@a5, @conv4)",
+  'La convocatoria no está abierta');
+CALL pr_esperar_error('H37', 'D4: insertar un pago directamente en estado Anulado se rechaza',
+  "INSERT INTO pagos (id_asignacion, numero_pago, monto, fecha_pago, estado, motivo_anulacion) VALUES (@h1, 2, 150000, @f_pago1, 'Anulado', 'x')",
+  'debe registrarse en estado Registrado');
+CALL pr_verificar('H38', 'Orden FOLLOWS de los triggers AFTER UPDATE de postulaciones',
+  (SELECT GROUP_CONCAT(trigger_name ORDER BY action_order) FROM information_schema.triggers
+    WHERE trigger_schema = DATABASE() AND event_object_table = 'postulaciones'
+      AND action_timing = 'AFTER' AND event_manipulation = 'UPDATE')
+    = 'tr_postulacion_estado,tr_auditoria_postulacion,tr_postulacion_notificar,tr_postulacion_crear_asignacion',
+  (SELECT GROUP_CONCAT(CONCAT(action_order, ':', trigger_name) ORDER BY action_order) FROM information_schema.triggers
+    WHERE trigger_schema = DATABASE() AND event_object_table = 'postulaciones'
+      AND action_timing = 'AFTER' AND event_manipulation = 'UPDATE'));
 
 -- =====================================================================
 -- Fin: deshacer los datos de prueba e imprimir el resumen
