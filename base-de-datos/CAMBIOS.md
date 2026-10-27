@@ -20,7 +20,7 @@ especificación no menciona, se indica como **Error del original**.
 | Al final había un bloque de "AJUSTES" que modificaba tablas ya creadas (`ALTER TABLE`) y reemplazaba triggers. | Cada tabla se crea una sola vez con su forma final. | Evita que la estructura dependa del orden de los parches. |
 | Tablas creadas en orden alfabético con las llaves foráneas desactivadas. | Tablas creadas en orden de dependencias (primero catálogos, luego usuarios, convocatorias, postulaciones, pagos...). | El script no necesita desactivar las llaves foráneas para funcionar. |
 | Nombres de índices y restricciones mezclados (`fk_...` usado también para índices simples). | Prefijos claros: `uk_` (único), `idx_` (índice), `fk_` (llave foránea), `chk_` (regla CHECK). | Se entiende de un vistazo qué es cada cosa. |
-| Las reglas de negocio vivían solo en la aplicación (o no existían). | Las reglas clave se fuerzan en la base con triggers que lanzan errores en español (`SQLSTATE '45000'`). | Ninguna pantalla ni script puede saltarse las reglas por error. |
+| Las reglas de negocio vivían solo en la aplicación (o no existían). | Las reglas clave se fuerzan en la base con triggers que lanzan errores en español (`SQLSTATE '45000'`). | La aplicación no puede saltarse las reglas por error. **Ojo:** los triggers no protegen contra quien tiene permisos totales (por ejemplo `root`), que puede borrar triggers o escribir directamente en las tablas. Por eso la aplicación debe conectarse con un usuario de permisos limitados (`usuario_aplicacion.sql`, ver la sección 7). |
 | Los triggers guardaban un usuario fijo o el aprendiz dueño. | Todos usan la variable de sesión `@app_id_usuario`. | **D9** (ver la sección 4). |
 
 ---
@@ -125,46 +125,51 @@ especificación no menciona, se indica como **Error del original**.
 | `tr_postulacion_rechazada` | **Reemplazado** por `tr_postulacion_notificar`; el aviso incluye la justificación obligatoria. | **D1**, **D8** |
 | `tr_pago_completar_postulacion` | **Reemplazado** por `tr_pago_registrado`: ya no pasa la postulación a "Completado"; pasa la **asignación** a "Finalizado". | **D3** |
 
-### Triggers del script corregido (19)
+### Triggers del script corregido (26)
 
-**Postulaciones**
+**Postulaciones y convocatorias**
 
 | Trigger | Cuándo | Qué hace | Decisión |
 |---|---|---|---|
-| `tr_postulacion_inicial` | antes de insertar | Exige que toda postulación nueva empiece en Pendiente. | D1 |
+| `tr_postulacion_inicial` | antes de insertar | Exige que toda postulación nueva empiece en Pendiente, la cree un usuario con rol Aprendiz, en una convocatoria Activa y dentro de sus fechas, y sin datos de validación, aprobación o rechazo ya llenos. | D1, D7 |
 | `tr_postulacion_creada` | después de insertar | Anota la creación en el historial (sin estado → Pendiente) y en la auditoría. | D9 |
-| `tr_postulacion_validar` | antes de actualizar | Solo deja pasar las transiciones Pendiente → Validada/Rechazada y Validada → Aprobada/Rechazada; exige justificación al rechazar; al aprobar revisa que queden **cupos** en la convocatoria (bloqueando la convocatoria para que dos aprobaciones simultáneas no se cuelen); guarda quién validó/aprobó y cuándo; impide cambiar el aprendiz o la convocatoria. | D1, D2, D9 |
+| `tr_postulacion_validar` | antes de actualizar | Solo deja pasar las transiciones Pendiente → Validada/Rechazada y Validada → Aprobada/Rechazada; exige justificación al rechazar; al aprobar revisa que queden **cupos** en la convocatoria: bloquea la convocatoria con `FOR UPDATE` y cuenta las aprobadas con `LOCK IN SHARE MODE`, para que dos aprobaciones al mismo tiempo no superen los cupos (en la primera versión faltaba este segundo candado y sí se superaban: ver `pruebas/concurrencia.md`); guarda quién validó o aprobó y cuándo, y no deja reescribir esos datos, ni la justificación del rechazo, ni el formulario si ya no está Pendiente; impide cambiar el aprendiz o la convocatoria. | D1, D2, D9 |
 | `tr_postulacion_estado` | después de actualizar | Guarda cada cambio en `historial_estados` con `@app_id_usuario`. | D9 |
 | `tr_auditoria_postulacion` | después de actualizar | Guarda cada modificación en `auditoria` con `@app_id_usuario`. | D9 |
 | `tr_postulacion_notificar` | después de actualizar | Crea la notificación al pasar a Validada, Aprobada o Rechazada (esta última con la justificación). | D8 |
 | `tr_postulacion_crear_asignacion` | después de actualizar | Al aprobar, crea la asignación copiando valor por pago, número de pagos y duración de la convocatoria. | D3 |
 | `tr_solicitud_documentacion_validar` | antes de insertar en `solicitudes_documentacion` | Solo permite pedir documentos a postulaciones Pendiente. | D1 |
+| `tr_postulacion_no_eliminar` | antes de borrar | Impide borrar postulaciones (se rechazan con justificación). | D9 |
+| `tr_convocatoria_validar` | antes de actualizar una convocatoria | Los cupos no pueden quedar por debajo de las postulaciones ya aprobadas. | D2 |
 
 **Asignaciones**
 
 | Trigger | Cuándo | Qué hace | Decisión |
 |---|---|---|---|
 | `tr_asignacion_validar_insercion` | antes de insertar | Solo permite una asignación por postulación, y solo si está Aprobada; debe empezar En curso. | D3 |
-| `tr_asignacion_validar_estado` | antes de actualizar | Transiciones válidas (En curso → Finalizado/Suspendido/Cancelado, Suspendido → En curso/Cancelado, Finalizado → En curso solo si se anuló un pago); Finalizado solo con todos los pagos vigentes; motivo obligatorio al suspender, reactivar o cancelar; el total de pagos no puede quedar por debajo de los ya registrados. | D3, D4 |
+| `tr_asignacion_validar_estado` | antes de actualizar | Transiciones válidas (En curso → Finalizado/Suspendido/Cancelado, Suspendido → En curso/Cancelado, Finalizado → En curso **solo** cuando lo pide `tr_pago_anulado`); Finalizado solo con todos los pagos vigentes (contados con `LOCK IN SHARE MODE`); motivo nuevo obligatorio al suspender, reactivar o cancelar; valor, número de pagos, duración y fecha de inicio solo se cambian si está En curso y aún no tiene pagos. | D3, D4 |
 | `tr_asignacion_cambio_estado` | después de actualizar | Audita el cambio y crea automáticamente la novedad de Suspensión, Reactivación o Cancelación. | D5, D9 |
+| `tr_asignacion_no_eliminar` | antes de borrar | Impide borrar asignaciones (se cancelan con motivo). | D3 |
 
 **Pagos**
 
 | Trigger | Cuándo | Qué hace | Decisión |
 |---|---|---|---|
-| `tr_pago_validar` | antes de insertar | Solo en asignaciones En curso; número entre 1 y el total de pagos; un solo pago Registrado por número; motivo obligatorio si hubo retraso; guarda quién lo registró. | D4 |
-| `tr_pago_registrado` | después de insertar | Notifica al aprendiz, audita y, si ya están todos los pagos vigentes, pasa la asignación a **Finalizado**. | D3, D8, D9 |
-| `tr_pago_inmutable` | antes de actualizar | Los pagos no se editan: lo único permitido es pasar de Registrado a Anulado con motivo; guarda quién anuló y cuándo. | D4 |
-| `tr_pago_anulado` | después de actualizar | Audita la anulación y, si la asignación estaba Finalizado, la devuelve a En curso para registrar el pago corregido. | D3, D4 |
+| `tr_pago_validar` | antes de insertar | Solo en asignaciones En curso; número entre 1 y el total de pagos; un solo pago Registrado por número; motivo obligatorio si hubo retraso; fecha de pago entre el inicio de la asignación y hoy; fecha programada no anterior al inicio; observación obligatoria si el monto es distinto del valor del pago; guarda quién lo registró. | D4 |
+| `tr_pago_registrado` | después de insertar | Notifica al aprendiz, audita y, si ya están todos los pagos vigentes (contados con `LOCK IN SHARE MODE`), pasa la asignación a **Finalizado**. | D3, D8, D9 |
+| `tr_pago_inmutable` | antes de actualizar | Los pagos no se editan (ni siquiera su `id_pago`): lo único permitido es pasar de Registrado a Anulado con motivo; guarda quién anuló y cuándo. | D4 |
+| `tr_pago_anulado` | después de actualizar | Audita la anulación y, si la asignación estaba Finalizado, la devuelve a En curso para registrar el pago corregido. Es el único que puede hacerlo, con la variable interna `@_br_reapertura`. | D3, D4 |
 | `tr_pago_no_eliminar` | antes de borrar | Impide borrar pagos. | D4 |
 
 **Otros**
 
 | Trigger | Cuándo | Qué hace | Decisión |
 |---|---|---|---|
-| `tr_validacion_documento` | antes de actualizar un documento | Guarda fecha y usuario de la validación. | D6, D9 |
+| `tr_validacion_documento` | antes de actualizar un documento | Guarda fecha y usuario de la validación, y no deja escribirlos a mano. | D6, D9 |
 | `tr_novedad_preparar` | antes de insertar una novedad | Exige descripción y guarda quién la registró. | D5, D9 |
 | `tr_novedad_registrada` | después de insertar una novedad | Notifica al aprendiz y audita. | D8, D9 |
+| `tr_historial_no_modificar` / `tr_historial_no_eliminar` | antes de actualizar / borrar en `historial_estados` | El historial solo admite filas nuevas. | D9 |
+| `tr_auditoria_no_modificar` / `tr_auditoria_no_eliminar` | antes de actualizar / borrar en `auditoria` | La auditoría solo admite filas nuevas. | D9 |
 
 ---
 
@@ -193,4 +198,80 @@ novedades. Si la aplicación no la define, se guarda `NULL` (nunca un id inventa
 5. **La postulación no cambia de aprendiz ni de convocatoria** después de creada (si se pudiera mover de convocatoria, se saltaría el control de cupos).
 6. **Sin "Borrador".** Como la postulación nace en Pendiente (D1), el borrador del formulario, si se quiere, lo guarda la aplicación y no la base.
 7. **Notificación única para sistema y correo.** Una fila de `notificaciones` sirve para las dos cosas (`leida` para el portal, `estado_correo` para el envío).
-8. **Limitación técnica de MariaDB.** Un pago debe registrarse con `INSERT ... VALUES (...)`. Si se usa `INSERT INTO pagos ... SELECT ... FROM asignaciones_beneficio`, MariaDB lanza el error 1442, porque el trigger necesita actualizar la tabla que esa misma consulta está leyendo.
+8. **Limitación técnica de MariaDB (error 1442).** Una sentencia no puede leer una tabla que sus propios triggers modifican. Por ejemplo, `INSERT INTO pagos ... SELECT ... FROM asignaciones_beneficio` falla, porque el trigger del pago actualiza `asignaciones_beneficio`. Regla general: **no lea, en la misma sentencia, las tablas que modifican los triggers** (`asignaciones_beneficio`, `historial_estados`, `auditoria`, `notificaciones`, `novedades`). Consulte primero los datos y luego use `INSERT ... VALUES (...)`.
+9. **Postulación nueva limpia.** Además de lo que pidió la auditoría, una postulación nueva no puede traer ya llenos los datos de validación, aprobación o rechazo; si no, se podrían inventar al crearla.
+10. **La fecha de inicio de la asignación** también queda congelada cuando ya hay pagos, porque las fechas de los pagos dependen de ella.
+
+---
+
+## 6. Correcciones de la auditoría (segunda ronda), explicadas fácil
+
+Un revisor intentó "hacer trampa" contra la base de datos y encontró huecos. Esto es lo que se
+corrigió, explicado sin tecnicismos. **Ninguna tabla ni columna cambió de nombre ni se borró**;
+solo se agregaron triggers.
+
+**B1. Dos aprobaciones al mismo tiempo superaban los cupos.**
+Imagine una convocatoria con un solo cupo y dos administradores que pulsan "Aprobar" en el mismo
+segundo. La base ponía a uno a esperar al otro (bien), pero cuando el segundo continuaba, miraba
+una *foto vieja* de la base en la que el primero todavía no había aprobado, y también aprobaba.
+Resultado: 2 aprobados con 1 cupo. Ahora el conteo se hace "con candado" (`LOCK IN SHARE MODE`),
+que siempre mira lo último que se guardó. Se probó de verdad con dos conexiones a la vez
+(`pruebas/concurrencia.md`).
+
+**B2. Se podía cambiar el número de pagos después de empezar a pagar.**
+Con 3 pagos y solo el pago 3 hecho, se podía bajar el total a 2; al registrar el pago 1, la
+asignación quedaba "Finalizado" con los pagos 1 y 3 (el pago 2 nunca existió). Ahora, en cuanto hay
+algún pago (aunque esté anulado) o la asignación no está En curso, ya no se pueden cambiar el valor,
+el número de pagos, la duración ni la fecha de inicio. Antes del primer pago sí se puede.
+
+**I1. Los dos últimos pagos registrados a la vez no cerraban la asignación.**
+Es el mismo problema de la foto vieja: si se registraban a la vez el pago 1 y el pago 2 (de 2),
+cada uno contaba solo el suyo y ninguno cerraba la asignación. Ahora ese conteo también es "con
+candado" y la asignación queda Finalizado.
+
+**I2. Se podía "reabrir" a mano una asignación terminada.**
+Una asignación Finalizado solo debe volver a En curso cuando se anula uno de sus pagos para
+corregirlo. Ahora la base solo acepta ese cambio cuando lo pide el propio trigger de anulación, con
+una "contraseña interna" de un solo uso (la variable `@_br_reapertura`). Ojo: esto evita errores de
+la aplicación, pero no es una barrera contra alguien que se conecte directamente a la base con
+intención de hacer trampa.
+
+**I3. Se podía falsificar quién validó o aprobó.**
+Con un cambio simple se podía escribir que otra persona había aprobado, cambiar la fecha, cambiar
+la justificación de un rechazo ya hecho o cambiar las respuestas del formulario después de revisado.
+Ahora esos datos los escribe solo la base en el momento del cambio de estado, la justificación solo
+se escribe al rechazar y el formulario solo se corrige mientras la postulación está Pendiente. Lo
+mismo vale para quién validó un documento.
+
+**I4. Se podían borrar o editar las huellas.**
+El historial y la auditoría son como un libro de actas: solo se pueden agregar páginas, nunca
+borrarlas ni tacharlas. Ahora la base lo impide. Tampoco se pueden borrar asignaciones ni
+postulaciones. Para que nadie escriba huellas falsas directamente, la aplicación debe usar un
+usuario de MariaDB sin permiso para escribir en esas tablas; el ejemplo está en
+`usuario_aplicacion.sql`. Los triggers siguen funcionando porque trabajan con los permisos de quien
+los creó.
+
+**I5. Fechas y montos absurdos.**
+Se podía registrar un pago del año 1900 o del 2099. Ahora la fecha del pago debe estar entre el
+inicio de la asignación y hoy, y la fecha programada no puede ser anterior al inicio. Si se paga un
+monto distinto del acordado, hay que escribir por qué (observación).
+
+**Correcciones menores.**
+- Al anular un pago no se puede cambiar su número interno (`id_pago`).
+- No se pueden bajar los cupos de una convocatoria por debajo de los ya aprobados.
+- Solo un usuario con rol Aprendiz puede postularse, y solo a una convocatoria Activa y dentro de
+  sus fechas.
+
+---
+
+## 7. Pendientes (solo documentados, no implementados todavía)
+
+- **Usuario de la aplicación.** Las protecciones de la sección 6 dependen de que la aplicación use
+  el usuario limitado de `usuario_aplicacion.sql` y no `root`. Con `root` se pueden borrar
+  triggers o escribir directamente en cualquier tabla.
+- **Número de cuenta en texto plano.** `informacion_bancaria.numero_cuenta` se guarda tal cual. Se
+  cifrará en la aplicación; cuando exista ese código, la columna tendrá que crecer, porque el texto
+  cifrado es más largo que `VARCHAR(100)`.
+- **Mejoras de nombres.** `convocatorias.usuario_cierre` debería llamarse `id_usuario_cierre`, y los
+  estados mezclan género (`Activa` en convocatorias, `Activo` en catálogos). No se cambian ahora
+  porque la matriz de requisitos ya usa los nombres actuales.
