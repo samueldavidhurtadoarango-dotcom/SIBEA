@@ -795,6 +795,9 @@ CALL pr_esperar_error('H36', 'Menor: no se puede postular a una convocatoria Act
 CALL pr_esperar_error('H37', 'D4: insertar un pago directamente en estado Anulado se rechaza',
   "INSERT INTO pagos (id_asignacion, numero_pago, monto, fecha_pago, estado, motivo_anulacion) VALUES (@h1, 2, 150000, @f_pago1, 'Anulado', 'x')",
   'debe registrarse en estado Registrado');
+CALL pr_esperar_error('H39', 'I3: no se puede crear una postulación con la aprobación ya llena',
+  "INSERT INTO postulaciones (id_usuario, id_convocatoria, id_usuario_aprobacion, fecha_aprobacion) VALUES (@a5, @conv2, 5, NOW())",
+  'los registra la base de datos');
 CALL pr_verificar('H38', 'Orden FOLLOWS de los triggers AFTER UPDATE de postulaciones',
   (SELECT GROUP_CONCAT(trigger_name ORDER BY action_order) FROM information_schema.triggers
     WHERE trigger_schema = DATABASE() AND event_object_table = 'postulaciones'

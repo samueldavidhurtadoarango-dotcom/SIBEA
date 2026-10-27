@@ -509,11 +509,18 @@ DELIMITER //
 -- ---------------------------------------------------------------------
 
 -- Al cambiar el estado de validación de un documento guarda cuándo y
--- quién lo validó (D6, D9).
+-- quién lo validó (D6, D9). Esos dos datos solo los escribe este trigger:
+-- no se pueden modificar a mano (I3).
 CREATE TRIGGER tr_validacion_documento
 BEFORE UPDATE ON documentos_postulacion
 FOR EACH ROW
 BEGIN
+  IF NOT (OLD.fecha_validacion <=> NEW.fecha_validacion)
+     OR NOT (OLD.id_usuario_validacion <=> NEW.id_usuario_validacion) THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'La fecha y el usuario de validación los registra la base de datos; no se pueden modificar';
+  END IF;
+
   IF NOT (OLD.estado_validacion <=> NEW.estado_validacion) THEN
     SET NEW.fecha_validacion = NOW();
     SET NEW.id_usuario_validacion = @app_id_usuario;
@@ -521,17 +528,76 @@ BEGIN
 END//
 
 -- ---------------------------------------------------------------------
+-- Convocatorias
+-- ---------------------------------------------------------------------
+
+-- Los cupos no pueden quedar por debajo de las postulaciones ya aprobadas.
+CREATE TRIGGER tr_convocatoria_validar
+BEFORE UPDATE ON convocatorias
+FOR EACH ROW
+BEGIN
+  DECLARE v_aprobadas INT;
+  DECLARE v_mensaje   VARCHAR(128);
+
+  IF NEW.cupos < OLD.cupos THEN
+    SELECT COUNT(*) INTO v_aprobadas
+      FROM postulaciones
+     WHERE id_convocatoria = NEW.id_convocatoria
+       AND estado = 'Aprobada'
+      LOCK IN SHARE MODE;
+
+    IF NEW.cupos < v_aprobadas THEN
+      SET v_mensaje = CONCAT('Los cupos no pueden ser menores que las postulaciones ya aprobadas (',
+                             v_aprobadas, ')');
+      SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = v_mensaje;
+    END IF;
+  END IF;
+END//
+
+-- ---------------------------------------------------------------------
 -- Postulaciones
 -- ---------------------------------------------------------------------
 
--- Toda postulación nueva empieza en Pendiente (D1).
+-- Toda postulación nueva empieza en Pendiente (D1), la crea un usuario con
+-- rol Aprendiz y solo en una convocatoria Activa y dentro de sus fechas.
+-- Los datos de validación y aprobación no se pueden traer ya llenos (I3).
 CREATE TRIGGER tr_postulacion_inicial
 BEFORE INSERT ON postulaciones
 FOR EACH ROW
 BEGIN
+  DECLARE v_rol       VARCHAR(50);
+  DECLARE v_estado    VARCHAR(20);
+  DECLARE v_abierta   INT;
+
   IF NOT (NEW.estado <=> 'Pendiente') THEN
     SIGNAL SQLSTATE '45000'
       SET MESSAGE_TEXT = 'Una postulación nueva debe iniciar en estado Pendiente';
+  END IF;
+
+  SELECT r.nombre INTO v_rol
+    FROM usuarios u
+    JOIN roles r ON r.id_rol = u.id_rol
+   WHERE u.id_usuario = NEW.id_usuario;
+
+  IF v_rol IS NOT NULL AND v_rol <> 'Aprendiz' THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'Solo un usuario con rol Aprendiz puede crear una postulación';
+  END IF;
+
+  SELECT estado, CURDATE() BETWEEN fecha_inicio AND fecha_cierre INTO v_estado, v_abierta
+    FROM convocatorias
+   WHERE id_convocatoria = NEW.id_convocatoria;
+
+  IF v_estado IS NOT NULL AND (v_estado <> 'Activa' OR v_abierta = 0) THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'La convocatoria no está abierta: debe estar Activa y dentro de sus fechas';
+  END IF;
+
+  IF NEW.justificacion_rechazo IS NOT NULL
+     OR NEW.fecha_validacion IS NOT NULL OR NEW.id_usuario_validacion IS NOT NULL
+     OR NEW.fecha_aprobacion IS NOT NULL OR NEW.id_usuario_aprobacion IS NOT NULL THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'Los datos de validación, aprobación y rechazo los registra la base de datos';
   END IF;
 END//
 
@@ -569,6 +635,28 @@ BEGIN
       SET MESSAGE_TEXT = 'No se puede cambiar el aprendiz ni la convocatoria de una postulación';
   END IF;
 
+  -- I3: quién validó / aprobó y cuándo lo escribe solo este trigger.
+  IF NOT (OLD.fecha_validacion      <=> NEW.fecha_validacion)
+     OR NOT (OLD.id_usuario_validacion <=> NEW.id_usuario_validacion)
+     OR NOT (OLD.fecha_aprobacion      <=> NEW.fecha_aprobacion)
+     OR NOT (OLD.id_usuario_aprobacion <=> NEW.id_usuario_aprobacion) THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'Los datos de validación y aprobación los registra la base de datos; no se pueden modificar';
+  END IF;
+
+  -- I3: la justificación solo se escribe en el mismo cambio que rechaza.
+  IF NOT (OLD.justificacion_rechazo <=> NEW.justificacion_rechazo)
+     AND NOT (OLD.estado <> 'Rechazada' AND NEW.estado <=> 'Rechazada') THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'La justificación del rechazo solo se registra al rechazar y no se puede cambiar';
+  END IF;
+
+  -- I3: el formulario solo se corrige mientras nadie lo ha revisado.
+  IF NOT (OLD.datos_formulario <=> NEW.datos_formulario) AND OLD.estado <> 'Pendiente' THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'El formulario solo se puede modificar mientras la postulación está Pendiente';
+  END IF;
+
   IF NOT (OLD.estado <=> NEW.estado) THEN
 
     IF NOT (   (OLD.estado = 'Pendiente' AND NEW.estado IN ('Validada', 'Rechazada'))
@@ -590,8 +678,10 @@ BEGIN
     END IF;
 
     IF NEW.estado = 'Aprobada' THEN
-      -- FOR UPDATE bloquea la convocatoria: dos aprobaciones simultáneas
-      -- no pueden pasar ambas el control de cupos.
+      -- FOR UPDATE bloquea la convocatoria: las aprobaciones de la misma
+      -- convocatoria se hacen de una en una. LOCK IN SHARE MODE en el conteo
+      -- obliga a leer los datos ya confirmados por la otra sesión, y no la
+      -- foto vieja de REPEATABLE READ (corrección B1).
       SELECT cupos INTO v_cupos
         FROM convocatorias
        WHERE id_convocatoria = NEW.id_convocatoria
@@ -600,7 +690,8 @@ BEGIN
       SELECT COUNT(*) INTO v_aprobadas
         FROM postulaciones
        WHERE id_convocatoria = NEW.id_convocatoria
-         AND estado = 'Aprobada';
+         AND estado = 'Aprobada'
+         LOCK IN SHARE MODE;
 
       IF v_aprobadas >= v_cupos THEN
         SET v_mensaje = CONCAT('No hay cupos disponibles en la convocatoria: ',
@@ -748,30 +839,59 @@ END//
 -- Valida los cambios de una asignación (D3, D4):
 --   * transiciones: En curso -> Finalizado | Suspendido | Cancelado,
 --     Suspendido -> En curso (reactivación) | Cancelado,
---     Finalizado -> En curso solo si se anuló un pago;
+--     Finalizado -> En curso solo desde tr_pago_anulado (I2);
 --   * Finalizado solo con todos los pagos vigentes registrados;
 --   * motivo nuevo obligatorio al suspender, reactivar o cancelar;
---   * el total de pagos no puede quedar por debajo de los ya registrados.
+--   * valor, número de pagos, duración y fecha de inicio solo se cambian
+--     si la asignación está En curso y aún no tiene pagos (B2).
 CREATE TRIGGER tr_asignacion_validar_estado
 BEFORE UPDATE ON asignaciones_beneficio
 FOR EACH ROW
 BEGIN
   DECLARE v_vigentes INT;
+  DECLARE v_pagos    INT;
   DECLARE v_mensaje  VARCHAR(128);
+  DECLARE v_reapertura INT;
 
-  SELECT COUNT(*) INTO v_vigentes
+  -- La autorización de reapertura se consume al empezar: vale para un solo
+  -- cambio aunque luego este trigger lance un error.
+  SET v_reapertura = (@_br_reapertura <=> NEW.id_asignacion);
+  SET @_br_reapertura = NULL;
+
+  -- LOCK IN SHARE MODE: contar los pagos ya confirmados por otras sesiones
+  -- y no la foto vieja de REPEATABLE READ (corrección I1).
+  SELECT COUNT(*), IFNULL(SUM(estado = 'Registrado'), 0) INTO v_pagos, v_vigentes
     FROM pagos
    WHERE id_asignacion = NEW.id_asignacion
-     AND estado = 'Registrado';
+    LOCK IN SHARE MODE;
 
   IF NOT (OLD.id_postulacion <=> NEW.id_postulacion) THEN
     SIGNAL SQLSTATE '45000'
       SET MESSAGE_TEXT = 'No se puede cambiar la postulación de una asignación';
   END IF;
 
+  -- I2: la reapertura solo la pide tr_pago_anulado, que fija la variable
+  -- interna @_br_reapertura con el id de esta asignación.
+  IF OLD.estado = 'Finalizado' AND NEW.estado <=> 'En curso'
+     AND v_reapertura = 0 THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'Una asignación finalizada solo vuelve a En curso al anular uno de sus pagos';
+  END IF;
+
   IF NEW.numero_pagos < v_vigentes THEN
     SIGNAL SQLSTATE '45000'
       SET MESSAGE_TEXT = 'El número total de pagos no puede ser menor que los pagos ya registrados';
+  END IF;
+
+  -- B2: valores congelados en cuanto hay pagos (vigentes o anulados) o la
+  -- asignación deja de estar En curso.
+  IF (   NOT (OLD.valor_pago     <=> NEW.valor_pago)
+      OR NOT (OLD.numero_pagos   <=> NEW.numero_pagos)
+      OR NOT (OLD.duracion_meses <=> NEW.duracion_meses)
+      OR NOT (OLD.fecha_inicio   <=> NEW.fecha_inicio))
+     AND (v_pagos > 0 OR OLD.estado <> 'En curso') THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'No se pueden cambiar valor, pagos, duración ni inicio: la asignación ya tiene pagos o no está En curso';
   END IF;
 
   IF NEW.estado = 'Finalizado' AND v_vigentes < NEW.numero_pagos THEN
@@ -791,7 +911,7 @@ BEGIN
 
     IF OLD.estado = 'Finalizado' AND v_vigentes >= NEW.numero_pagos THEN
       SIGNAL SQLSTATE '45000'
-        SET MESSAGE_TEXT = 'Una asignación finalizada solo vuelve a En curso si se anula uno de sus pagos';
+        SET MESSAGE_TEXT = 'Una asignación finalizada solo vuelve a En curso al anular uno de sus pagos';
     END IF;
 
     IF (NEW.estado IN ('Suspendido', 'Cancelado') OR OLD.estado = 'Suspendido')
@@ -808,6 +928,7 @@ BEGIN
     END IF;
 
   END IF;
+
 END//
 
 -- Auditoría de los cambios de la asignación y novedad automática al
@@ -842,6 +963,15 @@ BEGIN
   END IF;
 END//
 
+-- Las asignaciones no se borran: se cancelan con motivo (I4).
+CREATE TRIGGER tr_asignacion_no_eliminar
+BEFORE DELETE ON asignaciones_beneficio
+FOR EACH ROW
+BEGIN
+  SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'Las asignaciones no se pueden eliminar: cancélelas indicando el motivo';
+END//
+
 -- ---------------------------------------------------------------------
 -- Pagos
 -- ---------------------------------------------------------------------
@@ -851,6 +981,9 @@ END//
 --   * número entre 1 y el total de pagos de la asignación;
 --   * un solo pago Registrado por número (respaldado por uk_pago_vigente);
 --   * motivo obligatorio si hubo retraso;
+--   * fecha de pago entre el inicio de la asignación y hoy; fecha
+--     programada no anterior al inicio (I5);
+--   * si el monto es distinto del valor del pago, observación obligatoria (I5);
 --   * guarda quién lo registró (@app_id_usuario).
 CREATE TRIGGER tr_pago_validar
 BEFORE INSERT ON pagos
@@ -858,11 +991,13 @@ FOR EACH ROW
 BEGIN
   DECLARE v_estado  VARCHAR(20);
   DECLARE v_total   INT;
+  DECLARE v_inicio  DATE;
+  DECLARE v_valor   DECIMAL(12,2);
   DECLARE v_mensaje VARCHAR(128);
 
   -- FOR UPDATE bloquea la asignación: evita dos registros simultáneos del
   -- mismo número o del último pago.
-  SELECT estado, numero_pagos INTO v_estado, v_total
+  SELECT estado, numero_pagos, fecha_inicio, valor_pago INTO v_estado, v_total, v_inicio, v_valor
     FROM asignaciones_beneficio
    WHERE id_asignacion = NEW.id_asignacion
      FOR UPDATE;
@@ -892,7 +1027,8 @@ BEGIN
   IF EXISTS (SELECT 1 FROM pagos
               WHERE id_asignacion = NEW.id_asignacion
                 AND numero_pago = NEW.numero_pago
-                AND estado = 'Registrado') THEN
+                AND estado = 'Registrado'
+               LOCK IN SHARE MODE) THEN
     SET v_mensaje = CONCAT('Ya existe un pago registrado con el número ', NEW.numero_pago,
                            ' en esta asignación; anúlelo antes de registrar otro');
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = v_mensaje;
@@ -901,6 +1037,25 @@ BEGIN
   IF NEW.hubo_retraso = 1 AND (NEW.motivo_retraso IS NULL OR TRIM(NEW.motivo_retraso) = '') THEN
     SIGNAL SQLSTATE '45000'
       SET MESSAGE_TEXT = 'El motivo del retraso es obligatorio cuando hubo retraso';
+  END IF;
+
+  IF NEW.fecha_pago < v_inicio OR NEW.fecha_pago > CURDATE() THEN
+    SET v_mensaje = CONCAT('La fecha de pago debe estar entre el inicio de la asignación (',
+                           DATE_FORMAT(v_inicio, '%d/%m/%Y'), ') y hoy');
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = v_mensaje;
+  END IF;
+
+  IF NEW.fecha_programada IS NOT NULL AND NEW.fecha_programada < v_inicio THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'La fecha programada no puede ser anterior al inicio de la asignación';
+  END IF;
+
+  -- (Un monto <= 0 lo rechaza la regla chk_pago_monto.)
+  IF NEW.monto > 0 AND NEW.monto <> v_valor
+     AND (NEW.observacion IS NULL OR TRIM(NEW.observacion) = '') THEN
+    SET v_mensaje = CONCAT('El monto es distinto del valor del pago (', FORMAT(v_valor, 2, 'es_CO'),
+                           '): la observación es obligatoria');
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = v_mensaje;
   END IF;
 
   SET NEW.id_usuario_registro = COALESCE(NEW.id_usuario_registro, @app_id_usuario);
@@ -938,10 +1093,13 @@ BEGIN
                       'hubo_retraso', NEW.hubo_retraso),
           @app_ip);
 
+  -- LOCK IN SHARE MODE: contar también los pagos que otra sesión acaba de
+  -- confirmar, no la foto vieja de REPEATABLE READ (corrección I1).
   SELECT COUNT(*) INTO v_vigentes
     FROM pagos
    WHERE id_asignacion = NEW.id_asignacion
-     AND estado = 'Registrado';
+     AND estado = 'Registrado'
+    LOCK IN SHARE MODE;
 
   SELECT numero_pagos INTO v_total
     FROM asignaciones_beneficio
@@ -963,6 +1121,7 @@ BEFORE UPDATE ON pagos
 FOR EACH ROW
 BEGIN
   IF NOT (    OLD.estado = 'Registrado' AND NEW.estado <=> 'Anulado'
+          AND OLD.id_pago             <=> NEW.id_pago
           AND OLD.id_asignacion       <=> NEW.id_asignacion
           AND OLD.numero_pago         <=> NEW.numero_pago
           AND OLD.monto               <=> NEW.monto
@@ -999,11 +1158,15 @@ BEGIN
                       'motivo_anulacion', NEW.motivo_anulacion),
           @app_ip);
 
+  -- @_br_reapertura autoriza (una sola vez) la reapertura Finalizado ->
+  -- En curso en tr_asignacion_validar_estado (I2).
+  SET @_br_reapertura = NEW.id_asignacion;
   UPDATE asignaciones_beneficio
      SET estado = 'En curso',
          motivo_estado = LEFT(CONCAT('Se anuló el pago ', NEW.numero_pago, ': ', NEW.motivo_anulacion), 1000)
    WHERE id_asignacion = NEW.id_asignacion
      AND estado = 'Finalizado';
+  SET @_br_reapertura = NULL;
 END//
 
 -- Los pagos no se borran (D4).
@@ -1056,6 +1219,53 @@ BEGIN
                       'tipo', NEW.tipo,
                       'descripcion', NEW.descripcion),
           @app_ip);
+END//
+
+-- ---------------------------------------------------------------------
+-- Protección contra borrados y cambios directos (I4)
+-- ---------------------------------------------------------------------
+
+-- Las postulaciones no se borran: se rechazan con justificación.
+CREATE TRIGGER tr_postulacion_no_eliminar
+BEFORE DELETE ON postulaciones
+FOR EACH ROW
+BEGIN
+  SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'Las postulaciones no se pueden eliminar: recházelas con una justificación';
+END//
+
+-- El historial de estados solo admite filas nuevas.
+CREATE TRIGGER tr_historial_no_modificar
+BEFORE UPDATE ON historial_estados
+FOR EACH ROW
+BEGIN
+  SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'El historial de estados no se puede modificar ni eliminar';
+END//
+
+CREATE TRIGGER tr_historial_no_eliminar
+BEFORE DELETE ON historial_estados
+FOR EACH ROW
+BEGIN
+  SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'El historial de estados no se puede modificar ni eliminar';
+END//
+
+-- La auditoría solo admite filas nuevas.
+CREATE TRIGGER tr_auditoria_no_modificar
+BEFORE UPDATE ON auditoria
+FOR EACH ROW
+BEGIN
+  SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'La auditoría no se puede modificar ni eliminar';
+END//
+
+CREATE TRIGGER tr_auditoria_no_eliminar
+BEFORE DELETE ON auditoria
+FOR EACH ROW
+BEGIN
+  SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'La auditoría no se puede modificar ni eliminar';
 END//
 
 DELIMITER ;
