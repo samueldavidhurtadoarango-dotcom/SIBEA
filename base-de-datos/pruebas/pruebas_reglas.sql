@@ -320,6 +320,10 @@ CALL pr_verificar('B19', 'D1: tras pedir documentación la postulación sigue en
   (SELECT estado FROM postulaciones WHERE id_postulacion = @p4) = 'Pendiente',
   (SELECT estado FROM postulaciones WHERE id_postulacion = @p4));
 
+CALL pr_esperar_error('B20', 'D2: no se puede mover una postulación a otra convocatoria (saltaría los cupos)',
+  "UPDATE postulaciones SET id_convocatoria = id_convocatoria + 1000 WHERE id_postulacion = @p4",
+  'No se puede cambiar el aprendiz ni la convocatoria');
+
 -- =====================================================================
 -- Bloque C. Cupos y asignación del beneficio (D2, D3, CA3)
 -- =====================================================================
