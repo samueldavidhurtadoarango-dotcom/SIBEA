@@ -808,6 +808,179 @@ CALL pr_verificar('H38', 'Orden FOLLOWS de los triggers AFTER UPDATE de postulac
       AND action_timing = 'AFTER' AND event_manipulation = 'UPDATE'));
 
 -- =====================================================================
+-- Bloque I. Solo un administrador activo puede hacer las acciones de
+-- gestión (ronda 3). Con @app_id_usuario = NULL se mantiene D9: se permite.
+-- =====================================================================
+CALL pr_verificar('I00', 'Existen fn_es_administrador y pr_exigir_administrador',
+  (SELECT COUNT(*) FROM information_schema.routines
+    WHERE routine_schema = DATABASE()
+      AND ((routine_name = 'fn_es_administrador' AND routine_type = 'FUNCTION')
+        OR (routine_name = 'pr_exigir_administrador' AND routine_type = 'PROCEDURE'))) = 2,
+  (SELECT IFNULL(GROUP_CONCAT(CONCAT(routine_type, ' ', routine_name)), 'ninguna') FROM information_schema.routines
+    WHERE routine_schema = DATABASE() AND routine_name IN ('fn_es_administrador', 'pr_exigir_administrador')));
+
+SET @app_id_usuario = NULL;
+INSERT INTO usuarios (documento, nombre, apellido, correo, password_hash, id_rol, estado)
+VALUES ('PRUEBA-ADM-INACTIVO', 'Admin', 'Inactivo', 'adm.inactivo@benefitrack.test', 'hash', @rol_admin, 'Inactivo');
+SET @adm_inactivo = LAST_INSERT_ID();
+INSERT INTO postulaciones (id_usuario, id_convocatoria, datos_formulario) VALUES (@a5, @conv2, '{}');
+SET @q5 = LAST_INSERT_ID();
+INSERT INTO documentos_postulacion (id_postulacion, id_tipo_documento, nombre_archivo, ruta_archivo, extension, tamano_mb)
+VALUES (@q5, 2, 'cert.pdf', 'docs/cert.pdf', 'pdf', 0.80);
+SET @doc2 = LAST_INSERT_ID();
+
+-- El aprendiz sí puede corregir su propio formulario mientras está Pendiente.
+SET @app_id_usuario = @a5;
+CALL pr_esperar_exito('I01', 'El aprendiz puede corregir su formulario Pendiente (no se restringe de más)',
+  "UPDATE postulaciones SET datos_formulario = '{\"estrato\": 2}' WHERE id_postulacion = @q5");
+
+-- Convocatoria: cupos y estado
+SET @app_id_usuario = @a1;
+CALL pr_esperar_error('I02', 'Rol: un aprendiz no puede modificar los cupos de una convocatoria',
+  "UPDATE convocatorias SET cupos = 6 WHERE id_convocatoria = @conv2", 'Solo un administrador activo puede');
+CALL pr_esperar_error('I03', 'Rol: un aprendiz no puede cambiar el estado de una convocatoria',
+  "UPDATE convocatorias SET estado = 'Activa' WHERE id_convocatoria = @conv3", 'Solo un administrador activo puede');
+SET @app_id_usuario = @adm_inactivo;
+CALL pr_esperar_error('I04', 'Rol: un administrador inactivo no puede modificar los cupos',
+  "UPDATE convocatorias SET cupos = 6 WHERE id_convocatoria = @conv2", 'Solo un administrador activo puede');
+CALL pr_esperar_error('I05', 'Rol: un administrador inactivo no puede cambiar el estado de una convocatoria',
+  "UPDATE convocatorias SET estado = 'Activa' WHERE id_convocatoria = @conv3", 'Solo un administrador activo puede');
+SET @app_id_usuario = 5;
+CALL pr_esperar_exito('I06', 'Rol: un administrador activo puede modificar los cupos',
+  "UPDATE convocatorias SET cupos = 6 WHERE id_convocatoria = @conv2");
+CALL pr_esperar_exito('I07', 'Rol: un administrador activo puede cambiar el estado de una convocatoria',
+  "UPDATE convocatorias SET estado = 'Activa' WHERE id_convocatoria = @conv3");
+
+-- Documentos y solicitud de documentación (sobre q5, Pendiente)
+SET @app_id_usuario = @a5;
+CALL pr_esperar_error('I08', 'Rol: un aprendiz no puede validar o rechazar un documento',
+  "UPDATE documentos_postulacion SET estado_validacion = 'Rechazado' WHERE id_documento = @doc2", 'Solo un administrador activo puede');
+CALL pr_esperar_error('I09', 'Rol: un aprendiz no puede pedir documentación adicional',
+  "INSERT INTO solicitudes_documentacion (id_postulacion, id_usuario, observacion) VALUES (@q5, @a5, 'x')", 'Solo un administrador activo puede');
+SET @app_id_usuario = @adm_inactivo;
+CALL pr_esperar_error('I10', 'Rol: un administrador inactivo no puede validar o rechazar un documento',
+  "UPDATE documentos_postulacion SET estado_validacion = 'Rechazado' WHERE id_documento = @doc2", 'Solo un administrador activo puede');
+CALL pr_esperar_error('I11', 'Rol: un administrador inactivo no puede pedir documentación adicional',
+  "INSERT INTO solicitudes_documentacion (id_postulacion, id_usuario, observacion) VALUES (@q5, @adm_inactivo, 'x')", 'Solo un administrador activo puede');
+SET @app_id_usuario = 5;
+CALL pr_esperar_exito('I12', 'Rol: un administrador activo puede rechazar un documento',
+  "UPDATE documentos_postulacion SET estado_validacion = 'Rechazado' WHERE id_documento = @doc2");
+CALL pr_esperar_exito('I13', 'Rol: un administrador activo puede pedir documentación adicional',
+  "INSERT INTO solicitudes_documentacion (id_postulacion, id_usuario, observacion) VALUES (@q5, 5, 'Adjunte un certificado legible')");
+
+-- Postulaciones: validar, aprobar, rechazar
+SET @app_id_usuario = @a4;
+CALL pr_esperar_error('I14', 'Rol: un aprendiz no puede validar una postulación (ni la suya)',
+  "UPDATE postulaciones SET estado = 'Validada' WHERE id_postulacion = @q4", 'Solo un administrador activo puede');
+SET @app_id_usuario = @adm_inactivo;
+CALL pr_esperar_error('I15', 'Rol: un administrador inactivo no puede validar una postulación',
+  "UPDATE postulaciones SET estado = 'Validada' WHERE id_postulacion = @q4", 'Solo un administrador activo puede');
+SET @app_id_usuario = 5;
+CALL pr_esperar_exito('I16', 'Rol: un administrador activo puede validar una postulación',
+  "UPDATE postulaciones SET estado = 'Validada' WHERE id_postulacion = @q4");
+SET @app_id_usuario = @a4;
+CALL pr_esperar_error('I17', 'Rol: un aprendiz no puede aprobar una postulación (caso 11 del revisor)',
+  "UPDATE postulaciones SET estado = 'Aprobada' WHERE id_postulacion = @q4", 'Solo un administrador activo puede');
+SET @app_id_usuario = @adm_inactivo;
+CALL pr_esperar_error('I18', 'Rol: un administrador inactivo no puede aprobar una postulación',
+  "UPDATE postulaciones SET estado = 'Aprobada' WHERE id_postulacion = @q4", 'Solo un administrador activo puede');
+SET @app_id_usuario = 5;
+CALL pr_esperar_exito('I19', 'Rol: un administrador activo puede aprobar una postulación',
+  "UPDATE postulaciones SET estado = 'Aprobada' WHERE id_postulacion = @q4");
+SELECT id_asignacion INTO @h4 FROM asignaciones_beneficio WHERE id_postulacion = @q4;
+SET @app_id_usuario = @a5;
+CALL pr_esperar_error('I20', 'Rol: un aprendiz no puede rechazar una postulación',
+  "UPDATE postulaciones SET estado = 'Rechazada', justificacion_rechazo = 'x' WHERE id_postulacion = @q5", 'Solo un administrador activo puede');
+SET @app_id_usuario = @adm_inactivo;
+CALL pr_esperar_error('I21', 'Rol: un administrador inactivo no puede rechazar una postulación',
+  "UPDATE postulaciones SET estado = 'Rechazada', justificacion_rechazo = 'x' WHERE id_postulacion = @q5", 'Solo un administrador activo puede');
+SET @app_id_usuario = 5;
+CALL pr_esperar_exito('I22', 'Rol: un administrador activo puede rechazar una postulación',
+  "UPDATE postulaciones SET estado = 'Rechazada', justificacion_rechazo = 'Documentos ilegibles' WHERE id_postulacion = @q5");
+
+-- Asignaciones: crear, modificar y cambiar estado (sobre h4, En curso y sin pagos)
+SET @app_id_usuario = @a1;
+CALL pr_esperar_error('I23', 'Rol: un aprendiz no puede crear una asignación',
+  "INSERT INTO asignaciones_beneficio (id_postulacion, valor_pago, numero_pagos, duracion_meses, fecha_inicio) VALUES (@q4, 1, 1, 1, CURDATE())", 'Solo un administrador activo puede');
+SET @app_id_usuario = @adm_inactivo;
+CALL pr_esperar_error('I24', 'Rol: un administrador inactivo no puede crear una asignación',
+  "INSERT INTO asignaciones_beneficio (id_postulacion, valor_pago, numero_pagos, duracion_meses, fecha_inicio) VALUES (@q4, 1, 1, 1, CURDATE())", 'Solo un administrador activo puede');
+SET @app_id_usuario = 5;
+CALL pr_verificar('I25', 'Rol: el administrador activo que aprobó creó la asignación (y queda como su autor)',
+  (SELECT id_usuario_registro FROM asignaciones_beneficio WHERE id_asignacion = @h4) = 5,
+  (SELECT CONCAT('id_usuario_registro=', IFNULL(id_usuario_registro, 'NULL')) FROM asignaciones_beneficio WHERE id_asignacion = @h4));
+SET @app_id_usuario = @a4;
+CALL pr_esperar_error('I26', 'Rol: un aprendiz no puede modificar una asignación',
+  "UPDATE asignaciones_beneficio SET numero_pagos = 2 WHERE id_asignacion = @h4", 'Solo un administrador activo puede');
+CALL pr_esperar_error('I27', 'Rol: un aprendiz no puede suspender una asignación',
+  "UPDATE asignaciones_beneficio SET estado = 'Suspendido', motivo_estado = 'x' WHERE id_asignacion = @h4", 'Solo un administrador activo puede');
+SET @app_id_usuario = @adm_inactivo;
+CALL pr_esperar_error('I28', 'Rol: un administrador inactivo no puede modificar una asignación',
+  "UPDATE asignaciones_beneficio SET numero_pagos = 2 WHERE id_asignacion = @h4", 'Solo un administrador activo puede');
+CALL pr_esperar_error('I29', 'Rol: un administrador inactivo no puede suspender una asignación',
+  "UPDATE asignaciones_beneficio SET estado = 'Suspendido', motivo_estado = 'x' WHERE id_asignacion = @h4", 'Solo un administrador activo puede');
+SET @app_id_usuario = 5;
+CALL pr_esperar_exito('I30', 'Rol: un administrador activo puede modificar una asignación sin pagos',
+  "UPDATE asignaciones_beneficio SET numero_pagos = 2 WHERE id_asignacion = @h4");
+CALL pr_esperar_exito('I31', 'Rol: un administrador activo puede suspender una asignación',
+  "UPDATE asignaciones_beneficio SET estado = 'Suspendido', motivo_estado = 'Revisión de asistencia' WHERE id_asignacion = @h4");
+SET @app_id_usuario = @a4;
+CALL pr_esperar_error('I32', 'Rol: un aprendiz no puede reactivar una asignación',
+  "UPDATE asignaciones_beneficio SET estado = 'En curso', motivo_estado = 'y' WHERE id_asignacion = @h4", 'Solo un administrador activo puede');
+SET @app_id_usuario = @adm_inactivo;
+CALL pr_esperar_error('I33', 'Rol: un administrador inactivo no puede reactivar una asignación',
+  "UPDATE asignaciones_beneficio SET estado = 'En curso', motivo_estado = 'y' WHERE id_asignacion = @h4", 'Solo un administrador activo puede');
+SET @app_id_usuario = 5;
+CALL pr_esperar_exito('I34', 'Rol: un administrador activo puede reactivar una asignación',
+  "UPDATE asignaciones_beneficio SET estado = 'En curso', motivo_estado = 'Asistencia verificada' WHERE id_asignacion = @h4");
+
+-- Pagos: registrar y anular (sobre h4, inicio hoy)
+SET @app_id_usuario = @a4;
+CALL pr_esperar_error('I35', 'Rol: un aprendiz no puede registrar un pago',
+  "INSERT INTO pagos (id_asignacion, numero_pago, monto, fecha_pago) VALUES (@h4, 1, 150000, CURDATE())", 'Solo un administrador activo puede');
+SET @app_id_usuario = @adm_inactivo;
+CALL pr_esperar_error('I36', 'Rol: un administrador inactivo no puede registrar un pago',
+  "INSERT INTO pagos (id_asignacion, numero_pago, monto, fecha_pago) VALUES (@h4, 1, 150000, CURDATE())", 'Solo un administrador activo puede');
+SET @app_id_usuario = 5;
+CALL pr_esperar_exito('I37', 'Rol: un administrador activo puede registrar un pago',
+  "INSERT INTO pagos (id_asignacion, numero_pago, monto, fecha_pago) VALUES (@h4, 1, 150000, CURDATE())");
+SET @app_id_usuario = @a4;
+CALL pr_esperar_error('I38', 'Rol: un aprendiz no puede anular un pago',
+  "UPDATE pagos SET estado = 'Anulado', motivo_anulacion = 'x' WHERE id_asignacion = @h4 AND numero_pago = 1", 'Solo un administrador activo puede');
+SET @app_id_usuario = @adm_inactivo;
+CALL pr_esperar_error('I39', 'Rol: un administrador inactivo no puede anular un pago',
+  "UPDATE pagos SET estado = 'Anulado', motivo_anulacion = 'x' WHERE id_asignacion = @h4 AND numero_pago = 1", 'Solo un administrador activo puede');
+SET @app_id_usuario = 5;
+CALL pr_esperar_exito('I40', 'Rol: un administrador activo puede anular un pago',
+  "UPDATE pagos SET estado = 'Anulado', motivo_anulacion = 'Fecha equivocada' WHERE id_asignacion = @h4 AND numero_pago = 1");
+
+-- Novedad manual y cancelación
+SET @app_id_usuario = @a4;
+CALL pr_esperar_error('I41', 'Rol: un aprendiz no puede registrar una novedad',
+  "INSERT INTO novedades (id_asignacion, tipo, descripcion) VALUES (@h4, 'Otra', 'x')", 'Solo un administrador activo puede');
+CALL pr_esperar_error('I42', 'Rol: un aprendiz no puede cancelar una asignación',
+  "UPDATE asignaciones_beneficio SET estado = 'Cancelado', motivo_estado = 'z' WHERE id_asignacion = @h4", 'Solo un administrador activo puede');
+SET @app_id_usuario = @adm_inactivo;
+CALL pr_esperar_error('I43', 'Rol: un administrador inactivo no puede registrar una novedad',
+  "INSERT INTO novedades (id_asignacion, tipo, descripcion) VALUES (@h4, 'Otra', 'x')", 'Solo un administrador activo puede');
+CALL pr_esperar_error('I44', 'Rol: un administrador inactivo no puede cancelar una asignación',
+  "UPDATE asignaciones_beneficio SET estado = 'Cancelado', motivo_estado = 'z' WHERE id_asignacion = @h4", 'Solo un administrador activo puede');
+SET @app_id_usuario = 5;
+CALL pr_esperar_exito('I45', 'Rol: un administrador activo puede registrar una novedad',
+  "INSERT INTO novedades (id_asignacion, tipo, descripcion) VALUES (@h4, 'Otra', 'Cambio de cuenta bancaria')");
+CALL pr_esperar_exito('I46', 'Rol: un administrador activo puede cancelar una asignación',
+  "UPDATE asignaciones_beneficio SET estado = 'Cancelado', motivo_estado = 'Retiro del programa' WHERE id_asignacion = @h4");
+
+-- D9 se mantiene: sin @app_id_usuario la acción se permite y se guarda NULL.
+SET @app_id_usuario = NULL;
+CALL pr_esperar_exito('I47', 'D9: con @app_id_usuario = NULL se sigue permitiendo (novedad manual)',
+  "INSERT INTO novedades (id_asignacion, tipo, descripcion) VALUES (@h4, 'Otra', 'Registro sin usuario de sesión')");
+CALL pr_verificar('I48', 'D9: esa novedad guarda id_usuario NULL',
+  (SELECT COUNT(*) FROM novedades WHERE id_asignacion = @h4 AND descripcion = 'Registro sin usuario de sesión' AND id_usuario IS NULL) = 1,
+  'novedades.id_usuario');
+SET @app_id_usuario = 5;
+
+-- =====================================================================
 -- Fin: deshacer los datos de prueba e imprimir el resumen
 -- =====================================================================
 ROLLBACK;
