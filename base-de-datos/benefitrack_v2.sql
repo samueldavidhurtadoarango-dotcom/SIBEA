@@ -505,6 +505,38 @@ CREATE TABLE migraciones (
 DELIMITER //
 
 -- ---------------------------------------------------------------------
+-- Rutinas auxiliares de autorización
+-- ---------------------------------------------------------------------
+
+-- Devuelve 1 si el usuario existe, tiene rol Administrador y está Activo.
+CREATE FUNCTION fn_es_administrador(p_id_usuario INT)
+RETURNS TINYINT(1)
+NOT DETERMINISTIC
+READS SQL DATA
+BEGIN
+  RETURN EXISTS (SELECT 1
+                   FROM usuarios u
+                   JOIN roles r ON r.id_rol = u.id_rol
+                  WHERE u.id_usuario = p_id_usuario
+                    AND r.nombre = 'Administrador'
+                    AND u.estado = 'Activo');
+END//
+
+-- Lanza un error si @app_id_usuario está definido y no es un administrador
+-- activo. Si @app_id_usuario es NULL se permite la acción (D9): por eso la
+-- aplicación SIEMPRE debe fijar la variable al conectarse.
+CREATE PROCEDURE pr_exigir_administrador(IN p_accion VARCHAR(80))
+READS SQL DATA
+BEGIN
+  DECLARE v_mensaje VARCHAR(128);
+
+  IF @app_id_usuario IS NOT NULL AND NOT fn_es_administrador(@app_id_usuario) THEN
+    SET v_mensaje = CONCAT('Solo un administrador activo puede ', p_accion);
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = v_mensaje;
+  END IF;
+END//
+
+-- ---------------------------------------------------------------------
 -- Documentos de la postulación
 -- ---------------------------------------------------------------------
 
@@ -522,6 +554,7 @@ BEGIN
   END IF;
 
   IF NOT (OLD.estado_validacion <=> NEW.estado_validacion) THEN
+    CALL pr_exigir_administrador('validar o rechazar un documento');
     SET NEW.fecha_validacion = NOW();
     SET NEW.id_usuario_validacion = @app_id_usuario;
   END IF;
@@ -531,13 +564,18 @@ END//
 -- Convocatorias
 -- ---------------------------------------------------------------------
 
--- Los cupos no pueden quedar por debajo de las postulaciones ya aprobadas.
+-- Solo un administrador activo cambia cupos o estado, y los cupos no pueden
+-- quedar por debajo de las postulaciones ya aprobadas.
 CREATE TRIGGER tr_convocatoria_validar
 BEFORE UPDATE ON convocatorias
 FOR EACH ROW
 BEGIN
   DECLARE v_aprobadas INT;
   DECLARE v_mensaje   VARCHAR(128);
+
+  IF NOT (OLD.cupos <=> NEW.cupos) OR NOT (OLD.estado <=> NEW.estado) THEN
+    CALL pr_exigir_administrador('modificar los cupos o el estado de una convocatoria');
+  END IF;
 
   IF NEW.cupos < OLD.cupos THEN
     SELECT COUNT(*) INTO v_aprobadas
@@ -658,6 +696,13 @@ BEGIN
   END IF;
 
   IF NOT (OLD.estado <=> NEW.estado) THEN
+
+    CALL pr_exigir_administrador(CASE NEW.estado
+                                   WHEN 'Validada'  THEN 'validar una postulación'
+                                   WHEN 'Aprobada'  THEN 'aprobar una postulación'
+                                   WHEN 'Rechazada' THEN 'rechazar una postulación'
+                                   ELSE 'cambiar el estado de una postulación'
+                                 END);
 
     IF NOT (   (OLD.estado = 'Pendiente' AND NEW.estado IN ('Validada', 'Rechazada'))
             OR (OLD.estado = 'Validada'  AND NEW.estado IN ('Aprobada', 'Rechazada'))) THEN
@@ -792,6 +837,8 @@ FOR EACH ROW
 BEGIN
   DECLARE v_estado VARCHAR(20);
 
+  CALL pr_exigir_administrador('pedir documentación adicional');
+
   SELECT estado INTO v_estado
     FROM postulaciones
    WHERE id_postulacion = NEW.id_postulacion;
@@ -813,6 +860,8 @@ BEFORE INSERT ON asignaciones_beneficio
 FOR EACH ROW
 BEGIN
   DECLARE v_estado VARCHAR(20);
+
+  CALL pr_exigir_administrador('crear una asignación');
 
   SELECT estado INTO v_estado
     FROM postulaciones
@@ -857,6 +906,14 @@ BEGIN
   -- cambio aunque luego este trigger lance un error.
   SET v_reapertura = (@_br_reapertura <=> NEW.id_asignacion);
   SET @_br_reapertura = NULL;
+
+  CALL pr_exigir_administrador(CASE
+                                 WHEN OLD.estado <=> NEW.estado     THEN 'modificar una asignación'
+                                 WHEN NEW.estado = 'Suspendido'     THEN 'suspender una asignación'
+                                 WHEN NEW.estado = 'Cancelado'      THEN 'cancelar una asignación'
+                                 WHEN OLD.estado = 'Suspendido'     THEN 'reactivar una asignación'
+                                 ELSE 'cambiar el estado de una asignación'
+                               END);
 
   -- LOCK IN SHARE MODE: contar los pagos ya confirmados por otras sesiones
   -- y no la foto vieja de REPEATABLE READ (corrección I1).
@@ -995,6 +1052,8 @@ BEGIN
   DECLARE v_valor   DECIMAL(12,2);
   DECLARE v_mensaje VARCHAR(128);
 
+  CALL pr_exigir_administrador('registrar un pago');
+
   -- FOR UPDATE bloquea la asignación: evita dos registros simultáneos del
   -- mismo número o del último pago.
   SELECT estado, numero_pagos, fecha_inicio, valor_pago INTO v_estado, v_total, v_inicio, v_valor
@@ -1120,6 +1179,8 @@ CREATE TRIGGER tr_pago_inmutable
 BEFORE UPDATE ON pagos
 FOR EACH ROW
 BEGIN
+  CALL pr_exigir_administrador('anular un pago');
+
   IF NOT (    OLD.estado = 'Registrado' AND NEW.estado <=> 'Anulado'
           AND OLD.id_pago             <=> NEW.id_pago
           AND OLD.id_asignacion       <=> NEW.id_asignacion
@@ -1187,6 +1248,8 @@ CREATE TRIGGER tr_novedad_preparar
 BEFORE INSERT ON novedades
 FOR EACH ROW
 BEGIN
+  CALL pr_exigir_administrador('registrar una novedad');
+
   IF NEW.descripcion IS NULL OR TRIM(NEW.descripcion) = '' THEN
     SIGNAL SQLSTATE '45000'
       SET MESSAGE_TEXT = 'La descripción de la novedad es obligatoria';
