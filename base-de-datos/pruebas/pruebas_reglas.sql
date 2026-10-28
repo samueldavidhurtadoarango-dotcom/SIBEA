@@ -41,7 +41,9 @@ CREATE PROCEDURE pr_esperar_error(IN p_caso VARCHAR(10), IN p_desc VARCHAR(200),
                                   IN p_sql TEXT, IN p_mensaje VARCHAR(200))
 BEGIN
   DECLARE v_error TEXT DEFAULT NULL;
-  DECLARE CONTINUE HANDLER FOR SQLEXCEPTION
+  -- SQLWARNING también: en modo estricto algunos errores llegan con un
+  -- SQLSTATE de advertencia (por ejemplo, 1265 «Data truncated», 01000).
+  DECLARE CONTINUE HANDLER FOR SQLEXCEPTION, SQLWARNING
     GET DIAGNOSTICS CONDITION 1 v_error = MESSAGE_TEXT;
 
   SET @pr_sql = p_sql;
@@ -1518,6 +1520,42 @@ CALL pr_verificar('M03', 'B1: el administrador 5 sigue Activo y no hay filas de 
   (SELECT estado = 'Activo' FROM usuarios WHERE id_usuario = 5)
   AND (SELECT COUNT(*) FROM auditoria WHERE entidad = 'usuarios' AND id_usuario = @a1) = @aud_a1,
   (SELECT CONCAT('estado admin 5=', estado) FROM usuarios WHERE id_usuario = 5));
+
+-- =====================================================================
+-- Bloque N. Procedimientos de cambio de cuentas (ronda 9, rev8_app.sql)
+-- =====================================================================
+-- Aquí @a9 está Activo y es Aprendiz.
+SET @app_id_usuario = 5;
+SET @app_justificacion = 'queda2';
+CALL pr_esperar_error('N01', 'I1: un estado que no existe se rechaza con un mensaje claro',
+  "CALL pr_cambiar_estado_usuario(@a9, 'Nada', 'motivo')", 'Estado no válido');
+CALL pr_verificar('N02', 'I1: tras el estado inválido, @app_justificacion queda en NULL y el estado no cambia',
+  @app_justificacion IS NULL AND (SELECT estado = 'Activo' FROM usuarios WHERE id_usuario = @a9),
+  CONCAT('@app_justificacion=', IFNULL(@app_justificacion, 'NULL'),
+         ' estado=', (SELECT estado FROM usuarios WHERE id_usuario = @a9)));
+CALL pr_esperar_error('N03', 'I1: un estado NULL también se rechaza',
+  "CALL pr_cambiar_estado_usuario(@a9, NULL, 'motivo')", 'Estado no válido');
+SET @app_justificacion = 'queda';
+CALL pr_esperar_exito('N04', 'M1: una justificación de 5000 caracteres se acepta',
+  "CALL pr_cambiar_estado_usuario(@a9, 'Inactivo', REPEAT('x', 5000))");
+CALL pr_verificar('N05', 'M1: la auditoría guarda la justificación completa y la variable queda en NULL',
+  @app_justificacion IS NULL
+  AND (SELECT CHAR_LENGTH(JSON_UNQUOTE(JSON_EXTRACT(detalle, '$.justificacion'))) FROM auditoria
+        WHERE entidad = 'usuarios' AND id_entidad = @a9 ORDER BY id_auditoria DESC LIMIT 1) = 5000,
+  (SELECT CONCAT('largo guardado=', IFNULL(CHAR_LENGTH(JSON_UNQUOTE(JSON_EXTRACT(detalle, '$.justificacion'))), 'NULL'))
+     FROM auditoria WHERE entidad = 'usuarios' AND id_entidad = @a9 ORDER BY id_auditoria DESC LIMIT 1));
+SET @app_justificacion = 'queda';
+CALL pr_esperar_error('N06', 'M2: pedir el mismo estado que ya tiene da un error claro',
+  "CALL pr_cambiar_estado_usuario(@a9, 'Inactivo', 'otra vez')", 'El usuario ya tiene ese estado');
+CALL pr_verificar('N07', 'M2: tras ese error, @app_justificacion queda en NULL',
+  @app_justificacion IS NULL, CONCAT('@app_justificacion=', IFNULL(@app_justificacion, 'NULL')));
+SET @app_justificacion = 'queda';
+CALL pr_esperar_error('N08', 'M2: pedir el mismo rol que ya tiene da un error claro',
+  "CALL pr_cambiar_rol_usuario(@a9, 'Aprendiz', 'otra vez')", 'El usuario ya tiene ese rol');
+CALL pr_verificar('N09', 'M2: tras ese error, @app_justificacion queda en NULL',
+  @app_justificacion IS NULL, CONCAT('@app_justificacion=', IFNULL(@app_justificacion, 'NULL')));
+CALL pr_esperar_error('N10', 'I1: un rol NULL se rechaza',
+  "CALL pr_cambiar_rol_usuario(@a9, NULL, 'motivo')", 'No existe el rol indicado');
 
 SET @app_id_usuario = 5;
 SET @app_justificacion = 'Cambio hecho por las pruebas automáticas';
