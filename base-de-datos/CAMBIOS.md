@@ -14,13 +14,13 @@ especificación no menciona, se indica como **Error del original**.
 
 | Antes | Ahora | Por qué |
 |---|---|---|
-| Era un volcado automático de `mysqldump` (con `LOCK TABLES`, comentarios `/*!40101 ... */` y `DEFINER=root@localhost`). | Es un script escrito a mano, ordenado y comentado en español. | Se lee y se explica mejor. Sin `DEFINER` los triggers funcionan en cualquier XAMPP, aunque el usuario no se llame `root@localhost`. |
+| Era un volcado automático de `mysqldump` (con `LOCK TABLES`, comentarios `/*!40101 ... */` y `DEFINER=root@localhost`). | Es un script escrito a mano, ordenado y comentado en español. | Se lee y se explica mejor. Sin `DEFINER` el script se puede instalar en cualquier XAMPP. Pero desde la quinta ronda la instalación, el mantenimiento y las pruebas **deben hacerse con un usuario llamado `root`**: es el único que puede trabajar con `@app_id_usuario` en `NULL` (sección 9). |
 | Intercalación `utf8mb4_uca1400_ai_ci`, que solo existe en MariaDB 11. | `utf8mb4_unicode_ci` en la base y en todas las tablas. | **D12**: el SENA usa XAMPP con MariaDB 10.4; con la intercalación anterior el script no corría. |
 | La base se llamaba `benefitrack` y el script no la creaba. | El script empieza con `DROP DATABASE IF EXISTS benefitrack_v2` (con aviso visible de que borra la base), `CREATE DATABASE` y `USE`. | Se puede ejecutar desde cero las veces que haga falta. |
 | Al final había un bloque de "AJUSTES" que modificaba tablas ya creadas (`ALTER TABLE`) y reemplazaba triggers. | Cada tabla se crea una sola vez con su forma final. | Evita que la estructura dependa del orden de los parches. |
 | Tablas creadas en orden alfabético con las llaves foráneas desactivadas. | Tablas creadas en orden de dependencias (primero catálogos, luego usuarios, convocatorias, postulaciones, pagos...). | El script no necesita desactivar las llaves foráneas para funcionar. |
 | Nombres de índices y restricciones mezclados (`fk_...` usado también para índices simples). | Prefijos claros: `uk_` (único), `idx_` (índice), `fk_` (llave foránea), `chk_` (regla CHECK). | Se entiende de un vistazo qué es cada cosa. |
-| Las reglas de negocio vivían solo en la aplicación (o no existían). | Las reglas clave se fuerzan en la base con triggers que lanzan errores en español (`SQLSTATE '45000'`). | La aplicación no puede saltarse las reglas por error. **Ojo:** los triggers no protegen contra quien tiene permisos totales (por ejemplo `root`), que puede borrar triggers o escribir directamente en las tablas. Por eso la aplicación debe conectarse con un usuario de permisos limitados (`usuario_aplicacion.sql`, ver la sección 10). |
+| Las reglas de negocio vivían solo en la aplicación (o no existían). | Las reglas clave se fuerzan en la base con triggers que lanzan errores en español (`SQLSTATE '45000'`). | La aplicación no puede saltarse las reglas por error. **Ojo:** los triggers no protegen contra quien tiene permisos totales (por ejemplo `root`), que puede borrar triggers o escribir directamente en las tablas. Por eso la aplicación debe conectarse con un usuario de permisos limitados (`usuario_aplicacion.sql`, ver la sección 11). |
 | Los triggers guardaban un usuario fijo o el aprendiz dueño. | Todos usan la variable de sesión `@app_id_usuario`. | **D9** (ver la sección 4). |
 
 ---
@@ -463,7 +463,31 @@ triggers.
 
 ---
 
-## 10. Pendientes (solo documentados, no implementados todavía)
+## 10. Sexta ronda: pulidos (explicado fácil)
+
+- **La hora del bloqueo ya no se puede falsear.** Cualquier conexión puede "mover el reloj" de su
+  sesión con `SET timestamp = ...`, y eso cambia lo que devuelve `NOW()`. Con eso se podía bloquear
+  con una fecha vieja y desbloquear enseguida, o desbloquear "mañana". Ahora el bloqueo y el
+  desbloqueo usan `SYSDATE()`, que es la hora real del servidor y no cambia con `SET timestamp`.
+  Funciona igual en MariaDB 10.4 y 11.x (salvo que el servidor se arranque con
+  `--sysdate-is-now`, que no se debe usar).
+- **Primer administrador.** El README explica cómo crearlo como `root`, porque la semilla no trae
+  usuarios.
+- **Prueba con un tercer usuario.** `pruebas/otro_usuario/ejecutar.sh` crea un usuario temporal
+  que no es `root` ni `benefitrack_app`, comprueba que con `@app_id_usuario` en `NULL` no puede
+  darse el rol de Administrador y lo borra al terminar.
+- **Límites conocidos** en el README: no tener cuentas anónimas en el servidor, el efecto de
+  `SET timestamp` en el resto de fechas y que una convocatoria movida a más de un año en el futuro
+  no deja aprobar sus postulaciones.
+- `ejecutar.sh` borra su temporal al terminar y, si se interrumpe, sale con el código 130.
+
+**Pruebas nuevas.** K14 a K18 en `pruebas/pruebas_reglas.sql` (un usuario creado Activo queda sin
+fecha de bloqueo; `SET timestamp` no permite desbloquear antes de tiempo). Resultado: **240 casos,
+240 OK**.
+
+---
+
+## 11. Pendientes (solo documentados, no implementados todavía)
 
 - **Usuario de la aplicación.** Las protecciones de la sección 6 dependen de que la aplicación use
   el usuario limitado de `usuario_aplicacion.sql` y no `root`. Con `root` se pueden borrar

@@ -5,6 +5,7 @@
 | `benefitrack_v2.sql` | Script que crea la base `benefitrack_v2` completa: tablas, reglas, triggers y datos iniciales. |
 | `pruebas/pruebas_reglas.sql` | Pruebas de las reglas de negocio. Imprime OK o FALLO por cada caso. |
 | `pruebas/pruebas_usuario_aplicacion.sql` | Pruebas que se ejecutan conectado como el usuario limitado `benefitrack_app`. |
+| `pruebas/otro_usuario/` | Prueba de que un usuario distinto de `root` no puede gestionar sin `@app_id_usuario`. |
 | `pruebas/concurrencia.md` y `pruebas/concurrencia/` | Pruebas con dos conexiones al mismo tiempo (cupos y último pago). |
 | `usuario_aplicacion.sql` | Ejemplo de usuario de MariaDB con permisos limitados para la aplicación. |
 | `CAMBIOS.md` | Qué cambió respecto al script original y por qué. |
@@ -40,6 +41,30 @@ C:\xampp\mysql\bin\mysql.exe -u root --default-character-set=utf8mb4 < base-de-d
 Si su usuario `root` tiene contraseña, agregue `-p` y escríbala cuando la pida.
 Si no aparece ningún mensaje de error, el script terminó bien.
 
+La instalación, el mantenimiento y las pruebas se hacen con un usuario de MariaDB llamado
+**`root`**: es el único que la base deja trabajar sin `@app_id_usuario` (ver la sección 3).
+
+### Crear el primer administrador
+
+La semilla **no trae ningún usuario**, tampoco administradores. Como crear un Administrador exige
+un administrador activo, el primero se crea a mano **conectado como `root`** y con
+`@app_id_usuario` en `NULL` (en phpMyAdmin, pestaña **SQL** con la base `benefitrack_v2`
+seleccionada; o en la consola `mysql.exe -u root`):
+
+```sql
+USE benefitrack_v2;
+SET @app_id_usuario = NULL;
+INSERT INTO usuarios (documento, nombre, apellido, correo, password_hash, id_rol)
+VALUES ('1000000000', 'Administrador', 'Inicial', 'admin@benefitrack.local',
+        '$2y$10$EJEMPLOEJEMPLOEJEMPLOuNoUseEsteHashEnProduccion000000',
+        (SELECT id_rol FROM roles WHERE nombre = 'Administrador'));
+```
+
+`password_hash` **no es la contraseña**: es el resultado de cifrarla con la aplicación (por
+ejemplo, `password_hash('su clave', PASSWORD_BCRYPT)` en PHP). El valor de arriba es solo de
+ejemplo y no sirve para entrar: cámbielo por uno generado por la aplicación. Después, ese
+administrador crea los demás desde la aplicación.
+
 ---
 
 ## 2. Ejecutar las pruebas
@@ -64,7 +89,7 @@ C:\xampp\mysql\bin\mysql.exe -u root --default-character-set=utf8mb4 --table < b
 La salida muestra la misma tabla de resumen. Resultado esperado:
 
 ```
-| TOTAL | OK | 235 casos: 235 OK, 0 FALLO | TODAS LAS PRUEBAS PASAN |
+| TOTAL | OK | 240 casos: 240 OK, 0 FALLO | TODAS LAS PRUEBAS PASAN |
 ```
 
 Si algún caso dice `FALLO`, la columna `detalle` explica qué pasó (por ejemplo, el
@@ -83,7 +108,9 @@ SET @app_id_usuario = <id del usuario que inició sesión>;
 SET @app_ip = '<IP del cliente>';   -- opcional, para la auditoría
 ```
 
-Si no se define, la base guarda `NULL` en lugar del usuario. Si la aplicación reutiliza
+Si no se define, la base guarda `NULL` en lugar del usuario, **pero** las acciones de gestión con
+`@app_id_usuario` en `NULL` se **rechazan** salvo cuando la conexión es el usuario `root` (ver
+«Si la variable es `NULL`» más abajo). Si la aplicación reutiliza
 conexiones (pool), debe volver a fijar la variable cada vez que toma una conexión para otro
 usuario.
 
@@ -201,3 +228,47 @@ dos conexiones al mismo tiempo. El procedimiento y los resultados reales están 
 > **Atención:** `pruebas/concurrencia/ejecutar.sh` **borra y vuelve a crear** la base
 > `benefitrack_v2`. La salida de la segunda sesión va a un archivo temporal del sistema (fuera del
 > proyecto) que se borra al terminar, así que el guion no deja archivos en el repositorio.
+
+---
+
+## 6. Prueba con un usuario que no es `root` ni `benefitrack_app`
+
+Comprueba que, con `@app_id_usuario` en `NULL`, **cualquier** usuario distinto de `root` queda
+rechazado en las acciones de gestión (no solo `benefitrack_app`). Necesita la base ya creada; no la
+borra. Desde la carpeta `base-de-datos` (con Git Bash o cualquier `sh`):
+
+```sh
+sh pruebas/otro_usuario/ejecutar.sh "C:/xampp/mysql/bin/mysql.exe -u root -P 3306 -h 127.0.0.1"
+```
+
+El guion crea el usuario temporal `benefitrack_otro`@`localhost` y un aprendiz de prueba
+(`PRUEBA-OTRO`), intenta darle el rol de Administrador sin `@app_id_usuario` y, al terminar
+(aunque falle o se interrumpa), borra los dos. El `ERROR 1644` que aparece es el rechazo esperado;
+el veredicto debe decir `CORRECTO: con NULL y un usuario distinto de root se rechaza`.
+
+---
+
+## 7. Límites conocidos
+
+- **Sin usuarios anónimos en el servidor.** La base reconoce a `root` por el nombre que el
+  cliente escribió al conectarse (`USER()`), no por la cuenta con la que MariaDB lo aceptó. Si el
+  servidor tiene una cuenta anónima (usuario vacío, `''@'localhost'`), alguien podría conectarse
+  escribiendo `-u root` sin ser root y la base lo trataría como root. Revise que esta consulta no
+  devuelva filas y, si devuelve, borre esas cuentas:
+
+  ```sql
+  SELECT user, host FROM mysql.user WHERE user = '';
+  -- DROP USER ''@'localhost';   (una por cada fila que aparezca)
+  ```
+- **`SET timestamp` cambia la hora de la sesión.** Cualquier conexión puede ejecutar
+  `SET timestamp = ...` y con eso cambia lo que devuelven `NOW()` y `CURDATE()` en esa sesión
+  (por ejemplo, la fecha de validación o la fecha "de hoy" que se usa para revisar pagos). El
+  bloqueo y el desbloqueo por intentos fallidos usan la hora real del servidor (`SYSDATE()`), así
+  que ahí el truco no sirve. En lo demás, el riesgo es bajo y del mismo nivel que poder fijar
+  `@app_id_usuario`: solo lo tiene quien ya controla la conexión de la aplicación. No arranque el
+  servidor con `--sysdate-is-now`, porque haría que `SYSDATE()` se comporte como `NOW()`.
+- **Convocatorias movidas a más de un año en el futuro.** La asignación empieza el día de inicio
+  de la convocatoria cuando esa fecha es posterior a hoy, y la fecha de inicio de una asignación no
+  puede pasar de un año después de hoy. Por eso, si se mueve el inicio de una convocatoria a más de
+  un año en el futuro, sus postulaciones Validadas **no se pueden aprobar** (la base responde
+  `La fecha de inicio de la asignación debe estar entre ...`) hasta que falte menos de un año.

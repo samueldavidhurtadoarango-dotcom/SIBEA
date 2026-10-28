@@ -9,7 +9,10 @@
 -- al abrir cada conexión):
 --   SET @app_id_usuario = <id del usuario que inició sesión>;   -- D9
 --   SET @app_ip         = '<ip del cliente>';                    -- opcional
--- Si no están definidas, los triggers guardan NULL.
+-- Si no están definidas, los triggers guardan NULL. Pero, salvo cuando la
+-- conexión es el usuario root (mantenimiento, instalación y pruebas), las
+-- acciones de gestión con @app_id_usuario NULL se RECHAZAN: la aplicación
+-- debe fijar siempre la variable (ver pr_exigir_administrador).
 -- =====================================================================
 
 -- !!! ATENCIÓN !!!
