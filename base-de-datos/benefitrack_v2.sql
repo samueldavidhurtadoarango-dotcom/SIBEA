@@ -554,23 +554,30 @@ END//
 -- Usuarios
 -- ---------------------------------------------------------------------
 
--- Devuelve 1 si el cambio de estado es uno de los automáticos del sistema
--- (los hace el inicio de sesión, sin administrador): Activo -> Bloqueado
--- por intentos fallidos, o Bloqueado -> Activo pasados 15 minutos desde
--- fecha_bloqueo (hora real, SYSDATE()). Si quien lo hace es un
--- administrador activo, no cuenta como automático: es un cambio suyo.
+-- Devuelve 1 si el cambio de estado es uno de los automáticos del sistema.
+-- Los hace SOLO el inicio de sesión, que todavía no tiene usuario de sesión
+-- (@app_id_usuario NULL):
+--   * Activo -> Bloqueado con intentos_fallidos >= 3;
+--   * Bloqueado -> Activo cuando ya pasaron 15 minutos desde fecha_bloqueo
+--     (hora real, SYSDATE()).
+-- Con un usuario de sesión (aprendiz o administrador) nunca es automático:
+-- es un cambio de esa persona. Solo depende de la variable y de los valores
+-- recibidos, no de la tabla, así que da lo mismo en el BEFORE y en el AFTER
+-- aunque la sentencia cambie varias filas.
 CREATE FUNCTION fn_cambio_estado_sistema(p_estado_anterior VARCHAR(20),
                                          p_estado_nuevo    VARCHAR(20),
-                                         p_fecha_bloqueo   DATETIME)
+                                         p_fecha_bloqueo   DATETIME,
+                                         p_intentos        INT)
 RETURNS TINYINT(1)
 NOT DETERMINISTIC
-READS SQL DATA
+NO SQL
 BEGIN
-  RETURN ((p_estado_anterior = 'Activo' AND p_estado_nuevo = 'Bloqueado')
-          OR (p_estado_anterior = 'Bloqueado' AND p_estado_nuevo = 'Activo'
-              AND p_fecha_bloqueo IS NOT NULL
-              AND p_fecha_bloqueo + INTERVAL 15 MINUTE <= SYSDATE()))
-         AND NOT fn_es_administrador(@app_id_usuario);
+  RETURN @app_id_usuario IS NULL
+         AND ((p_estado_anterior = 'Activo' AND p_estado_nuevo = 'Bloqueado'
+               AND IFNULL(p_intentos, 0) >= 3)
+              OR (p_estado_anterior = 'Bloqueado' AND p_estado_nuevo = 'Activo'
+                  AND p_fecha_bloqueo IS NOT NULL
+                  AND p_fecha_bloqueo + INTERVAL 15 MINUTE <= SYSDATE()));
 END//
 
 -- Crear un usuario Administrador exige un administrador activo. El
@@ -596,16 +603,21 @@ BEGIN
   END IF;
 END//
 
--- Cambiar el rol o el estado de un usuario exige un administrador activo,
--- para que nadie se dé a sí mismo el rol de Administrador. Excepciones (las
--- usa el inicio de sesión, cuando todavía no hay usuario de sesión):
---   * Activo -> Bloqueado (3 intentos fallidos). Desde Inactivo exige
---     administrador, para que un Inactivo no se reactive pasando por
---     Bloqueado;
---   * desbloqueo automático: Bloqueado -> Activo cuando ya pasaron 15
---     minutos desde fecha_bloqueo (si fecha_bloqueo es NULL, no).
+-- Cambiar el rol o el estado de un usuario exige un administrador activo y
+-- una justificación (@app_justificacion, RF-1.3), para que nadie se dé a sí
+-- mismo el rol de Administrador y cada cambio quede explicado. La única
+-- excepción son los cambios automáticos del inicio de sesión
+-- (fn_cambio_estado_sistema): sin usuario de sesión, Activo -> Bloqueado
+-- con 3 intentos fallidos y Bloqueado -> Activo pasados 15 minutos.
+-- Con root y @app_id_usuario NULL (mantenimiento) no hace falta
+-- administrador, pero sí justificación.
+-- El control de administrador se decide en el BEFORE de cada fila: si el
+-- administrador se cambia a sí mismo, su fila todavía tiene los valores
+-- anteriores. Límite: en un UPDATE de varias filas, si el administrador se
+-- bloquea o inactiva en una fila, en las filas siguientes ya no cuenta como
+-- administrador activo y la sentencia entera se rechaza.
 -- Al pasar a Bloqueado la base guarda fecha_bloqueo = SYSDATE() e ignora la
--- fecha recibida. En todo desbloqueo (automático o de un administrador)
+-- fecha recibida. Al salir de Bloqueado (automático o por un administrador)
 -- intentos_fallidos vuelve a 0 y fecha_bloqueo a NULL. Mientras la cuenta
 -- sigue Bloqueada, cambiar fecha_bloqueo exige administrador.
 -- Se usa SYSDATE() (hora real del servidor) y no NOW(): NOW() se puede
@@ -616,58 +628,61 @@ CREATE TRIGGER tr_usuario_validar
 BEFORE UPDATE ON usuarios
 FOR EACH ROW
 BEGIN
-  DECLARE v_accion VARCHAR(80) DEFAULT 'cambiar el rol o el estado de un usuario';
+  DECLARE v_cambia_rol    TINYINT(1) DEFAULT 0;
+  DECLARE v_cambia_estado TINYINT(1) DEFAULT 0;
+  DECLARE v_automatico    TINYINT(1) DEFAULT 0;
 
-  IF NOT (OLD.id_rol <=> NEW.id_rol) THEN
-    CALL pr_exigir_administrador(v_accion);
+  SET v_cambia_rol    = NOT (OLD.id_rol <=> NEW.id_rol);
+  SET v_cambia_estado = NOT (OLD.estado <=> NEW.estado);
+  SET v_automatico    = v_cambia_estado AND NOT v_cambia_rol
+                        AND fn_cambio_estado_sistema(OLD.estado, NEW.estado,
+                                                     OLD.fecha_bloqueo, NEW.intentos_fallidos);
+
+  IF (v_cambia_rol OR v_cambia_estado) AND NOT v_automatico THEN
+    CALL pr_exigir_administrador('cambiar el rol o el estado de un usuario');
+    IF TRIM(IFNULL(@app_justificacion, '')) = '' THEN
+      SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'El cambio de rol o de estado de un usuario exige una justificación (@app_justificacion)';
+    END IF;
   END IF;
 
-  IF NOT (OLD.estado <=> NEW.estado) THEN
+  IF v_cambia_estado THEN
     IF NEW.estado = 'Bloqueado' THEN
-      IF NOT (OLD.estado <=> 'Activo') THEN
-        CALL pr_exigir_administrador(v_accion);
-      END IF;
       SET NEW.fecha_bloqueo = SYSDATE();
-    ELSE
-      IF NOT (OLD.estado = 'Bloqueado' AND NEW.estado = 'Activo'
-              AND OLD.fecha_bloqueo IS NOT NULL
-              AND OLD.fecha_bloqueo + INTERVAL 15 MINUTE <= SYSDATE()) THEN
-        CALL pr_exigir_administrador(v_accion);
-      END IF;
-      IF OLD.estado = 'Bloqueado' THEN
-        SET NEW.intentos_fallidos = 0;
-        SET NEW.fecha_bloqueo = NULL;
-      END IF;
+    END IF;
+    IF OLD.estado = 'Bloqueado' THEN
+      SET NEW.intentos_fallidos = 0;
+      SET NEW.fecha_bloqueo = NULL;
     END IF;
   ELSEIF NEW.estado = 'Bloqueado' AND NOT (OLD.fecha_bloqueo <=> NEW.fecha_bloqueo) THEN
     CALL pr_exigir_administrador('cambiar la fecha de bloqueo de un usuario');
   END IF;
-
-  -- RF-1.3: un cambio de estado que no sea automático del sistema (lo hace
-  -- un administrador, o root en mantenimiento) exige @app_justificacion.
-  IF NOT (OLD.estado <=> NEW.estado)
-     AND NOT fn_cambio_estado_sistema(OLD.estado, NEW.estado, OLD.fecha_bloqueo)
-     AND TRIM(IFNULL(@app_justificacion, '')) = '' THEN
-    SIGNAL SQLSTATE '45000'
-      SET MESSAGE_TEXT = 'El cambio de estado de un usuario exige una justificación (@app_justificacion)';
-  END IF;
 END//
 
 -- Deja en la auditoría cada cambio de rol o de estado de un usuario: quién
--- (@app_id_usuario; NULL = el sistema), el valor anterior y el nuevo, el
--- origen (Sistema o Usuario) y la justificación. Sumar intentos_fallidos
--- solo no se audita, para no llenar la tabla en cada intento.
+-- (@app_id_usuario), el valor anterior y el nuevo, el origen y la
+-- justificación. Orígenes:
+--   * Sistema: cambio automático del inicio de sesión; id_usuario NULL y la
+--     justificación la escribe la base;
+--   * Mantenimiento: root sin usuario de sesión; id_usuario NULL y la
+--     justificación es la que dio root;
+--   * Usuario: una persona con sesión (normalmente un administrador).
+-- Sumar intentos_fallidos solo no se audita, para no llenar la tabla.
 CREATE TRIGGER tr_usuario_auditar
 AFTER UPDATE ON usuarios
 FOR EACH ROW
 BEGIN
-  DECLARE v_cambia_rol    TINYINT(1) DEFAULT NOT (OLD.id_rol <=> NEW.id_rol);
-  DECLARE v_cambia_estado TINYINT(1) DEFAULT NOT (OLD.estado <=> NEW.estado);
+  DECLARE v_cambia_rol    TINYINT(1) DEFAULT 0;
+  DECLARE v_cambia_estado TINYINT(1) DEFAULT 0;
   DECLARE v_sistema       TINYINT(1) DEFAULT 0;
 
+  SET v_cambia_rol    = NOT (OLD.id_rol <=> NEW.id_rol);
+  SET v_cambia_estado = NOT (OLD.estado <=> NEW.estado);
+
   IF v_cambia_rol OR v_cambia_estado THEN
-    SET v_sistema = NOT v_cambia_rol AND v_cambia_estado
-                    AND fn_cambio_estado_sistema(OLD.estado, NEW.estado, OLD.fecha_bloqueo);
+    SET v_sistema = v_cambia_estado AND NOT v_cambia_rol
+                    AND fn_cambio_estado_sistema(OLD.estado, NEW.estado,
+                                                 OLD.fecha_bloqueo, NEW.intentos_fallidos);
 
     INSERT INTO auditoria (id_usuario, accion, entidad, id_entidad, detalle, ip)
     VALUES (@app_id_usuario,
@@ -679,7 +694,8 @@ BEGIN
                         'rol_nuevo', NEW.id_rol,
                         'estado_anterior', OLD.estado,
                         'estado_nuevo', NEW.estado,
-                        'origen', IF(v_sistema, 'Sistema', 'Usuario'),
+                        'origen', IF(v_sistema, 'Sistema',
+                                     IF(@app_id_usuario IS NULL, 'Mantenimiento', 'Usuario')),
                         'justificacion',
                         IF(v_sistema,
                            IF(NEW.estado = 'Bloqueado', 'Bloqueo automático por intentos fallidos',
@@ -687,6 +703,56 @@ BEGIN
                            NULLIF(TRIM(@app_justificacion), ''))),
             @app_ip);
   END IF;
+END//
+
+-- Vía recomendada para cambiar el estado de un usuario: fija la
+-- justificación solo para este cambio, hace el UPDATE y deja
+-- @app_justificacion en NULL, también si el cambio falla. Así un motivo no
+-- se arrastra al siguiente cambio de la sesión. Los controles (administrador
+-- activo, justificación, auditoría) los siguen haciendo los triggers.
+CREATE PROCEDURE pr_cambiar_estado_usuario(IN p_id_usuario    INT,
+                                           IN p_estado        VARCHAR(20),
+                                           IN p_justificacion VARCHAR(1000))
+MODIFIES SQL DATA
+BEGIN
+  DECLARE EXIT HANDLER FOR SQLEXCEPTION
+  BEGIN
+    SET @app_justificacion = NULL;
+    RESIGNAL;
+  END;
+
+  SET @app_justificacion = p_justificacion;
+  IF NOT EXISTS (SELECT 1 FROM usuarios WHERE id_usuario = p_id_usuario) THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'No existe el usuario indicado';
+  END IF;
+  UPDATE usuarios SET estado = p_estado WHERE id_usuario = p_id_usuario;
+  SET @app_justificacion = NULL;
+END//
+
+-- Igual que pr_cambiar_estado_usuario, para el rol (por nombre:
+-- 'Administrador' o 'Aprendiz').
+CREATE PROCEDURE pr_cambiar_rol_usuario(IN p_id_usuario    INT,
+                                        IN p_rol           VARCHAR(50),
+                                        IN p_justificacion VARCHAR(1000))
+MODIFIES SQL DATA
+BEGIN
+  DECLARE v_id_rol INT DEFAULT NULL;
+  DECLARE EXIT HANDLER FOR SQLEXCEPTION
+  BEGIN
+    SET @app_justificacion = NULL;
+    RESIGNAL;
+  END;
+
+  SET @app_justificacion = p_justificacion;
+  SET v_id_rol = (SELECT id_rol FROM roles WHERE nombre = p_rol);
+  IF v_id_rol IS NULL THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'No existe el rol indicado';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM usuarios WHERE id_usuario = p_id_usuario) THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'No existe el usuario indicado';
+  END IF;
+  UPDATE usuarios SET id_rol = v_id_rol WHERE id_usuario = p_id_usuario;
+  SET @app_justificacion = NULL;
 END//
 
 -- ---------------------------------------------------------------------
@@ -1499,6 +1565,33 @@ BEGIN
     SET MESSAGE_TEXT = 'El historial de estados no se puede modificar ni eliminar';
 END//
 
+-- Las fechas de una migración las pone la base con la hora real
+-- (SYSDATE(), no se altera con SET timestamp): fecha_inicio al crearla y
+-- fecha_fin si ya nace terminada.
+CREATE TRIGGER tr_migracion_preparar
+BEFORE INSERT ON migraciones
+FOR EACH ROW
+BEGIN
+  SET NEW.fecha_inicio = SYSDATE();
+  SET NEW.fecha_fin = IF(NEW.estado = 'En proceso', NULL, SYSDATE());
+END//
+
+-- Una migración terminada (Completada, Completada con errores o Fallida)
+-- ya no se puede modificar: sus totales son el resultado oficial de la
+-- carga. Mientras está En proceso se pueden actualizar los contadores; al
+-- terminar, la base pone fecha_fin con la hora real. fecha_inicio no cambia.
+CREATE TRIGGER tr_migracion_validar
+BEFORE UPDATE ON migraciones
+FOR EACH ROW
+BEGIN
+  IF NOT (OLD.estado <=> 'En proceso') THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'Una migración terminada no se puede modificar';
+  END IF;
+  SET NEW.fecha_inicio = OLD.fecha_inicio;
+  SET NEW.fecha_fin = IF(NEW.estado = 'En proceso', NULL, SYSDATE());
+END//
+
 -- Migraciones desde Excel (RI-4.3): registrar o iniciar una carga deja su
 -- huella en la auditoría.
 CREATE TRIGGER tr_migracion_creada
@@ -1539,6 +1632,16 @@ BEGIN
                         'fecha_fin', NEW.fecha_fin),
             @app_ip);
   END IF;
+END//
+
+-- La fecha de cada fila de auditoría es la hora real del servidor
+-- (SYSDATE()): el DEFAULT CURRENT_TIMESTAMP se puede falsear con
+-- SET timestamp en la sesión.
+CREATE TRIGGER tr_auditoria_fecha
+BEFORE INSERT ON auditoria
+FOR EACH ROW
+BEGIN
+  SET NEW.fecha = SYSDATE();
 END//
 
 -- La auditoría solo admite filas nuevas.

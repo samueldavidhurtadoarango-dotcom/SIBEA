@@ -75,6 +75,11 @@ GRANT UPDATE ON benefitrack_v2.notificaciones TO 'benefitrack_app'@'localhost';
 -- Migraciones desde Excel.
 GRANT INSERT, UPDATE ON benefitrack_v2.migraciones TO 'benefitrack_app'@'localhost';
 
+-- Vía recomendada para cambiar el estado o el rol de un usuario: los
+-- procedimientos fijan la justificación solo para ese cambio y la limpian.
+GRANT EXECUTE ON PROCEDURE benefitrack_v2.pr_cambiar_estado_usuario TO 'benefitrack_app'@'localhost';
+GRANT EXECUTE ON PROCEDURE benefitrack_v2.pr_cambiar_rol_usuario    TO 'benefitrack_app'@'localhost';
+
 -- historial_estados y auditoria: solo SELECT (ya concedido arriba).
 
 FLUSH PRIVILEGES;
