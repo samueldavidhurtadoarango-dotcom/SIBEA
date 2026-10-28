@@ -556,6 +556,26 @@ BEGIN
   END IF;
 END//
 
+-- Igual que pr_exigir_administrador, pero también acepta al aprendiz dueño
+-- de la postulación indicada (ronda 10): es quien sube de nuevo un archivo
+-- o atiende una solicitud de documentación. Con @app_id_usuario NULL solo
+-- vale root, como siempre.
+CREATE PROCEDURE pr_exigir_dueno_o_administrador(IN p_id_postulacion INT, IN p_accion VARCHAR(50))
+READS SQL DATA
+BEGIN
+  DECLARE v_mensaje VARCHAR(128);
+
+  IF NOT ((@app_id_usuario IS NULL AND SUBSTRING_INDEX(USER(), '@', 1) <=> 'root')
+          OR (@app_id_usuario IS NOT NULL
+              AND (fn_es_administrador(@app_id_usuario)
+                   OR EXISTS (SELECT 1 FROM postulaciones
+                               WHERE id_postulacion = p_id_postulacion
+                                 AND id_usuario = @app_id_usuario)))) THEN
+    SET v_mensaje = CONCAT('Solo el aprendiz dueño de la postulación o un administrador activo puede ', p_accion);
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = v_mensaje;
+  END IF;
+END//
+
 -- ---------------------------------------------------------------------
 -- Usuarios
 -- ---------------------------------------------------------------------
@@ -726,6 +746,10 @@ CREATE PROCEDURE pr_cambiar_estado_usuario(IN p_id_usuario    INT,
                                            IN p_justificacion TEXT)
 MODIFIES SQL DATA
 BEGIN
+  -- Ante cualquier error o advertencia: salir (EXIT), borrar la
+  -- justificación para que no se arrastre al siguiente cambio y devolver el
+  -- mismo error a quien llamó (RESIGNAL). SQLWARNING porque en modo
+  -- estricto el 1265 «Data truncated» llega con SQLSTATE 01000.
   DECLARE EXIT HANDLER FOR SQLEXCEPTION, SQLWARNING
   BEGIN
     SET @app_justificacion = NULL;
@@ -760,6 +784,8 @@ CREATE PROCEDURE pr_cambiar_rol_usuario(IN p_id_usuario    INT,
 MODIFIES SQL DATA
 BEGIN
   DECLARE v_id_rol INT DEFAULT NULL;
+  -- Mismo manejador que pr_cambiar_estado_usuario: salir, borrar la
+  -- justificación y devolver el error original (RESIGNAL).
   DECLARE EXIT HANDLER FOR SQLEXCEPTION, SQLWARNING
   BEGIN
     SET @app_justificacion = NULL;
@@ -786,6 +812,42 @@ BEGIN
 END//
 
 -- ---------------------------------------------------------------------
+-- Catálogos y beneficios (ronda 10)
+-- ---------------------------------------------------------------------
+-- Crear o modificar instituciones, tipos de cuenta, tipos de documento,
+-- entidades bancarias, EPS, programas y beneficios es gestión: solo un
+-- administrador activo (o root sin sesión, como la semilla de este script).
+
+CREATE TRIGGER tr_institucion_crear BEFORE INSERT ON instituciones FOR EACH ROW
+  CALL pr_exigir_administrador('crear una institución')//
+CREATE TRIGGER tr_institucion_modificar BEFORE UPDATE ON instituciones FOR EACH ROW
+  CALL pr_exigir_administrador('modificar una institución')//
+CREATE TRIGGER tr_tipo_cuenta_crear BEFORE INSERT ON tipos_cuenta FOR EACH ROW
+  CALL pr_exigir_administrador('crear un tipo de cuenta')//
+CREATE TRIGGER tr_tipo_cuenta_modificar BEFORE UPDATE ON tipos_cuenta FOR EACH ROW
+  CALL pr_exigir_administrador('modificar un tipo de cuenta')//
+CREATE TRIGGER tr_tipo_documento_crear BEFORE INSERT ON tipos_documento FOR EACH ROW
+  CALL pr_exigir_administrador('crear un tipo de documento')//
+CREATE TRIGGER tr_tipo_documento_modificar BEFORE UPDATE ON tipos_documento FOR EACH ROW
+  CALL pr_exigir_administrador('modificar un tipo de documento')//
+CREATE TRIGGER tr_banco_crear BEFORE INSERT ON entidades_bancarias FOR EACH ROW
+  CALL pr_exigir_administrador('crear una entidad bancaria')//
+CREATE TRIGGER tr_banco_modificar BEFORE UPDATE ON entidades_bancarias FOR EACH ROW
+  CALL pr_exigir_administrador('modificar una entidad bancaria')//
+CREATE TRIGGER tr_eps_crear BEFORE INSERT ON eps FOR EACH ROW
+  CALL pr_exigir_administrador('crear una EPS')//
+CREATE TRIGGER tr_eps_modificar BEFORE UPDATE ON eps FOR EACH ROW
+  CALL pr_exigir_administrador('modificar una EPS')//
+CREATE TRIGGER tr_programa_crear BEFORE INSERT ON programas FOR EACH ROW
+  CALL pr_exigir_administrador('crear un programa')//
+CREATE TRIGGER tr_programa_modificar BEFORE UPDATE ON programas FOR EACH ROW
+  CALL pr_exigir_administrador('modificar un programa')//
+CREATE TRIGGER tr_beneficio_crear BEFORE INSERT ON beneficios FOR EACH ROW
+  CALL pr_exigir_administrador('crear un beneficio')//
+CREATE TRIGGER tr_beneficio_modificar BEFORE UPDATE ON beneficios FOR EACH ROW
+  CALL pr_exigir_administrador('modificar un beneficio')//
+
+-- ---------------------------------------------------------------------
 -- Documentos de la postulación
 -- ---------------------------------------------------------------------
 
@@ -807,9 +869,16 @@ BEGIN
   SET NEW.fecha_carga           = SYSDATE();
 END//
 
--- Al cambiar el estado de validación de un documento guarda cuándo y
--- quién lo validó (D6, D9). Esos dos datos solo los escribe este trigger:
--- no se pueden modificar a mano (I3).
+-- Cambios de un documento (D6, D9, ronda 10):
+--   * la fecha y el usuario de validación y la fecha de carga solo los
+--     escribe la base; un documento no se pasa a otra postulación;
+--   * la observación es del administrador: solo él la cambia;
+--   * reemplazar el archivo (tipo, nombre, ruta, extensión o tamaño) solo
+--     se permite si el documento está Pendiente o Rechazado, lo hace el
+--     aprendiz dueño o un administrador, y el documento vuelve a Pendiente
+--     sin datos de validación y con fecha de carga nueva. Un documento
+--     Validado no se reemplaza (quedaría «validado» un archivo que nadie vio);
+--   * validar o rechazar exige administrador y guarda quién y cuándo.
 CREATE TRIGGER tr_validacion_documento
 BEFORE UPDATE ON documentos_postulacion
 FOR EACH ROW
@@ -819,10 +888,40 @@ BEGIN
     SIGNAL SQLSTATE '45000'
       SET MESSAGE_TEXT = 'La fecha y el usuario de validación los registra la base de datos; no se pueden modificar';
   END IF;
+  IF NOT (OLD.fecha_carga <=> NEW.fecha_carga) THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'La fecha de carga la registra la base de datos; no se puede modificar';
+  END IF;
+  IF NOT (OLD.id_postulacion <=> NEW.id_postulacion) THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'Un documento no se puede pasar a otra postulación';
+  END IF;
+  IF NOT (OLD.observaciones <=> NEW.observaciones) THEN
+    CALL pr_exigir_administrador('escribir la observación de un documento');
+  END IF;
 
-  IF NOT (OLD.estado_validacion <=> NEW.estado_validacion) THEN
+  IF NOT (OLD.id_tipo_documento <=> NEW.id_tipo_documento)
+     OR NOT (OLD.nombre_archivo <=> NEW.nombre_archivo)
+     OR NOT (OLD.ruta_archivo   <=> NEW.ruta_archivo)
+     OR NOT (OLD.extension      <=> NEW.extension)
+     OR NOT (OLD.tamano_mb      <=> NEW.tamano_mb) THEN
+    IF OLD.estado_validacion = 'Validado' THEN
+      SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Un documento validado no se puede reemplazar';
+    END IF;
+    CALL pr_exigir_dueno_o_administrador(OLD.id_postulacion, 'reemplazar el archivo de un documento');
+    IF NOT (OLD.estado_validacion <=> NEW.estado_validacion) THEN
+      SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Al reemplazar el archivo, el documento vuelve a Pendiente; se valida después';
+    END IF;
+    SET NEW.estado_validacion     = 'Pendiente';
+    SET NEW.fecha_validacion      = NULL;
+    SET NEW.id_usuario_validacion = NULL;
+    SET NEW.observaciones         = NULL;
+    SET NEW.fecha_carga           = SYSDATE();
+  ELSEIF NOT (OLD.estado_validacion <=> NEW.estado_validacion) THEN
     CALL pr_exigir_administrador('validar o rechazar un documento');
-    SET NEW.fecha_validacion = NOW();
+    SET NEW.fecha_validacion = SYSDATE();
     SET NEW.id_usuario_validacion = @app_id_usuario;
   END IF;
 END//
@@ -847,17 +946,43 @@ BEGIN
   SET NEW.fecha_cierre_real = NULL;
 END//
 
--- Solo un administrador activo cambia cupos o estado, y los cupos no pueden
--- quedar por debajo de las postulaciones ya aprobadas.
+-- Todo cambio de una convocatoria lo hace un administrador activo (sus
+-- valores se copian a las asignaciones al aprobar). Los cupos no pueden
+-- quedar por debajo de las postulaciones ya aprobadas. Quién la cerró y
+-- cuándo los anota la base al pasar a Cerrada o Cierre anticipado (usuario
+-- de sesión y hora real; sin sesión, solo root, se respeta el autor
+-- recibido) y los vacía al reabrir; fuera de eso no se escriben a mano.
 CREATE TRIGGER tr_convocatoria_validar
 BEFORE UPDATE ON convocatorias
 FOR EACH ROW
 BEGIN
   DECLARE v_aprobadas INT;
   DECLARE v_mensaje   VARCHAR(128);
+  DECLARE v_cierra    TINYINT(1);
+  DECLARE v_reabre    TINYINT(1);
 
-  IF NOT (OLD.cupos <=> NEW.cupos) OR NOT (OLD.estado <=> NEW.estado) THEN
-    CALL pr_exigir_administrador('modificar los cupos o el estado de una convocatoria');
+  CALL pr_exigir_administrador('modificar una convocatoria');
+
+  SET v_cierra = NEW.estado IN ('Cerrada', 'Cierre anticipado')
+                 AND OLD.estado NOT IN ('Cerrada', 'Cierre anticipado');
+  SET v_reabre = OLD.estado IN ('Cerrada', 'Cierre anticipado')
+                 AND NEW.estado NOT IN ('Cerrada', 'Cierre anticipado');
+
+  IF NOT v_cierra AND NOT v_reabre
+     AND (NOT (OLD.usuario_cierre <=> NEW.usuario_cierre)
+          OR NOT (OLD.fecha_cierre_real <=> NEW.fecha_cierre_real)) THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'Los datos del cierre de la convocatoria los registra la base de datos; no se pueden modificar';
+  END IF;
+
+  IF v_cierra THEN
+    IF @app_id_usuario IS NOT NULL THEN
+      SET NEW.usuario_cierre = @app_id_usuario;
+    END IF;
+    SET NEW.fecha_cierre_real = SYSDATE();
+  ELSEIF v_reabre THEN
+    SET NEW.usuario_cierre    = NULL;
+    SET NEW.fecha_cierre_real = NULL;
   END IF;
 
   IF NEW.cupos < OLD.cupos THEN
@@ -1145,6 +1270,46 @@ BEGIN
   END IF;
 END//
 
+-- Cambios de una solicitud de documentación (ronda 10):
+--   * lo que se pidió, a quién, quién lo pidió y cuándo no cambia;
+--   * solo Pendiente -> Atendida o Pendiente -> Cerrada;
+--   * Atendida: la marca el aprendiz dueño de la postulación (al subir lo
+--     pedido) o un administrador; la fecha de atención es la hora real;
+--   * Cerrada (ya no hace falta): solo un administrador; sin fecha de
+--     atención, porque nadie la atendió.
+CREATE TRIGGER tr_solicitud_documentacion_actualizar
+BEFORE UPDATE ON solicitudes_documentacion
+FOR EACH ROW
+BEGIN
+  IF NOT (OLD.id_solicitud    <=> NEW.id_solicitud)
+     OR NOT (OLD.id_postulacion  <=> NEW.id_postulacion)
+     OR NOT (OLD.id_usuario      <=> NEW.id_usuario)
+     OR NOT (OLD.fecha_solicitud <=> NEW.fecha_solicitud)
+     OR NOT (OLD.observacion     <=> NEW.observacion) THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'Los datos de la solicitud no se pueden modificar';
+  END IF;
+
+  IF OLD.estado <=> NEW.estado THEN
+    IF NOT (OLD.fecha_atencion <=> NEW.fecha_atencion) THEN
+      SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'La fecha de atención la registra la base de datos; no se puede modificar';
+    END IF;
+  ELSE
+    IF NOT (OLD.estado = 'Pendiente' AND NEW.estado IN ('Atendida', 'Cerrada')) THEN
+      SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Una solicitud solo puede pasar de Pendiente a Atendida o a Cerrada';
+    END IF;
+    IF NEW.estado = 'Atendida' THEN
+      CALL pr_exigir_dueno_o_administrador(OLD.id_postulacion, 'atender una solicitud de documentación');
+      SET NEW.fecha_atencion = SYSDATE();
+    ELSE
+      CALL pr_exigir_administrador('cerrar una solicitud de documentación');
+      SET NEW.fecha_atencion = NULL;
+    END IF;
+  END IF;
+END//
+
 -- ---------------------------------------------------------------------
 -- Asignaciones del beneficio
 -- ---------------------------------------------------------------------
@@ -1241,6 +1406,10 @@ BEGIN
   IF NOT (OLD.id_postulacion <=> NEW.id_postulacion) THEN
     SIGNAL SQLSTATE '45000'
       SET MESSAGE_TEXT = 'No se puede cambiar la postulación de una asignación';
+  END IF;
+  IF NOT (OLD.id_usuario_registro <=> NEW.id_usuario_registro) THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'El usuario que registró la asignación no se puede modificar';
   END IF;
 
   -- I2: la reapertura solo la pide tr_pago_anulado, que fija la variable
@@ -1761,6 +1930,9 @@ DELIMITER ;
 -- =====================================================================
 -- SECCIÓN 8. DATOS SEMILLA MÍNIMOS
 -- =====================================================================
+-- La semilla la carga root sin usuario de sesión (los catálogos exigen
+-- administrador o root con la variable en NULL).
+SET @app_id_usuario = NULL;
 
 INSERT INTO instituciones (id_institucion, nombre, ciudad) VALUES
   (1, 'SENA - Centro Textil y de Gestión Industrial', NULL);
