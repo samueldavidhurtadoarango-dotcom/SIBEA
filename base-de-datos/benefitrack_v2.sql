@@ -549,6 +549,25 @@ END//
 -- Usuarios
 -- ---------------------------------------------------------------------
 
+-- Devuelve 1 si el cambio de estado es uno de los automáticos del sistema
+-- (los hace el inicio de sesión, sin administrador): Activo -> Bloqueado
+-- por intentos fallidos, o Bloqueado -> Activo pasados 15 minutos desde
+-- fecha_bloqueo (hora real, SYSDATE()). Si quien lo hace es un
+-- administrador activo, no cuenta como automático: es un cambio suyo.
+CREATE FUNCTION fn_cambio_estado_sistema(p_estado_anterior VARCHAR(20),
+                                         p_estado_nuevo    VARCHAR(20),
+                                         p_fecha_bloqueo   DATETIME)
+RETURNS TINYINT(1)
+NOT DETERMINISTIC
+READS SQL DATA
+BEGIN
+  RETURN ((p_estado_anterior = 'Activo' AND p_estado_nuevo = 'Bloqueado')
+          OR (p_estado_anterior = 'Bloqueado' AND p_estado_nuevo = 'Activo'
+              AND p_fecha_bloqueo IS NOT NULL
+              AND p_fecha_bloqueo + INTERVAL 15 MINUTE <= SYSDATE()))
+         AND NOT fn_es_administrador(@app_id_usuario);
+END//
+
 -- Crear un usuario Administrador exige un administrador activo. El
 -- registro de aprendices (sin sesión) sigue permitido.
 CREATE TRIGGER tr_usuario_validar_insercion
@@ -617,6 +636,51 @@ BEGIN
     END IF;
   ELSEIF NEW.estado = 'Bloqueado' AND NOT (OLD.fecha_bloqueo <=> NEW.fecha_bloqueo) THEN
     CALL pr_exigir_administrador('cambiar la fecha de bloqueo de un usuario');
+  END IF;
+
+  -- RF-1.3: un cambio de estado que no sea automático del sistema (lo hace
+  -- un administrador, o root en mantenimiento) exige @app_justificacion.
+  IF NOT (OLD.estado <=> NEW.estado)
+     AND NOT fn_cambio_estado_sistema(OLD.estado, NEW.estado, OLD.fecha_bloqueo)
+     AND TRIM(IFNULL(@app_justificacion, '')) = '' THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'El cambio de estado de un usuario exige una justificación (@app_justificacion)';
+  END IF;
+END//
+
+-- Deja en la auditoría cada cambio de rol o de estado de un usuario: quién
+-- (@app_id_usuario; NULL = el sistema), el valor anterior y el nuevo, el
+-- origen (Sistema o Usuario) y la justificación. Sumar intentos_fallidos
+-- solo no se audita, para no llenar la tabla en cada intento.
+CREATE TRIGGER tr_usuario_auditar
+AFTER UPDATE ON usuarios
+FOR EACH ROW
+BEGIN
+  DECLARE v_cambia_rol    TINYINT(1) DEFAULT NOT (OLD.id_rol <=> NEW.id_rol);
+  DECLARE v_cambia_estado TINYINT(1) DEFAULT NOT (OLD.estado <=> NEW.estado);
+  DECLARE v_sistema       TINYINT(1) DEFAULT 0;
+
+  IF v_cambia_rol OR v_cambia_estado THEN
+    SET v_sistema = NOT v_cambia_rol AND v_cambia_estado
+                    AND fn_cambio_estado_sistema(OLD.estado, NEW.estado, OLD.fecha_bloqueo);
+
+    INSERT INTO auditoria (id_usuario, accion, entidad, id_entidad, detalle, ip)
+    VALUES (@app_id_usuario,
+            CASE WHEN v_cambia_rol AND v_cambia_estado THEN 'CAMBIO_ROL_ESTADO'
+                 WHEN v_cambia_estado THEN 'CAMBIO_ESTADO'
+                 ELSE 'CAMBIO_ROL' END,
+            'usuarios', NEW.id_usuario,
+            JSON_OBJECT('rol_anterior', OLD.id_rol,
+                        'rol_nuevo', NEW.id_rol,
+                        'estado_anterior', OLD.estado,
+                        'estado_nuevo', NEW.estado,
+                        'origen', IF(v_sistema, 'Sistema', 'Usuario'),
+                        'justificacion',
+                        IF(v_sistema,
+                           IF(NEW.estado = 'Bloqueado', 'Bloqueo automático por intentos fallidos',
+                                                        'Desbloqueo automático pasados 15 minutos'),
+                           NULLIF(TRIM(@app_justificacion), ''))),
+            @app_ip);
   END IF;
 END//
 
@@ -1428,6 +1492,48 @@ FOR EACH ROW
 BEGIN
   SIGNAL SQLSTATE '45000'
     SET MESSAGE_TEXT = 'El historial de estados no se puede modificar ni eliminar';
+END//
+
+-- Migraciones desde Excel (RI-4.3): registrar o iniciar una carga deja su
+-- huella en la auditoría.
+CREATE TRIGGER tr_migracion_creada
+AFTER INSERT ON migraciones
+FOR EACH ROW
+BEGIN
+  INSERT INTO auditoria (id_usuario, accion, entidad, id_entidad, detalle, ip)
+  VALUES (@app_id_usuario,
+          IF(NEW.estado = 'En proceso', 'INICIAR_MIGRACION', 'REGISTRAR_MIGRACION'),
+          'migraciones', NEW.id_migracion,
+          JSON_OBJECT('id_usuario', NEW.id_usuario,
+                      'nombre_archivo', NEW.nombre_archivo,
+                      'entidad_destino', NEW.entidad_destino,
+                      'estado', NEW.estado,
+                      'total_registros', NEW.total_registros,
+                      'registros_exitosos', NEW.registros_exitosos,
+                      'registros_fallidos', NEW.registros_fallidos),
+          @app_ip);
+END//
+
+-- Cada cambio de estado de una migración (por ejemplo, al terminar) queda
+-- en la auditoría con los totales. Actualizar solo los contadores mientras
+-- sigue En proceso no se audita, para no llenar la tabla fila a fila.
+CREATE TRIGGER tr_migracion_actualizada
+AFTER UPDATE ON migraciones
+FOR EACH ROW
+BEGIN
+  IF NOT (OLD.estado <=> NEW.estado) THEN
+    INSERT INTO auditoria (id_usuario, accion, entidad, id_entidad, detalle, ip)
+    VALUES (@app_id_usuario,
+            IF(NEW.estado = 'En proceso', 'ACTUALIZAR_MIGRACION', 'FINALIZAR_MIGRACION'),
+            'migraciones', NEW.id_migracion,
+            JSON_OBJECT('estado_anterior', OLD.estado,
+                        'estado_nuevo', NEW.estado,
+                        'total_registros', NEW.total_registros,
+                        'registros_exitosos', NEW.registros_exitosos,
+                        'registros_fallidos', NEW.registros_fallidos,
+                        'fecha_fin', NEW.fecha_fin),
+            @app_ip);
+  END IF;
 END//
 
 -- La auditoría solo admite filas nuevas.
