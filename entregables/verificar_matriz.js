@@ -14,9 +14,11 @@
  *       y cada procedimiento, función o trigger citado (pr_..., fn_..., tr_...)
  *       en la hoja existe en el SQL;
  *   (d) no aparecen palabras prohibidas (OCR, Estudiante, estados eliminados);
+ *       «Enviada» se permite solo en RF-5.7, donde es un valor real de
+ *       notificaciones.estado_correo;
  *   (e) en cada fila coinciden los números RF-x.y, RN-x.y y RI-x.y;
  *   (g) el estado del requisito es "Obligatorio" u "Opcional";
- *   (h) frases acordadas de las reglas de la base de datos (rondas 2 a 8 de
+ *   (h) frases acordadas de las reglas de la base de datos (rondas 2 a 9 de
  *       base-de-datos/CAMBIOS.md) presentes en el RF/RN que corresponde, y
  *       ausencia de algunas frases equivocadas conocidas. OJO: esta regla NO
  *       lee el SQL; las frases se copiaron a mano de CAMBIOS.md y se revisaron
@@ -229,11 +231,18 @@ function reglaRutinasExisten(celdas, rutaSql) {
   return errores;
 }
 
+// Palabras prohibidas que sí son válidas en ciertos requisitos: «Enviada» es un
+// valor real de notificaciones.estado_correo (RF-5.7), no un estado de la postulación.
+const PERMITIDAS_EN = { Enviada: ['RF-5.7'] };
+
 /** (d) Ninguna celda de la hoja contiene palabras prohibidas (sin distinguir mayúsculas). */
-function reglaPalabrasProhibidas(celdas) {
+function reglaPalabrasProhibidas(celdas, filas) {
   const errores = [];
+  const filaDe = (rf) => (filas.find((f) => f.rf === rf) || {}).numero;
   for (const [ref, valor] of Object.entries(celdas)) {
+    const numeroFila = Number(ref.replace(/[A-Z]+/, ''));
     for (const palabra of PALABRAS_PROHIBIDAS) {
+      if ((PERMITIDAS_EN[palabra] || []).some((rf) => filaDe(rf) === numeroFila)) continue;
       const escapada = palabra.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const re = new RegExp(`(^|[^\\p{L}\\p{N}_])${escapada}(?=$|[^\\p{L}\\p{N}_])`, 'iu');
       if (re.test(valor)) errores.push(`celda ${ref}: contiene "${palabra}"`);
@@ -302,7 +311,7 @@ function revisarFrases(filas, lista) {
   return errores;
 }
 
-// (h) Frases acordadas de las reglas de la base de datos (rondas 2 a 8 de
+// (h) Frases acordadas de las reglas de la base de datos (rondas 2 a 9 de
 // base-de-datos/CAMBIOS.md) y decisiones de Samuel del 27/10/2026. Son frases
 // copiadas a mano y revisadas contra el SQL; el verificador no lee el SQL aquí.
 const REGLAS_BD = [
@@ -320,8 +329,9 @@ const REGLAS_BD = [
   { rf: 'RF-2.3', que: 'solo un administrador activo hace acciones de gestión',
     debe: ['administrador en estado activo', 'cambiar el rol o el estado de un usuario',
       'crear un usuario administrador', 'crear un usuario que no nace activo', 'registrar y anular pagos',
-      'solo un administrador activo puede',
-      'fuera del mantenimiento de la base de datos con root, que igual debe justificar los cambios de cuentas'] },
+      'solo un administrador activo puede', 'crear convocatorias',
+      'fuera del mantenimiento de la base de datos con root, que igual debe justificar los cambios de cuentas',
+      'las demás reglas y permisos de esta matriz los valida la aplicación'] },
   { rf: 'RF-1.0', que: 'crear un Administrador, o un usuario que no nace Activo, exige un administrador activo',
     debe: ['solo un administrador activo puede crear un usuario con rol administrador',
       'crear un usuario en otro estado también exige un administrador activo'] },
@@ -332,6 +342,45 @@ const REGLAS_BD = [
     noDebe: ['hasta que el administrador lo reactive'] },
   { rf: 'RF-7.1', que: 'los cupos no bajan de las postulaciones aprobadas',
     debe: ['los cupos no pueden quedar por debajo del número de postulaciones aprobadas'] },
+  // Novena ronda (CAMBIOS.md §13 y §13.1, spec D9): lo que se crea nace limpio.
+  { rf: 'RF-7.1', que: 'crear convocatorias exige administrador activo y nacen Activa o Inactiva (novena ronda)',
+    debe: ['solo un administrador activo puede crear una convocatoria',
+      'nace activa o inactiva (por defecto, inactiva)'],
+    noDebe: ['la convocatoria se crea inactiva'] },
+  { rf: 'RF-3.1', que: 'un documento nuevo nace Pendiente y sin datos de validación (novena ronda)',
+    debe: ['un documento nuevo debe empezar en estado pendiente y sin datos de validación',
+      'la fecha de carga la pone el sistema'] },
+  { rf: 'RF-4.1', que: 'un documento nuevo no trae datos de validación (novena ronda)',
+    debe: ['si los trae, el sistema los deja vacíos'] },
+  { rf: 'RF-4.5', que: 'una solicitud nueva nace Pendiente; autor y fecha los pone el sistema (novena ronda)',
+    debe: ['una solicitud nueva debe empezar en estado pendiente', 'el autor y la fecha de la solicitud los pone el sistema'] },
+  { rf: 'RF-6.0', que: 'el autor y la fecha del pago los pone el sistema (novena ronda)',
+    debe: ['quién registró el pago y cuándo lo pone el sistema'] },
+  { rf: 'RF-9.0', que: 'el autor y la fecha de la novedad los pone el sistema (novena ronda)',
+    debe: ['la fecha y el usuario que la registró los pone el sistema'] },
+  { rf: 'RF-1.2', que: 'pr_cambiar_rol_usuario da error si el rol no existe o no cambia nada (novena ronda)',
+    debe: ['da error si el rol no existe o no cambia nada'] },
+  { rf: 'RF-1.3', que: 'pr_cambiar_estado_usuario da error si el estado no es válido o no cambia nada (novena ronda)',
+    debe: ['da error si el estado no es válido o no cambia nada'] },
+  { rf: 'RF-8.6', que: 'el motivo de la cancelación es distinto del anterior',
+    debe: ['el motivo es obligatorio y debe ser distinto del motivo anterior'] },
+  { rf: 'RF-5.7', que: 'estado_correo tiene Pendiente, Enviada y Error',
+    debe: ['enviada cuando se envía'] },
+  { rf: 'RF-1.3', que: 'excepción del mantenimiento', debe: ['(salvo mantenimiento, rf-2.3)'] },
+  { rf: 'RF-2.0', que: 'excepción del mantenimiento y desbloqueo al volver a intentar entrar',
+    debe: ['(salvo mantenimiento, rf-2.3)', 'cuando el usuario vuelve a intentar entrar'] },
+  // Reglas que la base de datos no comprueba: se marcan como de la aplicación
+  // (revisado contra el SQL de la novena ronda).
+  { rf: 'RF-1.2', que: 'el documento no se modifica: lo valida la aplicación',
+    debe: ['el número de documento no se puede modificar (lo valida la aplicación)'] },
+  { rf: 'RF-3.1', que: 'formato del archivo y tipo Activo: lo valida la aplicación',
+    debe: ['el formato (pdf, jpg o png) y que el tipo de documento esté en estado activo los valida la aplicación'] },
+  { rf: 'RF-3.3', que: 'atender la solicitud: lo valida la aplicación',
+    debe: ['(lo valida la aplicación)'] },
+  { rf: 'RF-7.0', que: 'beneficio Inactivo sin convocatorias nuevas: lo valida la aplicación',
+    debe: ['un beneficio inactivo no admite convocatorias nuevas (lo valida la aplicación)'] },
+  { rf: 'RF-7.2', que: 'quién cerró y cuándo: lo valida la aplicación (CAMBIOS.md §14)',
+    debe: ['quién la cerró y la fecha real de cierre (lo valida la aplicación'] },
   { rf: 'RF-8.3', que: 'condiciones congeladas en cuanto hay pagos o deja de estar En curso',
     debe: ['solo mientras la asignación está en curso y no tiene ningún pago', 'ni siquiera uno anulado',
       'la duración y la fecha de inicio quedan congelados'],
@@ -503,7 +552,6 @@ const REGLAS_AUDITORIA = [
     debe: ['los cambios de rol o de estado de los usuarios', 'las migraciones desde excel',
       'el propio aprendiz cuando crea o corrige su postulación',
       'el administrador cuando valida, aprueba o rechaza',
-      'en el bloqueo y el desbloqueo automáticos de una cuenta el campo queda vacío y significa que lo hizo el sistema',
       'la fecha de la auditoría la pone el sistema y no se puede alterar',
       'la auditoría de las cuentas distingue tres orígenes',
       'sistema (cambio automático del inicio de sesión)',
@@ -536,7 +584,7 @@ function main() {
   const reglas = [
     ['(c) Campos y rutinas citados existen en benefitrack_v2.sql',
       [...reglaCamposExisten(filas, esquema), ...reglaRutinasExisten(celdas, RUTA_SQL)]],
-    ['(d) Sin palabras prohibidas', reglaPalabrasProhibidas(celdas)],
+    ['(d) Sin palabras prohibidas', reglaPalabrasProhibidas(celdas, filas)],
     ['(e) Numeración RF/RN/RI coincide', reglaNumeracion(filas)],
     ['(g) Estado del requisito válido', reglaEstadoRequisito(filas)],
     ['(h) Frases acordadas de las reglas de la BD presentes (no lee el SQL)', reglaReglasBaseDatos(filas)],
