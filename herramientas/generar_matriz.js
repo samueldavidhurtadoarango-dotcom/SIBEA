@@ -84,9 +84,9 @@ function estiloEncabezado(celda) {
   ];
   cc.getRow(1).height = 22;
   for (let c = 1; c <= 7; c++) estiloEncabezado(cc.getRow(1).getCell(c));
-  cambios.forEach(([req, tipo, desc, dec], i) => {
+  cambios.forEach(([req, tipo, desc, dec, fecha = '26/10/2026'], i) => {
     const row = cc.getRow(i + 2);
-    row.values = [i + 1, '26/10/2026', 'Samuel David Hurtado Arango', req, tipo, desc, dec];
+    row.values = [i + 1, fecha, 'Samuel David Hurtado Arango', req, tipo, desc, dec];
     for (let c = 1; c <= 7; c++) {
       const celda = row.getCell(c);
       celda.font = { name: FUENTE, size: 10 };
