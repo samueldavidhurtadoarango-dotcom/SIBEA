@@ -57,8 +57,8 @@ node entregables/verificar_matriz.js originales/Matriz_Requisitos.xlsx # revisa 
 | (i) | Los tipos de documento de la semilla del SQL (`tipos_documento`) aparecen en RF-3.1 | FALLO (4 problemas) | OK |
 | (j) | RF-2.0 y RF-1.3 dicen los mismos minutos de desbloqueo que el trigger `tr_usuario_validar` (15), comparando el número completo | FALLO (2 problemas) | OK |
 | (k) | No quedan preguntas abiertas ni temas «por confirmar» en la hoja ni en la sección 7 de este documento | OK | OK |
-| (l) | Frases acordadas del bloqueo de la cuenta (quién bloquea y quién desbloquea) presentes | FALLO (5 problemas) | OK |
-| (m) | Frases acordadas de la auditoría de cuentas y migraciones (ronda 7) presentes | FALLO (13 problemas) | OK |
+| (l) | Frases acordadas del bloqueo de la cuenta (quién bloquea y quién desbloquea) presentes | FALLO (8 problemas) | OK |
+| (m) | Frases acordadas de la auditoría de cuentas y migraciones (rondas 7 y 8) presentes | FALLO (16 problemas) | OK |
 
 La regla (d) revisa solo la hoja «Matriz de Requisitos». La hoja «Control de cambios» sí nombra esas
 palabras, porque explica qué se quitó.
