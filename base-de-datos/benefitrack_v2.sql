@@ -557,16 +557,42 @@ BEGIN
 END//
 
 -- Cambiar el rol o el estado de un usuario exige un administrador activo,
--- para que nadie se dé a sí mismo el rol de Administrador. Excepción: pasar
--- a Bloqueado (bloqueo automático por intentos fallidos en el inicio de
--- sesión, cuando todavía no hay usuario de sesión).
+-- para que nadie se dé a sí mismo el rol de Administrador. Excepciones (las
+-- usa el inicio de sesión, cuando todavía no hay usuario de sesión):
+--   * pasar a Bloqueado (3 intentos fallidos); si no se indica
+--     fecha_bloqueo, se guarda la hora actual;
+--   * desbloqueo automático: Bloqueado -> Activo cuando ya pasaron 15
+--     minutos desde fecha_bloqueo.
+-- En todo desbloqueo (automático o de un administrador) intentos_fallidos
+-- vuelve a 0 y fecha_bloqueo a NULL. Mientras la cuenta sigue Bloqueada,
+-- cambiar fecha_bloqueo exige administrador (para no adelantar el reloj).
 CREATE TRIGGER tr_usuario_validar
 BEFORE UPDATE ON usuarios
 FOR EACH ROW
 BEGIN
-  IF NOT (OLD.id_rol <=> NEW.id_rol)
-     OR (NOT (OLD.estado <=> NEW.estado) AND NOT (NEW.estado <=> 'Bloqueado')) THEN
-    CALL pr_exigir_administrador('cambiar el rol o el estado de un usuario');
+  DECLARE v_accion VARCHAR(80) DEFAULT 'cambiar el rol o el estado de un usuario';
+
+  IF NOT (OLD.id_rol <=> NEW.id_rol) THEN
+    CALL pr_exigir_administrador(v_accion);
+  END IF;
+
+  IF NOT (OLD.estado <=> NEW.estado) THEN
+    IF NEW.estado = 'Bloqueado' THEN
+      IF NEW.fecha_bloqueo IS NULL THEN
+        SET NEW.fecha_bloqueo = NOW();
+      END IF;
+    ELSE
+      IF NOT (OLD.estado = 'Bloqueado' AND NEW.estado = 'Activo'
+              AND OLD.fecha_bloqueo + INTERVAL 15 MINUTE <= NOW()) THEN
+        CALL pr_exigir_administrador(v_accion);
+      END IF;
+      IF OLD.estado = 'Bloqueado' THEN
+        SET NEW.intentos_fallidos = 0;
+        SET NEW.fecha_bloqueo = NULL;
+      END IF;
+    END IF;
+  ELSEIF NEW.estado = 'Bloqueado' AND NOT (OLD.fecha_bloqueo <=> NEW.fecha_bloqueo) THEN
+    CALL pr_exigir_administrador('cambiar la fecha de bloqueo de un usuario');
   END IF;
 END//
 
@@ -1416,7 +1442,8 @@ INSERT INTO tipos_cuenta (id_tipo_cuenta, nombre) VALUES
 INSERT INTO tipos_documento (id_tipo_documento, nombre, descripcion) VALUES
   (1, 'Documento de identidad', 'Documento de identificación del aprendiz'),
   (2, 'Certificado bancario',   'Certificación de la cuenta bancaria del aprendiz'),
-  (3, 'Documento adicional',    'Documento solicitado adicionalmente por el administrador');
+  (3, 'Documento adicional',    'Documento solicitado adicionalmente por el administrador'),
+  (4, 'Certificado de EPS',     'Certificado de afiliación a la EPS del aprendiz');
 
 INSERT INTO eps (nombre) VALUES
   ('Coosalud'),
