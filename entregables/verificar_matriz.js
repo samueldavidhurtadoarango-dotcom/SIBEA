@@ -10,7 +10,9 @@
  * (que es un archivo ZIP con XML) usando solo módulos de Node.
  *
  * Reglas:
- *   (c) cada "tabla: campo" citado en Requisitos de información existe en el SQL;
+ *   (c) cada "tabla: campo" citado en Requisitos de información existe en el SQL,
+ *       y cada procedimiento, función o trigger citado (pr_..., fn_..., tr_...)
+ *       en la hoja existe en el SQL;
  *   (d) no aparecen palabras prohibidas (OCR, Estudiante, estados eliminados);
  *   (e) en cada fila coinciden los números RF-x.y, RN-x.y y RI-x.y;
  *   (g) el estado del requisito es "Obligatorio" u "Opcional";
@@ -209,6 +211,24 @@ function reglaCamposExisten(filas, esquema) {
   return errores;
 }
 
+/** Nombres de las rutinas y triggers del SQL (CREATE PROCEDURE / FUNCTION / TRIGGER). */
+function rutinasSql(rutaSql) {
+  const sql = fs.readFileSync(rutaSql, 'utf8');
+  return new Set([...sql.matchAll(/CREATE\s+(?:PROCEDURE|FUNCTION|TRIGGER)\s+`?(\w+)`?/gi)].map((x) => x[1]));
+}
+
+/** (c) Cada procedimiento, función o trigger citado en la hoja (pr_..., fn_..., tr_...) existe en el SQL. */
+function reglaRutinasExisten(celdas, rutaSql) {
+  const rutinas = rutinasSql(rutaSql);
+  const errores = [];
+  for (const [ref, valor] of Object.entries(celdas)) {
+    for (const m of valor.matchAll(/\b(?:pr|fn|tr)_[a-z0-9_]+\b/g)) {
+      if (!rutinas.has(m[0])) errores.push(`celda ${ref}: la rutina «${m[0]}» no existe en el SQL`);
+    }
+  }
+  return errores;
+}
+
 /** (d) Ninguna celda de la hoja contiene palabras prohibidas (sin distinguir mayúsculas). */
 function reglaPalabrasProhibidas(celdas) {
   const errores = [];
@@ -300,7 +320,8 @@ const REGLAS_BD = [
   { rf: 'RF-2.3', que: 'solo un administrador activo hace acciones de gestión',
     debe: ['administrador en estado activo', 'cambiar el rol o el estado de un usuario',
       'crear un usuario administrador', 'crear un usuario que no nace activo', 'registrar y anular pagos',
-      'solo un administrador activo puede'] },
+      'solo un administrador activo puede',
+      'fuera del mantenimiento de la base de datos con root, que igual debe justificar los cambios de cuentas'] },
   { rf: 'RF-1.0', que: 'crear un Administrador, o un usuario que no nace Activo, exige un administrador activo',
     debe: ['solo un administrador activo puede crear un usuario con rol administrador',
       'crear un usuario en otro estado también exige un administrador activo'] },
@@ -453,33 +474,44 @@ function reglaBloqueoCuenta(filas) {
   return revisarFrases(filas, REGLAS_BLOQUEO);
 }
 
-// (m) Frases acordadas de la auditoría de cuentas y migraciones (séptima ronda y ronda 8 anunciada
-// por el coordinador; ver CAMBIOS.md: tr_usuario_auditar, @app_justificacion, tr_migracion_creada y
-// tr_migracion_actualizada). Copiadas a mano, no leídas del SQL.
+// (m) Frases acordadas de la auditoría de cuentas y migraciones (séptima y octava ronda de
+// CAMBIOS.md y decisiones D13 a D17 de la spec: tr_usuario_auditar, @app_justificacion,
+// pr_cambiar_estado_usuario, pr_cambiar_rol_usuario y triggers de migraciones).
+// Copiadas a mano, no leídas del SQL.
 const REGLAS_AUDITORIA = [
   { rf: 'RF-1.2', que: 'la base audita el cambio de rol, no los demás datos del usuario',
     debe: ['todo cambio de rol queda en la auditoría con quién lo hizo, cuándo, el rol anterior y el nuevo',
       'la base de datos no anota en la auditoría los cambios de los demás datos del usuario'],
     noDebe: ['cada cambio queda en auditoría'] },
+  { rf: 'RF-1.2', que: 'el cambio de rol también exige justificación (octava ronda, D15)',
+    debe: ['el cambio de rol también exige una justificación, que queda en la auditoría',
+      'pr_cambiar_rol_usuario'] },
   { rf: 'RF-1.3', que: 'todo cambio de estado queda en auditoría; justificación obligatoria si lo hace una persona',
     debe: ['todo cambio de estado queda en la auditoría con quién lo hizo, cuándo, el estado anterior y el nuevo y la justificación',
       'si el cambio lo hace una persona, la justificación es obligatoria y sin ella el sistema rechaza el cambio',
       'el bloqueo por intentos fallidos y el desbloqueo automático quedan registrados como hechos por el sistema',
-      'cada cambio de estado lleva su propia justificación'],
+      'cada cambio de estado lleva su propia justificación', 'pr_cambiar_estado_usuario'],
     noDebe: ['el cambio exige una justificación que se guarda en auditoría'] },
   { rf: 'RF-2.0', que: 'el bloqueo y el desbloqueo automáticos quedan en auditoría como hechos por el sistema, sin autor',
     debe: ['el bloqueo y el desbloqueo automáticos quedan en la auditoría como hechos por el sistema, sin autor'] },
   { rf: 'RF-4.3', que: 'las migraciones dejan huella y, ya terminadas, no se modifican (ronda 8)',
     debe: ['cada carga queda en la auditoría al iniciarse o registrarse y en cada cambio de su estado (por ejemplo, al terminar)',
       'actualizar solo los contadores mientras sigue en proceso no se anota',
-      'una migración terminada (que ya no está en proceso) no se puede modificar'] },
+      'una migración terminada (que ya no está en proceso) no se puede modificar',
+      'las fechas de inicio y de fin de la carga las pone el sistema'] },
   { rf: 'RF-4.4', que: 'qué anota la base en la auditoría y quién queda registrado',
     debe: ['los cambios de rol o de estado de los usuarios', 'las migraciones desde excel',
       'el propio aprendiz cuando crea o corrige su postulación',
       'el administrador cuando valida, aprueba o rechaza',
       'en el bloqueo y el desbloqueo automáticos de una cuenta el campo queda vacío y significa que lo hizo el sistema',
-      'la fecha de la auditoría la pone el sistema y no se puede alterar'],
-    noDebe: ['el aprendiz dueño de la postulación', 'cada cambio de estado, validación, aprobación, pago y novedad'] },
+      'la fecha de la auditoría la pone el sistema y no se puede alterar',
+      'la auditoría de las cuentas distingue tres orígenes',
+      'sistema (cambio automático del inicio de sesión)',
+      'mantenimiento (root sin usuario de sesión)',
+      'usuario (una persona con sesión)',
+      'el usuario vacío solo significa «el sistema» cuando el origen es sistema'],
+    noDebe: ['el aprendiz dueño de la postulación', 'cada cambio de estado, validación, aprobación, pago y novedad',
+      'si no se conoce el usuario, el campo queda vacío'] },
 ];
 
 /** (m) La auditoría de cuentas y migraciones está descrita como la hace la base. */
@@ -502,7 +534,8 @@ function main() {
   console.log(`Requisitos leídos en la hoja "${HOJA_MATRIZ}": ${filas.length}\n`);
 
   const reglas = [
-    ['(c) Campos citados existen en benefitrack_v2.sql', reglaCamposExisten(filas, esquema)],
+    ['(c) Campos y rutinas citados existen en benefitrack_v2.sql',
+      [...reglaCamposExisten(filas, esquema), ...reglaRutinasExisten(celdas, RUTA_SQL)]],
     ['(d) Sin palabras prohibidas', reglaPalabrasProhibidas(celdas)],
     ['(e) Numeración RF/RN/RI coincide', reglaNumeracion(filas)],
     ['(g) Estado del requisito válido', reglaEstadoRequisito(filas)],
