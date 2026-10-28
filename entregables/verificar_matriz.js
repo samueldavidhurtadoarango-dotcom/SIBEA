@@ -14,16 +14,24 @@
  *   (d) no aparecen palabras prohibidas (OCR, Estudiante, estados eliminados);
  *   (e) en cada fila coinciden los números RF-x.y, RN-x.y y RI-x.y;
  *   (g) el estado del requisito es "Obligatorio" u "Opcional";
- *   (h) las reglas que la base de datos hace cumplir (rondas 2 a 4 de
- *       base-de-datos/CAMBIOS.md) están escritas en el RF/RN que corresponde,
- *       y no quedan frases que las contradigan;
- *   (i) todos los tipos de documento de la semilla del SQL aparecen en RF-3.1;
- *   (j) los minutos del desbloqueo automático de RN-2.0 son los del SQL;
- *   (k) no quedan preguntas abiertas ni temas "por confirmar";
- *   (l) el bloqueo de la cuenta deja claro quién bloquea y quién desbloquea
- *       (solo una cuenta Activa se bloquea, la fecha la pone el sistema, una
- *       cuenta Inactiva solo la reactiva un administrador activo y este puede
- *       desbloquear en cualquier momento).
+ *   (h) frases acordadas de las reglas de la base de datos (rondas 2 a 7 de
+ *       base-de-datos/CAMBIOS.md) presentes en el RF/RN que corresponde, y
+ *       ausencia de algunas frases equivocadas conocidas. OJO: esta regla NO
+ *       lee el SQL; las frases se copiaron a mano de CAMBIOS.md y se revisaron
+ *       contra el script. Si la base de datos cambia, hay que actualizarlas;
+ *   (i) todos los tipos de documento de la semilla del SQL aparecen en RF-3.1
+ *       (esta sí lee el SQL);
+ *   (j) los minutos del desbloqueo automático de RF-2.0 y RF-1.3 son los del
+ *       trigger tr_usuario_validar (lee el SQL; compara el número completo,
+ *       así "115 minutos" no cuenta como "15 minutos");
+ *   (k) no quedan preguntas abiertas ni temas "por confirmar" en la hoja de
+ *       la matriz ni en la sección 7 de entregables/CAMBIOS_MATRIZ.md (donde
+ *       estaban las preguntas abiertas; lo tachado con ~~ ~~ no cuenta);
+ *   (l) frases acordadas del bloqueo de la cuenta (quién bloquea y quién
+ *       desbloquea); igual que (h), copiadas a mano y no leídas del SQL;
+ *   (m) frases acordadas de la auditoría de cuentas y migraciones (ronda 7):
+ *       qué anota la base en auditoria y quién queda registrado; igual que
+ *       (h), copiadas a mano y no leídas del SQL.
  * Termina con código 1 si alguna regla falla.
  */
 'use strict';
@@ -35,6 +43,7 @@ const zlib = require('zlib');
 const RAIZ = path.resolve(__dirname, '..');
 const RUTA_XLSX = process.argv[2] || path.join(RAIZ, 'entregables', 'Matriz_Requisitos_v2.xlsx');
 const RUTA_SQL = process.argv[3] || path.join(RAIZ, 'base-de-datos', 'benefitrack_v2.sql');
+const RUTA_CAMBIOS_MATRIZ = path.join(RAIZ, 'entregables', 'CAMBIOS_MATRIZ.md');
 const HOJA_MATRIZ = 'Matriz de Requisitos';
 
 // Columnas de la matriz (iguales en la original y en la v2).
@@ -242,7 +251,7 @@ function reglaEstadoRequisito(filas) {
 }
 
 // ---------------------------------------------------------------------------
-// Reglas de contenido (h, i, j, k, l)
+// Reglas de contenido (h, i, j, k, l, m)
 // ---------------------------------------------------------------------------
 
 /** Minúsculas, sin tildes y con espacios simples, para comparar frases. */
@@ -266,16 +275,19 @@ function revisarFrases(filas, lista) {
       if (!texto.includes(normalizar(frase))) errores.push(`${r.rf}: falta «${frase}» (${r.que})`);
     }
     for (const frase of r.noDebe || []) {
-      if (texto.includes(normalizar(frase))) errores.push(`${r.rf}: contradice la base de datos con «${frase}»`);
+      if (texto.includes(normalizar(frase))) errores.push(`${r.rf}: no debe decir «${frase}» (${r.que})`);
     }
   }
   return errores;
 }
 
-// (h) Reglas de la base de datos (rondas 2 a 4) y decisiones de Samuel del 27/10/2026.
+// (h) Frases acordadas de las reglas de la base de datos (rondas 2 a 7 de
+// base-de-datos/CAMBIOS.md) y decisiones de Samuel del 27/10/2026. Son frases
+// copiadas a mano y revisadas contra el SQL; el verificador no lee el SQL aquí.
 const REGLAS_BD = [
   { rf: 'RF-3.0', que: 'solo un Aprendiz se postula, a una convocatoria Activa y dentro de sus fechas',
-    debe: ['solo un usuario con rol aprendiz', 'activa', 'dentro de sus fechas de inicio y cierre'] },
+    debe: ['solo un usuario con rol aprendiz', 'solo a convocatorias en estado activa',
+      'dentro de sus fechas de inicio y cierre'] },
   { rf: 'RF-6.0', que: 'fechas y montos de los pagos',
     debe: ['la fecha de pago debe estar entre la fecha de inicio de la asignación y hoy',
       'la fecha programada', 'no puede ser anterior a la fecha de inicio de la asignación',
@@ -286,9 +298,11 @@ const REGLAS_BD = [
     debe: ['los registra el sistema', 'no se pueden cambiar', 'solo se corrige mientras la postulación está pendiente'] },
   { rf: 'RF-2.3', que: 'solo un administrador activo hace acciones de gestión',
     debe: ['administrador en estado activo', 'cambiar el rol o el estado de un usuario',
-      'crear un usuario administrador', 'registrar y anular pagos', 'solo un administrador activo puede'] },
-  { rf: 'RF-1.0', que: 'crear un Administrador exige un administrador activo',
-    debe: ['solo un administrador activo puede crear un usuario con rol administrador'] },
+      'crear un usuario administrador', 'crear un usuario que no nace activo', 'registrar y anular pagos',
+      'solo un administrador activo puede'] },
+  { rf: 'RF-1.0', que: 'crear un Administrador, o un usuario que no nace Activo, exige un administrador activo',
+    debe: ['solo un administrador activo puede crear un usuario con rol administrador',
+      'crear un usuario en otro estado también exige un administrador activo'] },
   { rf: 'RF-1.2', que: 'cambiar el rol exige un administrador activo',
     debe: ['solo un administrador activo puede cambiar el rol'] },
   { rf: 'RF-1.3', que: 'cambiar el estado exige un administrador activo',
@@ -297,17 +311,22 @@ const REGLAS_BD = [
   { rf: 'RF-7.1', que: 'los cupos no bajan de las postulaciones aprobadas',
     debe: ['los cupos no pueden quedar por debajo del número de postulaciones aprobadas'] },
   { rf: 'RF-8.3', que: 'condiciones congeladas en cuanto hay pagos o deja de estar En curso',
-    debe: ['solo mientras la asignación está en curso y no tiene ningún pago', 'anulado', 'quedan congelad'],
+    debe: ['solo mientras la asignación está en curso y no tiene ningún pago', 'ni siquiera uno anulado',
+      'la duración y la fecha de inicio quedan congelados'],
     noDebe: ['no puede quedar por debajo de los pagos ya registrados'] },
   { rf: 'RF-8.2', que: 'fecha_inicio entre el inicio de la convocatoria y hoy + 1 año',
     debe: ['entre la fecha de inicio de la convocatoria y un año después de hoy'] },
+  { rf: 'RF-8.2', que: 'la asignación empieza en GREATEST(CURDATE(), fecha de inicio de la convocatoria)',
+    debe: ['empieza el día de la aprobación o, si la convocatoria aún no ha empezado, el día de inicio de la convocatoria'],
+    noDebe: ['igual a la fecha de aprobación'] },
   { rf: 'RF-8.3', que: 'fecha_inicio entre el inicio de la convocatoria y hoy + 1 año',
-    debe: ['fecha de inicio', 'entre la fecha de inicio de la convocatoria y un año después de hoy'] },
+    debe: ['la nueva fecha de inicio debe estar entre la fecha de inicio de la convocatoria y un año después de hoy'] },
   { rf: 'RF-2.0', que: 'bloqueo tras 3 intentos y desbloqueo automático (decisión del 27/10/2026)',
     debe: ['3 intentos fallidos', 'se desbloquea sola', 'un administrador activo también puede desbloquearla antes'],
     noDebe: ['hasta que el administrador lo reactive', 'temporalmente'] },
-  { rf: 'RF-3.2', que: 'el certificado de EPS es obligatorio para enviar (decisión del 27/10/2026)',
-    debe: ['certificado de eps'] },
+  { rf: 'RF-3.2', que: 'el certificado de EPS es obligatorio para enviar y lo valida la aplicación (decisión del 27/10/2026)',
+    debe: ['no se puede enviar sin haber cargado el documento de identidad, el certificado bancario y el certificado de eps',
+      'esto lo valida la aplicación, no la base de datos'] },
 ];
 
 /** (h) Las reglas de la base de datos están en el requisito que corresponde. */
@@ -343,8 +362,13 @@ function reglaMinutosDesbloqueo(filas, rutaSql) {
   const errores = [];
   for (const rf of ['RF-2.0', 'RF-1.3']) {
     const texto = textoRequisito(filas, rf);
-    if (texto === null) errores.push(`${rf} no existe`);
-    else if (!texto.includes(frase)) errores.push(`${rf}: debe decir «${frase}» (desbloqueo automático del SQL)`);
+    if (texto === null) { errores.push(`${rf} no existe`); continue; }
+    // Número completo: «115 minutos» no cuenta como «15 minutos».
+    const minutos = [...texto.matchAll(/(?<![0-9])(\d+) minutos/g)].map((x) => x[1]);
+    if (!minutos.includes(m[1])) errores.push(`${rf}: debe decir «${frase}» (desbloqueo automático del SQL)`);
+    for (const otro of minutos.filter((x) => x !== m[1])) {
+      errores.push(`${rf}: dice «${otro} minutos», pero el SQL desbloquea a los ${m[1]}`);
+    }
   }
   return errores;
 }
@@ -352,24 +376,46 @@ function reglaMinutosDesbloqueo(filas, rutaSql) {
 const FRASES_ABIERTAS = ['pregunta abierta', 'por confirmar', 'por definir', 'hay que definir', 'sin definir',
   'pendiente de confirmar', 'a confirmar', 'si se quiere'];
 
-/** (k) Ninguna celda de la hoja deja temas abiertos. */
-function reglaSinPreguntasAbiertas(celdas) {
+/** Texto de la sección 7 de CAMBIOS_MATRIZ.md (decisiones y preguntas), o null si no está. */
+function seccionDecisiones(rutaMd) {
+  if (!fs.existsSync(rutaMd)) return null;
+  const md = fs.readFileSync(rutaMd, 'utf8');
+  const m = md.match(/^## 7\.[^\n]*\n([\s\S]*?)(?=^## \d)/m);
+  return m ? m[1] : null;
+}
+
+/** (k) Ni la hoja ni la sección 7 de CAMBIOS_MATRIZ.md dejan temas abiertos. */
+function reglaSinPreguntasAbiertas(celdas, rutaMd) {
   const errores = [];
   for (const [ref, valor] of Object.entries(celdas)) {
     const texto = normalizar(valor);
     for (const frase of FRASES_ABIERTAS) if (texto.includes(frase)) errores.push(`celda ${ref}: contiene «${frase}»`);
   }
+  const seccion = seccionDecisiones(rutaMd);
+  if (seccion === null) {
+    errores.push(`no se encontró la sección 7 de ${path.basename(rutaMd)}`);
+  } else {
+    const texto = normalizar(seccion.replace(/~~[\s\S]*?~~/g, ''));  // lo tachado ya está cerrado
+    for (const frase of FRASES_ABIERTAS) {
+      if (texto.includes(frase)) errores.push(`${path.basename(rutaMd)} §7: contiene «${frase}»`);
+    }
+  }
   return errores;
 }
 
-// (l) Quién bloquea y quién desbloquea una cuenta.
+// (l) Frases acordadas de quién bloquea y quién desbloquea una cuenta
+// (copiadas a mano de las rondas 4 a 6 de CAMBIOS.md, no leídas del SQL).
+const FRASES_BLOQUEO_EQUIVOCADAS = ['hasta que el administrador lo reactive', 'hasta que un administrador la desbloquee',
+  'bloqueo permanente', 'bloqueada de forma permanente'];
 const REGLAS_BLOQUEO = [
   { rf: 'RF-2.0', que: 'solo una cuenta Activa se bloquea y la fecha la pone el sistema',
     debe: ['solo una cuenta activa puede quedar bloqueada por intentos fallidos',
-      'la fecha de bloqueo la pone el sistema en el momento del bloqueo'] },
+      'la fecha de bloqueo la pone el sistema en el momento del bloqueo'],
+    noDebe: FRASES_BLOQUEO_EQUIVOCADAS },
   { rf: 'RF-1.3', que: 'una cuenta Inactiva solo la reactiva un administrador activo',
     debe: ['una cuenta inactiva solo la reactiva un administrador activo',
-      'no se reactiva sola ni pasando por bloqueado'] },
+      'no se reactiva sola ni pasando por bloqueado'],
+    noDebe: FRASES_BLOQUEO_EQUIVOCADAS },
   { rf: 'RF-1.3', que: 'un administrador activo desbloquea en cualquier momento',
     debe: ['un administrador activo puede desbloquear una cuenta en cualquier momento'] },
 ];
@@ -377,6 +423,37 @@ const REGLAS_BLOQUEO = [
 /** (l) El bloqueo de la cuenta está explicado sin huecos. */
 function reglaBloqueoCuenta(filas) {
   return revisarFrases(filas, REGLAS_BLOQUEO);
+}
+
+// (m) Frases acordadas de la auditoría de cuentas y migraciones (séptima ronda
+// de CAMBIOS.md: tr_usuario_auditar, @app_justificacion, tr_migracion_creada y
+// tr_migracion_actualizada). Copiadas a mano, no leídas del SQL.
+const REGLAS_AUDITORIA = [
+  { rf: 'RF-1.2', que: 'la base audita el cambio de rol, no los demás datos del usuario',
+    debe: ['todo cambio de rol queda en la auditoría con quién lo hizo, cuándo, el rol anterior y el nuevo',
+      'la base de datos no anota en la auditoría los cambios de los demás datos del usuario'],
+    noDebe: ['cada cambio queda en auditoría'] },
+  { rf: 'RF-1.3', que: 'todo cambio de estado queda en auditoría; justificación obligatoria si lo hace una persona',
+    debe: ['todo cambio de estado queda en la auditoría con quién lo hizo, cuándo, el estado anterior y el nuevo y la justificación',
+      'si el cambio lo hace una persona, la justificación es obligatoria y sin ella el sistema rechaza el cambio',
+      'el bloqueo por intentos fallidos y el desbloqueo automático quedan registrados como hechos por el sistema'],
+    noDebe: ['el cambio exige una justificación que se guarda en auditoría'] },
+  { rf: 'RF-2.0', que: 'el bloqueo y el desbloqueo automáticos quedan en auditoría como hechos por el sistema',
+    debe: ['el bloqueo y el desbloqueo automáticos quedan en la auditoría como hechos por el sistema'] },
+  { rf: 'RF-4.3', que: 'las migraciones dejan huella al iniciar o registrar y en cada cambio de estado',
+    debe: ['cada carga queda en la auditoría al iniciarse o registrarse y en cada cambio de su estado (por ejemplo, al terminar)',
+      'actualizar solo los contadores mientras sigue en proceso no se anota'] },
+  { rf: 'RF-4.4', que: 'qué anota la base en la auditoría y quién queda registrado',
+    debe: ['los cambios de rol o de estado de los usuarios', 'las migraciones desde excel',
+      'el propio aprendiz cuando crea o corrige su postulación',
+      'el administrador cuando valida, aprueba o rechaza',
+      'en el bloqueo y el desbloqueo automáticos de una cuenta el campo queda vacío y significa que lo hizo el sistema'],
+    noDebe: ['el aprendiz dueño de la postulación', 'cada cambio de estado, validación, aprobación, pago y novedad'] },
+];
+
+/** (m) La auditoría de cuentas y migraciones está descrita como la hace la base. */
+function reglaAuditoriaCuentas(filas) {
+  return revisarFrases(filas, REGLAS_AUDITORIA);
 }
 
 // ---------------------------------------------------------------------------
@@ -398,11 +475,12 @@ function main() {
     ['(d) Sin palabras prohibidas', reglaPalabrasProhibidas(celdas)],
     ['(e) Numeración RF/RN/RI coincide', reglaNumeracion(filas)],
     ['(g) Estado del requisito válido', reglaEstadoRequisito(filas)],
-    ['(h) Reglas de la base de datos reflejadas en la matriz', reglaReglasBaseDatos(filas)],
+    ['(h) Frases acordadas de las reglas de la BD presentes (no lee el SQL)', reglaReglasBaseDatos(filas)],
     ['(i) Tipos de documento del SQL en RF-3.1', reglaTiposDocumento(filas, RUTA_SQL)],
     ['(j) Minutos de desbloqueo iguales al SQL', reglaMinutosDesbloqueo(filas, RUTA_SQL)],
-    ['(k) Sin preguntas abiertas', reglaSinPreguntasAbiertas(celdas)],
-    ['(l) Bloqueo de la cuenta sin huecos', reglaBloqueoCuenta(filas)],
+    ['(k) Sin preguntas abiertas (hoja y §7 de CAMBIOS_MATRIZ.md)', reglaSinPreguntasAbiertas(celdas, RUTA_CAMBIOS_MATRIZ)],
+    ['(l) Frases acordadas del bloqueo de la cuenta presentes (no lee el SQL)', reglaBloqueoCuenta(filas)],
+    ['(m) Frases acordadas de la auditoría de cuentas y migraciones presentes (no lee el SQL)', reglaAuditoriaCuentas(filas)],
   ];
 
   let fallidas = 0;
