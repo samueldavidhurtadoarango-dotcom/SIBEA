@@ -29,7 +29,7 @@ base de datos, la matriz deja de servir como guía para programar. Eso es justo 
 | Módulos | 6 | 9 (3 nuevos) |
 | Requisitos (filas RF/RN/RI) | 21 | 46 (25 nuevos) |
 | Requisitos eliminados | — | 0 (se corrigió su contenido, no se borró ninguno) |
-| Reglas del verificador que pasan | 1 de 9 | 9 de 9 |
+| Reglas del verificador que pasan | 1 de 10 | 10 de 10 |
 
 Los números de los módulos originales (1 a 6) **se conservaron** para que nadie del equipo pierda la
 referencia: RF-4.1 sigue siendo «comparar datos» y RF-6.0 sigue siendo «registrar pago». Los módulos
@@ -40,7 +40,7 @@ Samuel David Hurtado Arango).
 ## 2. ¿Cómo se comprobó? (el verificador)
 
 `entregables/verificar_matriz.js` es un pequeño programa que lee el Excel y la base de datos y revisa
-nueve reglas. No necesita instalar nada: solo Node. Se ejecuta así:
+diez reglas. No necesita instalar nada: solo Node. Se ejecuta así:
 
 ```bash
 node entregables/verificar_matriz.js                                   # revisa la v2
@@ -53,18 +53,36 @@ node entregables/verificar_matriz.js originales/Matriz_Requisitos.xlsx # revisa 
 | (d) | No aparecen «OCR», «resultado_ocr», «datos_extraidos», «Estudiante», «Completado», «Borrador», «En revisión» ni «Enviada» | FALLO (5 problemas) | OK |
 | (e) | RF-x.y, RN-x.y y RI-x.y tienen el mismo número en cada fila | FALLO (4 problemas) | OK |
 | (g) | El estado del requisito es «Obligatorio» u «Opcional» | FALLO (2 problemas) | OK |
-| (h) | Las reglas que la base de datos hace cumplir (rondas 2 a 4) están escritas en el requisito que corresponde, y no queda ninguna frase que las contradiga | FALLO (26 problemas) | OK |
+| (h) | Frases acordadas de las reglas de la base de datos (rondas 2 a 7) presentes en el requisito que corresponde, y ausencia de algunas frases equivocadas conocidas | FALLO (29 problemas) | OK |
 | (i) | Los tipos de documento de la semilla del SQL (`tipos_documento`) aparecen en RF-3.1 | FALLO (4 problemas) | OK |
-| (j) | RF-2.0 y RF-1.3 dicen los mismos minutos de desbloqueo que el trigger `tr_usuario_validar` (15) | FALLO (2 problemas) | OK |
-| (k) | No quedan preguntas abiertas ni temas «por confirmar» | OK | OK |
-| (l) | El bloqueo de la cuenta dice quién bloquea y quién desbloquea | FALLO (5 problemas) | OK |
+| (j) | RF-2.0 y RF-1.3 dicen los mismos minutos de desbloqueo que el trigger `tr_usuario_validar` (15), comparando el número completo | FALLO (2 problemas) | OK |
+| (k) | No quedan preguntas abiertas ni temas «por confirmar» en la hoja ni en la sección 7 de este documento | OK | OK |
+| (l) | Frases acordadas del bloqueo de la cuenta (quién bloquea y quién desbloquea) presentes | FALLO (5 problemas) | OK |
+| (m) | Frases acordadas de la auditoría de cuentas y migraciones (ronda 7) presentes | FALLO (13 problemas) | OK |
 
 La regla (d) revisa solo la hoja «Matriz de Requisitos». La hoja «Control de cambios» sí nombra esas
 palabras, porque explica qué se quitó.
 
-Las reglas (h) a (l) se agregaron el 27/10/2026 (sección 9). Las reglas (i) y (j) leen los datos
-directamente del SQL: si mañana la base de datos agrega otro tipo de documento o cambia los 15 minutos,
-el verificador avisa que la matriz quedó desactualizada.
+Las reglas (h) a (l) se agregaron el 27/10/2026 (sección 9) y la (m), el mismo día en la segunda tanda
+(sección 10).
+
+**Qué lee del SQL y qué no (dicho con honestidad).** Hay dos tipos de reglas:
+
+- **Las que leen el SQL:** (c), (i) y (j). Si mañana la base de datos agrega otro tipo de documento o
+  cambia los 15 minutos, el verificador avisa que la matriz quedó desactualizada.
+- **Las que comparan frases acordadas:** (h), (l) y (m). Son como una lista de chequeo escrita a mano:
+  las frases se copiaron de `base-de-datos/CAMBIOS.md` y se revisaron contra `benefitrack_v2.sql`, pero
+  el verificador **no lee el SQL** para estas reglas. Comprueban que esas frases estén y que no
+  aparezcan algunas frases equivocadas que ya conocemos; no pueden garantizar que ninguna otra frase
+  de la matriz contradiga la base. Si la base de datos cambia, hay que actualizar la lista. Unas pocas
+  frases de (l) y (m) ya describen la octava ronda de la base de datos, que todavía no está en el SQL de
+  esta rama (sección 10.4).
+
+**Sobre la regla (k).** Nunca estuvo en rojo contra la original, porque la hoja original no tenía
+frases como «por confirmar»: las preguntas abiertas estaban escritas en la sección 7 de este documento.
+Por eso, desde la segunda tanda del 27/10/2026, (k) revisa también esa sección (lo tachado con `~~`
+cuenta como cerrado). Contra la original sigue saliendo OK, porque la sección 7 de hoy ya no tiene
+preguntas abiertas.
 
 ## 3. Requisitos que se corrigieron
 
@@ -74,9 +92,10 @@ el verificador avisa que la matriz quedó desactualizada.
   dicen «RN-1.0» y «RI-1.0». La base de datos ya no guarda la `edad` (cambia cada año) sino la
   `fecha_nacimiento`. Se agregan la EPS (`id_eps`) y la regla de que el correo no se puede repetir. (**D11**)
 - **RF-1.1 Consultar usuarios.** Se agrega el estado «Bloqueado», que existe en la base de datos.
-- **RF-1.2 Modificar usuario.** Se agregan `fecha_nacimiento` e `id_eps`; la auditoría guarda quién hizo el cambio. (**D9**)
-- **RF-1.3 Cambiar estado.** Ahora son tres estados: Activo, Inactivo y Bloqueado; la justificación
-  queda en la auditoría. (**D9**)
+- **RF-1.2 Modificar usuario.** Se agregan `fecha_nacimiento` e `id_eps`; todo cambio de rol queda en la
+  auditoría con quién lo hizo (la base no anota los cambios de los demás datos, ver sección 10). (**D9**)
+- **RF-1.3 Cambiar estado.** Ahora son tres estados: Activo, Inactivo y Bloqueado; todo cambio de estado
+  queda en la auditoría, con justificación obligatoria si lo hace una persona (sección 10). (**D9**)
 
 ### Módulo 2 · Autenticación y acceso
 
@@ -112,7 +131,8 @@ el verificador avisa que la matriz quedó desactualizada.
   `migraciones` con sus campos reales. Se marcó **Opcional** porque es una carga que se hace una vez, no
   parte del flujo diario. (**D11**)
 - **RF-4.4 Auditoría.** Ahora también cubre el historial de estados y deja claro que se guarda **el
-  administrador que hizo el cambio**, no un número fijo ni el aprendiz. (**D9**)
+  usuario que hizo el cambio**, nunca un número fijo: el propio aprendiz cuando crea o corrige su
+  postulación y el administrador cuando valida, aprueba o rechaza (sección 10). (**D9**)
 
 ### Módulo 5 · Notificaciones
 
@@ -172,7 +192,7 @@ desde cuándo y en qué estado va (En curso, Finalizado, Suspendido o Cancelado)
 | RF-8.0 | Aprobar a los elegidos por la institución, **sin pasarse de los cupos** | D2 |
 | RF-8.1 | Rechazar, con justificación, a los validados que no fueron elegidos | D1, D2 |
 | RF-8.2 | Al aprobar, el sistema crea solo la asignación copiando los valores de la convocatoria | D3 |
-| RF-8.3 | Ajustar valor, número de pagos o duración de una asignación (Opcional) | D3 |
+| RF-8.3 | Ajustar valor, número de pagos, duración o fecha de inicio de una asignación antes de su primer pago (Opcional) | D3 |
 | RF-8.4 | Suspender una asignación (con motivo) | D3, D5 |
 | RF-8.5 | Reactivar una asignación suspendida (con motivo) | D3, D5 |
 | RF-8.6 | Cancelar una asignación (con motivo) | D3, D5 |
@@ -224,7 +244,8 @@ Ninguno se borró. Lo que se quitó fue **contenido equivocado** dentro de requi
    activo puede desbloquearla antes (sección 9).
 3. **Documentos obligatorios (RF-3.1, RN-3.2):** ~~quedaba abierto si se pide el certificado de EPS~~.
    **Cerrado el 27/10/2026 por decisión de Samuel:** se agrega el tipo «Certificado de EPS» y es
-   obligatorio junto al documento de identidad y el certificado bancario (sección 9).
+   obligatorio junto al documento de identidad y el certificado bancario (sección 9). Que los tres
+   estén cargados antes de enviar lo comprueba la aplicación, no la base de datos (sección 10).
 4. **RF-8.3 (ajustar la asignación) es Opcional:** la base de datos lo permite, pero el flujo funciona sin él.
 5. **RF-4.3 (migración desde Excel) es Opcional:** es una carga que se hace una vez.
 6. **RF-6.2 pasó de Opcional a Obligatorio:** para anular un pago (RF-6.3) primero hay que verlo.
@@ -242,7 +263,7 @@ Esta tabla sale de la columna «Requisitos de información» de la matriz. Las 2
 | RF-1.1 | Consultar usuarios | `usuarios`, `roles`, `programas` |
 | RF-1.2 | Modificar usuario | `usuarios`, `auditoria` |
 | RF-1.3 | Cambiar estado del usuario | `usuarios`, `auditoria` |
-| RF-2.0 | Iniciar sesión | `usuarios`, `sesiones` |
+| RF-2.0 | Iniciar sesión | `usuarios`, `sesiones`, `auditoria` |
 | RF-2.1 | Cerrar sesión | `sesiones` |
 | RF-2.2 | Recuperar contraseña | `usuarios`, `recuperacion_contrasena` |
 | RF-2.3 | Controlar permisos de gestión (nuevo) | `usuarios`, `roles` |
@@ -287,8 +308,9 @@ Esta tabla sale de la columna «Requisitos de información» de la matriz. Las 2
 
 ## 9. Cambios del 27/10/2026: reglas de la base de datos y decisiones de Samuel
 
-La base de datos tuvo tres rondas más de correcciones (secciones 6, 7 y 8 de
-`base-de-datos/CAMBIOS.md`). La matriz las tiene que decir también; si no, quien programe la
+La base de datos tuvo varias rondas más de correcciones (de la segunda a la séptima: secciones 6 a 11
+de `base-de-datos/CAMBIOS.md`). Esta sección cubre las rondas 2 a 6; la séptima (auditoría de cuentas y
+migraciones) está en la sección 10. La matriz las tiene que decir también; si no, quien programe la
 aplicación se encontraría con errores de la base de datos que ningún requisito explica. Es como un
 reglamento del colegio: si el portero no deja entrar sin carné, el reglamento escrito tiene que
 decirlo.
@@ -326,12 +348,69 @@ Con esto se cierran las dos preguntas que quedaban abiertas en la sección 7.
 
 Primero se agregaron al verificador las reglas (h) a (l) y se ejecutaron contra la matriz anterior:
 fallaron (rojo). Luego se cambiaron los datos de `herramientas/datos_matriz.js`, se regeneró el Excel
-con `herramientas/generar_matriz.js` y el verificador quedó en **9 de 9 reglas OK** (verde). La hoja
+con `herramientas/generar_matriz.js` y el verificador quedó, en ese momento, en **9 de 9 reglas OK** (verde). La hoja
 «Control de cambios» tiene 11 filas nuevas con fecha 27/10/2026.
 
-**Una advertencia honesta.** Tres puntos del bloqueo (solo una cuenta Activa se bloquea por intentos,
-la fecha de bloqueo la pone siempre el sistema y una cuenta Inactiva no se reactiva pasando por
-Bloqueado) los hace cumplir la quinta ronda de la base de datos, que se trabaja en otra rama. El script
-`base-de-datos/benefitrack_v2.sql` de esta rama todavía permite pasar una cuenta Inactiva a Bloqueado
-sin administrador (y que a los 15 minutos quede Activa) y acepta una `fecha_bloqueo` enviada por la
-aplicación. La matriz ya dice cómo debe ser; falta que llegue esa ronda.
+**La base de datos ya lo cumple.** Esta rama se rebasó sobre la séptima ronda de la base de datos.
+Los tres puntos del bloqueo que antes estaban pendientes ya los hace cumplir el script
+`base-de-datos/benefitrack_v2.sql` (quinta y sexta ronda, trigger `tr_usuario_validar`): sin
+administrador, solo una cuenta Activa pasa a Bloqueado; la fecha de bloqueo la pone siempre la base
+con la hora real del servidor (`SYSDATE()`), aunque la aplicación mande otra; y una cuenta Inactiva no
+se reactiva pasando por Bloqueado.
+
+## 10. Cambios del 27/10/2026 (segunda tanda): auditoría de cuentas y correcciones de la revisión
+
+Una revisión de la matriz encontró una regla que no coincidía con la base de datos, frases que
+prometían más de lo que la base hace y comprobaciones del verificador demasiado débiles. Además, la
+séptima ronda de la base de datos agregó la auditoría de las cuentas, y el coordinador anunció una
+octava ronda cuyas reglas ya quedan escritas aquí en su forma final.
+
+### 10.1 Qué cambió en la matriz
+
+| Requisito | Qué dice ahora, en palabras sencillas | Por qué |
+|---|---|---|
+| RN-8.2 | La asignación empieza el día de la aprobación o, si la convocatoria aún no ha empezado, el día de inicio de la convocatoria. | Antes decía «igual a la fecha de aprobación», pero la base usa el día más tarde entre hoy y el inicio de la convocatoria. |
+| RN-1.2 | Todo cambio de rol queda en la auditoría con quién, cuándo, el rol anterior y el nuevo. Los cambios de los demás datos (nombre, correo...) la base **no** los anota. | Antes decía «cada cambio queda en auditoría», y la base solo anota el rol y el estado. |
+| RN-1.3 | Todo cambio de estado queda en la auditoría con quién, cuándo, el estado anterior y el nuevo y la justificación. Si lo hace una persona, la justificación es obligatoria y cada cambio lleva la suya. El bloqueo y el desbloqueo automáticos quedan como hechos por el sistema. | Decisión de Samuel: la auditoría de las cuentas la guarda la base (séptima ronda). |
+| RN-2.0 | El bloqueo automático solo lo hace el sistema durante el inicio de sesión y tras 3 intentos fallidos; cualquier otro bloqueo lo hace un administrador activo con justificación. El desbloqueo automático solo lo hace el sistema a los 15 minutos. Los dos quedan en la auditoría sin autor. | Séptima ronda y forma final de la octava. |
+| RN-4.3 | Cada carga desde Excel queda en la auditoría al iniciarse o registrarse y en cada cambio de su estado (por ejemplo, al terminar). Una migración terminada no se puede modificar. | Séptima ronda y forma final de la octava. |
+| RF-4.4 / RN-4.4 | Dice qué se anota (postulaciones, asignaciones, pagos y anulaciones, novedades, rol y estado de usuarios, migraciones) y quién queda registrado: el propio aprendiz cuando crea o corrige su postulación, el administrador cuando valida, aprueba o rechaza, y nadie (el sistema) en el bloqueo y el desbloqueo automáticos. La fecha de la auditoría la pone el sistema. | Antes decía que «nunca» se guardaba al aprendiz dueño de la postulación, y sí se guarda cuando él mismo hace el cambio. |
+| RN-1.0 / RN-2.3 | Crear un usuario que no nace Activo también exige un administrador activo. | Lo hace cumplir la base desde la quinta ronda. |
+| RN-3.2 | El certificado de EPS es obligatorio para enviar la postulación, junto al documento de identidad y el certificado bancario. | **Decisión de Samuel (27/10/2026).** Esto lo comprueba la **aplicación**, no la base de datos: la base no revisa qué documentos están cargados antes de crear la postulación. |
+
+La hoja «Control de cambios» tiene 7 filas nuevas con fecha 27/10/2026 por esta tanda.
+
+### 10.2 Qué cambió en el verificador
+
+- Las reglas (h) y (l) se renombraron con honestidad: comprueban **frases acordadas**, no leen el SQL
+  (sección 2).
+- Se reforzaron frases que eran demasiado cortas: en RF-3.0 ya no basta la palabra «activa», en RF-8.3
+  ya no bastan «anulado» ni «fecha de inicio», y en RF-3.2 se exige la frase completa de que no se puede
+  enviar sin los tres documentos.
+- (j) compara el número completo de minutos: «115 minutos» ya no pasa por «15 minutos».
+- (k) revisa también la sección 7 de este documento.
+- (l) tiene frases equivocadas conocidas que no deben aparecer (por ejemplo, «hasta que el
+  administrador lo reactive»).
+- (m) es nueva: auditoría de cuentas y migraciones.
+
+### 10.3 Cómo se comprobó
+
+Igual que antes: primero se cambió el verificador y se ejecutó contra la matriz anterior (rojo: 8 de
+10). Luego se cambiaron los datos, se regeneró el Excel y quedó en **10 de 10 reglas OK** (verde).
+Contra la matriz original da **1 de 10** (solo (k) pasa). Lo mismo se repitió para las reglas de la
+octava ronda.
+
+### 10.4 Advertencia honesta: la octava ronda todavía no está en este SQL
+
+Algunas reglas ya están escritas en su forma final, pero el script `base-de-datos/benefitrack_v2.sql`
+de esta rama (séptima ronda) todavía no las hace cumplir del todo. La octava ronda se trabaja en otra
+rama. Mientras llega:
+
+- hoy la base deja pasar una cuenta de Activo a Bloqueado sin administrador aunque no haya 3 intentos
+  fallidos (la cuenta de los 3 intentos la lleva la aplicación);
+- una migración terminada todavía se puede modificar;
+- la justificación de un cambio de estado (`@app_justificacion`) se queda en la sesión y podría servir
+  para el siguiente cambio si la aplicación no la limpia.
+
+La matriz no menciona procedimientos ni columnas que aún no existen en este SQL, para que la regla (c)
+siga siendo cierta.
