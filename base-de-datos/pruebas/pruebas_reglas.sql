@@ -1769,6 +1769,9 @@ CALL pr_verificar('P26', 'La solicitud cerrada no tiene fecha de atención',
      FROM solicitudes_documentacion WHERE observacion = 'P24: adjunte el certificado'));
 
 -- I2. Beneficios y catálogos: crear y modificar exige administrador.
+-- La semilla no trae entidades bancarias: se crea una para probar el UPDATE.
+SET @app_id_usuario = 5;
+INSERT INTO entidades_bancarias (nombre) VALUES ('Banco de pruebas');
 SET @app_id_usuario = @a1;
 CALL pr_esperar_error('P27', 'Un aprendiz no crea instituciones',
   "INSERT INTO instituciones (nombre) VALUES ('P27 falsa')", 'Solo un administrador activo puede');
@@ -1785,7 +1788,7 @@ CALL pr_esperar_error('P32', 'Un aprendiz no modifica tipos de documento',
 CALL pr_esperar_error('P33', 'Un aprendiz no crea entidades bancarias',
   "INSERT INTO entidades_bancarias (nombre) VALUES ('P33 falso')", 'Solo un administrador activo puede');
 CALL pr_esperar_error('P34', 'Un aprendiz no modifica entidades bancarias',
-  "UPDATE entidades_bancarias SET estado = 'Inactivo'", 'Solo un administrador activo puede');
+  "UPDATE entidades_bancarias SET estado = 'Inactivo' WHERE nombre = 'Banco de pruebas'", 'Solo un administrador activo puede');
 CALL pr_esperar_error('P35', 'Un aprendiz no crea EPS',
   "INSERT INTO eps (nombre) VALUES ('P35 falsa')", 'Solo un administrador activo puede');
 CALL pr_esperar_error('P36', 'Un aprendiz no modifica EPS',
