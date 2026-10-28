@@ -53,7 +53,7 @@ node entregables/verificar_matriz.js originales/Matriz_Requisitos.xlsx # revisa 
 | (d) | No aparecen «OCR», «resultado_ocr», «datos_extraidos», «Estudiante», «Completado», «Borrador», «En revisión» ni «Enviada» («Enviada» se permite solo en RF-5.7, donde es un valor real de `notificaciones.estado_correo`) | FALLO (5 problemas) | OK |
 | (e) | RF-x.y, RN-x.y y RI-x.y tienen el mismo número en cada fila | FALLO (4 problemas) | OK |
 | (g) | El estado del requisito es «Obligatorio» u «Opcional» | FALLO (2 problemas) | OK |
-| (h) | Frases acordadas de las reglas de la base de datos (rondas 2 a 9) y marcas «lo valida la aplicación» presentes en el requisito que corresponde, y ausencia de algunas frases equivocadas conocidas | FALLO (48 problemas) | OK |
+| (h) | Frases acordadas de las reglas de la base de datos (rondas 2 a 10) y marcas «lo valida la aplicación» presentes en el requisito que corresponde, y ausencia de algunas frases equivocadas conocidas | FALLO (55 problemas) | OK |
 | (i) | Los tipos de documento de la semilla del SQL (`tipos_documento`) aparecen en RF-3.1 | FALLO (4 problemas) | OK |
 | (j) | RF-2.0 y RF-1.3 dicen los mismos minutos de desbloqueo que el SQL (15). Lee todas las apariciones en el bloque de usuarios del SQL (hoy, `fn_cambio_estado_sistema` y el texto de la auditoría), exige que sean iguales entre sí y compara el número completo | FALLO (2 problemas) | OK |
 | (k) | No quedan preguntas abiertas ni temas «por confirmar» en la hoja ni en la sección 7 de este documento | OK | OK |
@@ -77,7 +77,7 @@ rutinas y (j) a leer los minutos de todo el bloque de usuarios (sección 11).
   aparezcan algunas frases equivocadas que ya conocemos; no pueden garantizar que ninguna otra frase
   de la matriz contradiga la base. Si la base de datos cambia, hay que actualizar la lista. Las frases de
   (h), (l) y (m) ya incluyen la octava ronda, que desde el 27/10/2026 está en el SQL de esta rama
-  (sección 11), y (h) incluye la novena (sección 12).
+  (sección 11), y (h) incluye la novena y la décima (sección 12).
 
 **Sobre la regla (k).** Nunca estuvo en rojo contra la original, porque la hoja original no tenía
 frases como «por confirmar»: las preguntas abiertas estaban escritas en la sección 7 de este documento.
@@ -484,10 +484,11 @@ marcaron con «lo valida la aplicación» las reglas que la base **no** comprueb
 - RN-1.2: el número de documento no se puede modificar;
 - RN-3.1: el formato del archivo (PDF, JPG o PNG) y que el tipo de documento esté Activo;
 - RN-3.2: que estén los tres documentos obligatorios antes de enviar (ya estaba marcada);
-- RN-3.3: atender la solicitud (cargar el documento adicional y pasarla a Atendida);
-- RN-7.0: que un beneficio Inactivo no admita convocatorias nuevas;
-- RN-7.2: guardar quién cerró la convocatoria y la fecha real de cierre (la base todavía no los llena
-  sola al cerrar; es un pendiente de la sección 14 de `base-de-datos/CAMBIOS.md`).
+- RN-3.3: que el documento pedido se cargue con el tipo Documento adicional;
+- RN-7.0: que un beneficio Inactivo no admita convocatorias nuevas.
+
+RN-7.2 (quién cerró la convocatoria y cuándo) **no** se marca: lo anotará el sistema al cerrar
+(décima ronda, sección 12.5).
 
 ### 12.3 Otros arreglos
 
@@ -508,10 +509,31 @@ marcaron con «lo valida la aplicación» las reglas que la base **no** comprueb
 - **Fechas.** Se unificaron: la primera y la segunda tanda y la octava ronda son del 27/10/2026; esta
   sección es del 28/10/2026.
 
-La hoja «Control de cambios» tiene 3 filas nuevas con fecha 28/10/2026 (68 en total).
+La hoja «Control de cambios» tiene 4 filas nuevas con fecha 28/10/2026 (69 en total), contando la
+de la décima ronda.
 
 ### 12.4 Cómo se comprobó
 
 Primero se cambió el verificador (rojo: 9 de 10, con 24 problemas en (h)). Luego se cambiaron los
-datos, se regeneró el Excel y quedó en **10 de 10 reglas OK** (verde). Contra la matriz original da
+datos, se regeneró el Excel y quedó en **10 de 10 reglas OK** (verde). Lo mismo se repitió para la
+décima ronda (rojo: 9 de 10, con 14 problemas en (h); después, verde). Contra la matriz original da
 **1 de 10** (solo pasa (k)).
+
+### 12.5 Décima ronda: escrita ya en su forma final
+
+El coordinador anunció una décima ronda de la base de datos, que se trabaja en otra rama. Para no
+reescribir la matriz otra vez, sus reglas ya quedan escritas (sin nombrar triggers ni columnas nuevas):
+
+| Requisito | Qué dice |
+|---|---|
+| RN-7.1, RN-2.3 | Cualquier cambio de una convocatoria (valor, número de pagos, duración, fechas, cupos o estado) lo hace solo un administrador activo. |
+| RN-7.2 | Al cerrar, el sistema anota quién la cerró y la fecha real de cierre. |
+| RN-3.1 | Un documento Validado no se puede reemplazar; uno Pendiente o Rechazado sí, y al reemplazarlo vuelve a Pendiente y pierde los datos de validación. |
+| RN-4.1 | Las observaciones del documento solo las escribe un administrador. |
+| RN-3.3, RN-4.5 | Una solicitud solo pasa de Pendiente a Atendida o Cerrada y sus datos de origen no se modifican; la fecha de atención la pone el sistema; cerrarla exige un administrador activo. |
+| RN-7.0, RN-2.3 | Crear o modificar beneficios y catálogos (instituciones, programas, tipos de documento, entidades bancarias, EPS y tipos de cuenta) exige un administrador activo. |
+
+**Advertencia honesta.** El SQL de esta rama (novena ronda) **todavía no** hace cumplir estas reglas.
+Por ejemplo, hoy no llena solo quién cerró una convocatoria (pendiente de la sección 14 de
+`base-de-datos/CAMBIOS.md`) ni impide reemplazar un documento ya Validado. Cuando esta rama se rebase
+sobre la décima ronda, esta advertencia se debe quitar.
