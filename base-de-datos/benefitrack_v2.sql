@@ -522,17 +522,51 @@ BEGIN
                     AND u.estado = 'Activo');
 END//
 
--- Lanza un error si @app_id_usuario está definido y no es un administrador
--- activo. Si @app_id_usuario es NULL se permite la acción (D9): por eso la
--- aplicación SIEMPRE debe fijar la variable al conectarse.
+-- Lanza un error si la acción no la hace un administrador activo:
+--   * @app_id_usuario definido y que no es administrador activo, o
+--   * @app_id_usuario NULL cuando la conexión es el usuario limitado de la
+--     aplicación (benefitrack_app): la aplicación no puede "olvidar" la
+--     variable para saltarse el control.
+-- Con root (mantenimiento, scripts, pruebas) el NULL sigue permitido (D9).
+-- USER() es el usuario que se conectó, aunque el trigger corra como DEFINER.
 CREATE PROCEDURE pr_exigir_administrador(IN p_accion VARCHAR(80))
 READS SQL DATA
 BEGIN
   DECLARE v_mensaje VARCHAR(128);
 
-  IF @app_id_usuario IS NOT NULL AND NOT fn_es_administrador(@app_id_usuario) THEN
+  IF (@app_id_usuario IS NULL AND SUBSTRING_INDEX(USER(), '@', 1) = 'benefitrack_app')
+     OR (@app_id_usuario IS NOT NULL AND NOT fn_es_administrador(@app_id_usuario)) THEN
     SET v_mensaje = CONCAT('Solo un administrador activo puede ', p_accion);
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = v_mensaje;
+  END IF;
+END//
+
+-- ---------------------------------------------------------------------
+-- Usuarios
+-- ---------------------------------------------------------------------
+
+-- Crear un usuario Administrador exige un administrador activo. El
+-- registro de aprendices (sin sesión) sigue permitido.
+CREATE TRIGGER tr_usuario_validar_insercion
+BEFORE INSERT ON usuarios
+FOR EACH ROW
+BEGIN
+  IF NEW.id_rol = (SELECT id_rol FROM roles WHERE nombre = 'Administrador') THEN
+    CALL pr_exigir_administrador('crear un usuario Administrador');
+  END IF;
+END//
+
+-- Cambiar el rol o el estado de un usuario exige un administrador activo,
+-- para que nadie se dé a sí mismo el rol de Administrador. Excepción: pasar
+-- a Bloqueado (bloqueo automático por intentos fallidos en el inicio de
+-- sesión, cuando todavía no hay usuario de sesión).
+CREATE TRIGGER tr_usuario_validar
+BEFORE UPDATE ON usuarios
+FOR EACH ROW
+BEGIN
+  IF NOT (OLD.id_rol <=> NEW.id_rol)
+     OR (NOT (OLD.estado <=> NEW.estado) AND NOT (NEW.estado <=> 'Bloqueado')) THEN
+    CALL pr_exigir_administrador('cambiar el rol o el estado de un usuario');
   END IF;
 END//
 
@@ -859,7 +893,9 @@ CREATE TRIGGER tr_asignacion_validar_insercion
 BEFORE INSERT ON asignaciones_beneficio
 FOR EACH ROW
 BEGIN
-  DECLARE v_estado VARCHAR(20);
+  DECLARE v_estado      VARCHAR(20);
+  DECLARE v_inicio_conv DATE;
+  DECLARE v_mensaje     VARCHAR(128);
 
   CALL pr_exigir_administrador('crear una asignación');
 
@@ -870,6 +906,19 @@ BEGIN
   IF v_estado IS NULL OR v_estado <> 'Aprobada' THEN
     SIGNAL SQLSTATE '45000'
       SET MESSAGE_TEXT = 'Solo se puede crear una asignación para una postulación Aprobada';
+  END IF;
+
+  -- fecha_inicio razonable: desde el inicio de la convocatoria hasta un año
+  -- después de hoy.
+  SELECT c.fecha_inicio INTO v_inicio_conv
+    FROM postulaciones p
+    JOIN convocatorias c ON c.id_convocatoria = p.id_convocatoria
+   WHERE p.id_postulacion = NEW.id_postulacion;
+
+  IF NEW.fecha_inicio < v_inicio_conv OR NEW.fecha_inicio > CURDATE() + INTERVAL 1 YEAR THEN
+    SET v_mensaje = CONCAT('La fecha de inicio de la asignación debe estar entre el inicio de la convocatoria (',
+                           DATE_FORMAT(v_inicio_conv, '%d/%m/%Y'), ') y un año después de hoy');
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = v_mensaje;
   END IF;
 
   IF EXISTS (SELECT 1 FROM asignaciones_beneficio WHERE id_postulacion = NEW.id_postulacion) THEN
@@ -901,6 +950,7 @@ BEGIN
   DECLARE v_pagos    INT;
   DECLARE v_mensaje  VARCHAR(128);
   DECLARE v_reapertura INT;
+  DECLARE v_inicio_conv DATE;
 
   -- La autorización de reapertura se consume al empezar: vale para un solo
   -- cambio aunque luego este trigger lance un error.
@@ -938,6 +988,21 @@ BEGIN
   IF NEW.numero_pagos < v_vigentes THEN
     SIGNAL SQLSTATE '45000'
       SET MESSAGE_TEXT = 'El número total de pagos no puede ser menor que los pagos ya registrados';
+  END IF;
+
+  -- fecha_inicio razonable: desde el inicio de la convocatoria hasta un año
+  -- después de hoy (evita, por ejemplo, poner 1900 y pagar en 1900).
+  IF NOT (OLD.fecha_inicio <=> NEW.fecha_inicio) THEN
+    SELECT c.fecha_inicio INTO v_inicio_conv
+      FROM postulaciones p
+      JOIN convocatorias c ON c.id_convocatoria = p.id_convocatoria
+     WHERE p.id_postulacion = NEW.id_postulacion;
+
+    IF NEW.fecha_inicio < v_inicio_conv OR NEW.fecha_inicio > CURDATE() + INTERVAL 1 YEAR THEN
+      SET v_mensaje = CONCAT('La fecha de inicio de la asignación debe estar entre el inicio de la convocatoria (',
+                             DATE_FORMAT(v_inicio_conv, '%d/%m/%Y'), ') y un año después de hoy');
+      SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = v_mensaje;
+    END IF;
   END IF;
 
   -- B2: valores congelados en cuanto hay pagos (vigentes o anulados) o la

@@ -15,6 +15,14 @@
 --
 -- CAMBIE la contraseña antes de usarlo y guárdela en el archivo .env de la
 -- aplicación, nunca en el repositorio.
+--
+-- 'localhost' frente a '127.0.0.1': en el XAMPP de Windows, conectarse con
+-- -h 127.0.0.1 (o DB_HOST=127.0.0.1) se reconoce como 'localhost' (se probó:
+-- CURRENT_USER() devuelve benefitrack_app@localhost). Si su servidor usa
+-- skip-name-resolve o la aplicación se conecta desde otra máquina, cree el
+-- mismo usuario también para ese host (por ejemplo 'benefitrack_app'@'127.0.0.1')
+-- y repita los GRANT para él. Los triggers reconocen al usuario limitado por
+-- su nombre (benefitrack_app), sin importar el host.
 -- =====================================================================
 
 CREATE USER IF NOT EXISTS 'benefitrack_app'@'localhost' IDENTIFIED BY 'CAMBIE_ESTA_CLAVE';
