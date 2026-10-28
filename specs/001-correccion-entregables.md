@@ -47,6 +47,7 @@ Se generan al pasar a Validada, Aprobada y Rechazada (con la justificación), al
 
 ### D9. Trazabilidad
 Auditoría y historial de estados deben guardar al **usuario de la aplicación que hizo el cambio** (el administrador), no un id fijo ni el aprendiz dueño de la postulación. En los triggers se usa la variable de sesión `@app_id_usuario`, que la aplicación fijará al conectarse; si no está definida se guarda `NULL`.
+Al **crear** filas (documentos, pagos, novedades, solicitudes de documentación, convocatorias, asignaciones), los datos de «quién y cuándo» los pone la base: con usuario de sesión, el autor es siempre ese usuario (se ignora el valor recibido) y las fechas son la hora real; los datos de validación, anulación, atención o cierre empiezan vacíos. Un documento o una solicitud que llegue con un estado distinto de `Pendiente` se **rechaza** (no se corrige en silencio). Solo un administrador activo crea convocatorias, y nacen `Activa` o `Inactiva`.
 
 ### D10. Escalabilidad ("preparado", no multi-institución completo)
 Tabla `instituciones` (con el SENA – Centro Textil y de Gestión Industrial como registro inicial) referenciada por `beneficios` y `programas`. No se construye administración de varias instituciones.
@@ -99,3 +100,6 @@ Código de la aplicación, reportes/exportaciones, diagramas.
 - (D15) Dado el usuario `benefitrack_app`, cuando intenta insertar directamente en `auditoria`, entonces MariaDB lo rechaza (error 1142).
 - (D16) Dada una sesión con `SET timestamp` en el pasado o en el futuro, cuando se bloquea o desbloquea una cuenta o se escribe en la auditoría o en migraciones, entonces las fechas guardadas son la hora real del servidor y el desbloqueo antes de 15 minutos reales se rechaza.
 - (D17) Dado un usuario de conexión que no es `root` (`benefitrack_app` u otro), cuando hace una acción de gestión con `@app_id_usuario` NULL, entonces se rechaza; dado `root` sin sesión, cuando cambia el estado de un usuario sin justificación, entonces se rechaza, y con justificación queda con origen `Mantenimiento`.
+- (D9) Dado un aprendiz con sesión, cuando sube un documento con `estado_validacion = 'Validado'`, entonces se rechaza con «Un documento nuevo debe empezar en estado Pendiente»; cuando lo sube Pendiente pero con validador, fecha de validación u observación, entonces se acepta y esos datos quedan en NULL.
+- (D9) Dado un administrador con sesión, cuando registra un pago, una novedad o una solicitud de documentación indicando a otro usuario como autor, entonces queda como autor el administrador de la sesión; un pago nuevo no conserva datos de anulación y una solicitud nueva debe ser Pendiente y sin fecha de atención.
+- (D9) Dado un usuario que no es administrador activo, cuando crea una convocatoria, entonces se rechaza; dado un administrador, cuando la crea `Cerrada`, entonces se rechaza, y si manda `usuario_cierre` o `fecha_cierre_real`, entonces quedan en NULL.

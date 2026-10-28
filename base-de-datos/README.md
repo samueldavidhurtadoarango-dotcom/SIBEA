@@ -89,7 +89,7 @@ C:\xampp\mysql\bin\mysql.exe -u root --default-character-set=utf8mb4 --table < b
 La salida muestra la misma tabla de resumen. Resultado esperado:
 
 ```
-| TOTAL | OK | 298 casos: 298 OK, 0 FALLO | TODAS LAS PRUEBAS PASAN |
+| TOTAL | OK | 312 casos: 312 OK, 0 FALLO | TODAS LAS PRUEBAS PASAN |
 ```
 
 Si algún caso dice `FALLO`, la columna `detalle` explica qué pasó (por ejemplo, el
@@ -131,7 +131,7 @@ es de gestión y escribe en el historial o la auditoría, falla con el error 145
 
 **Control de rol.** Las acciones de gestión (validar, aprobar o rechazar postulaciones y
 documentos, pedir documentación, gestionar asignaciones, registrar o anular pagos, registrar
-novedades y cambiar cupos o estado de una convocatoria) solo se aceptan si `@app_id_usuario` es un
+novedades, y crear una convocatoria o cambiar sus cupos o su estado) solo se aceptan si `@app_id_usuario` es un
 usuario con rol Administrador y estado Activo. Si no, la base responde, por ejemplo,
 `Solo un administrador activo puede aprobar una postulación`. Las rutinas que hacen esta revisión
 son `fn_es_administrador` y `pr_exigir_administrador`.
@@ -298,7 +298,7 @@ Para comprobar los controles con ese usuario (después de `benefitrack_v2.sql`,
 C:\xampp\mysql\bin\mysql.exe -u benefitrack_app -p --default-character-set=utf8mb4 --force --table < base-de-datos\pruebas\pruebas_usuario_aplicacion.sql
 ```
 
-Los `ERROR 1644` que aparecen son los rechazos esperados; las filas U1 a U11 deben decir `OK` (también aparece un `ERROR 1142`, el rechazo esperado de U9).
+Los `ERROR 1644` que aparecen son los rechazos esperados; las filas U1 a U12 deben decir `OK` (también aparecen un `ERROR 1142`, el rechazo esperado de U9, y un `ERROR 1644` «Un documento nuevo debe empezar en estado Pendiente», el rechazo esperado de U12).
 
 ---
 
