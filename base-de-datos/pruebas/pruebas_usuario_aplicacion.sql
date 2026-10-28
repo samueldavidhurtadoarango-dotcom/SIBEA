@@ -63,6 +63,15 @@ SET @app_id_usuario = NULL;
 UPDATE usuarios SET estado = 'Activo' WHERE id_usuario = 22;
 SELECT estado, intentos_fallidos, fecha_bloqueo INTO @u6, @u6i, @u6f FROM usuarios WHERE id_usuario = 22;
 
+-- U7: un usuario Inactivo no se reactiva solo pasando por Bloqueado con una
+-- fecha vieja (deben fallar los dos pasos).
+SET @app_id_usuario = 5;
+UPDATE usuarios SET estado = 'Inactivo' WHERE id_usuario = 22;
+SET @app_id_usuario = NULL;
+UPDATE usuarios SET estado = 'Bloqueado', fecha_bloqueo = '2000-01-01' WHERE id_usuario = 22;
+UPDATE usuarios SET estado = 'Activo' WHERE id_usuario = 22;
+SELECT estado INTO @u7 FROM usuarios WHERE id_usuario = 22;
+
 ROLLBACK;
 SET @app_id_usuario = NULL;
 
@@ -81,3 +90,5 @@ SELECT 'U6' AS caso, 'Pasados 15 minutos se desbloquea solo (intentos 0, fecha_b
        IF(@u6 = 'Activo' AND @u6i = 0 AND @u6f IS NULL, 'OK', 'FALLO') AS resultado,
        CONCAT('estado=', IFNULL(@u6, 'NULL'), ' intentos=', IFNULL(@u6i, 'NULL'),
               ' fecha_bloqueo=', IFNULL(@u6f, 'NULL')) AS detalle;
+SELECT 'U7' AS caso, 'Un Inactivo no se reactiva solo pasando por Bloqueado' AS descripcion,
+       IF(@u7 = 'Inactivo', 'OK', 'FALLO') AS resultado, CONCAT('estado=', IFNULL(@u7, 'NULL')) AS detalle;

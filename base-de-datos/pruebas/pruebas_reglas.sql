@@ -1020,9 +1020,11 @@ CALL pr_esperar_exito('J04', 'fecha_inicio exactamente un año después de hoy s
   "UPDATE asignaciones_beneficio SET fecha_inicio = CURDATE() + INTERVAL 1 YEAR WHERE id_asignacion = @j1");
 CALL pr_esperar_exito('J05', 'fecha_inicio igual al inicio de la convocatoria se permite',
   "UPDATE asignaciones_beneficio SET fecha_inicio = @f_conv2 WHERE id_asignacion = @j1");
-CALL pr_esperar_error('J06', 'Fecha absurda: también se revisa al crear la asignación',
+-- Ronda 5 (M5): la duplicada se reporta antes que la fecha. La fecha al
+-- crear se prueba por la vía real (aprobación) en J30.
+CALL pr_esperar_error('J06', 'Una postulación que ya tiene asignación responde eso antes que la fecha absurda',
   "INSERT INTO asignaciones_beneficio (id_postulacion, valor_pago, numero_pagos, duracion_meses, fecha_inicio) VALUES (@p1, 150000, 3, 3, '1900-01-01')",
-  'La fecha de inicio de la asignación debe estar entre');
+  'La postulación ya tiene una asignación de beneficio');
 
 -- Cambios de rol y estado de usuarios
 SET @app_id_usuario = @a1;
@@ -1091,6 +1093,88 @@ CALL pr_verificar('J26', 'El desbloqueo del administrador también deja intentos
   (SELECT estado = 'Activo' AND intentos_fallidos = 0 AND fecha_bloqueo IS NULL FROM usuarios WHERE id_usuario = @a1),
   (SELECT CONCAT('estado=', estado, ' intentos=', intentos_fallidos, ' fecha_bloqueo=', IFNULL(fecha_bloqueo, 'NULL'))
      FROM usuarios WHERE id_usuario = @a1));
+
+-- =====================================================================
+-- Bloque K. Hallazgos de la auditoría de la ronda 4 (ronda 5)
+-- =====================================================================
+-- M1: la asignación automática empieza en GREATEST(hoy, inicio de la
+-- convocatoria). Convocatoria propia para poder mover su fecha_inicio.
+SET @app_id_usuario = 5;
+INSERT INTO convocatorias (id_beneficio, nombre, fecha_inicio, fecha_cierre, cupos, requisitos,
+                           valor_pago, numero_pagos, duracion_meses, estado)
+VALUES (@ben, 'Convocatoria 5 de pruebas', CURDATE() - INTERVAL 10 DAY, CURDATE() + INTERVAL 800 DAY, 5,
+        'Ser aprendiz activo', 150000, 3, 3, 'Activa');
+SET @conv5 = LAST_INSERT_ID();
+SET @app_id_usuario = NULL;
+INSERT INTO usuarios (documento, nombre, apellido, correo, password_hash, id_rol)
+VALUES ('PRUEBA-A8', 'Aprendiz', 'Ocho', 'a8@benefitrack.test', 'hash', @rol_aprendiz);
+SET @a8 = LAST_INSERT_ID();
+INSERT INTO usuarios (documento, nombre, apellido, correo, password_hash, id_rol)
+VALUES ('PRUEBA-A9', 'Aprendiz', 'Nueve', 'a9@benefitrack.test', 'hash', @rol_aprendiz);
+SET @a9 = LAST_INSERT_ID();
+INSERT INTO postulaciones (id_usuario, id_convocatoria, datos_formulario) VALUES (@a8, @conv5, '{}');
+SET @r8 = LAST_INSERT_ID();
+INSERT INTO postulaciones (id_usuario, id_convocatoria, datos_formulario) VALUES (@a9, @conv5, '{}');
+SET @r9 = LAST_INSERT_ID();
+SET @app_id_usuario = 5;
+UPDATE postulaciones SET estado = 'Validada' WHERE id_postulacion IN (@r8, @r9);
+UPDATE convocatorias SET fecha_inicio = CURDATE() + INTERVAL 10 DAY WHERE id_convocatoria = @conv5;
+CALL pr_esperar_exito('K01', 'M1: aprobar con la convocatoria movida al futuro funciona',
+  "UPDATE postulaciones SET estado = 'Aprobada' WHERE id_postulacion = @r8");
+CALL pr_verificar('K02', 'M1: la asignación empieza el día de inicio de la convocatoria (no hoy)',
+  (SELECT fecha_inicio = CURDATE() + INTERVAL 10 DAY FROM asignaciones_beneficio WHERE id_postulacion = @r8),
+  (SELECT CONCAT('fecha_inicio=', IFNULL(MAX(fecha_inicio), 'NULL')) FROM asignaciones_beneficio WHERE id_postulacion = @r8));
+UPDATE convocatorias SET fecha_inicio = CURDATE() + INTERVAL 400 DAY WHERE id_convocatoria = @conv5;
+CALL pr_esperar_error('K03', 'Fecha absurda: también se revisa al crear la asignación (convocatoria a más de un año)',
+  "UPDATE postulaciones SET estado = 'Aprobada' WHERE id_postulacion = @r9",
+  'La fecha de inicio de la asignación debe estar entre');
+
+-- B1: pasar a Bloqueado solo desde Activo sin administrador, y la fecha
+-- de bloqueo siempre la pone la base.
+UPDATE usuarios SET estado = 'Inactivo' WHERE id_usuario = @a1;
+SET @app_id_usuario = @a1;
+CALL pr_esperar_error('K04', 'B1: un Inactivo no puede pasar a Bloqueado sin administrador',
+  "UPDATE usuarios SET estado = 'Bloqueado', fecha_bloqueo = '2000-01-01' WHERE id_usuario = @a1",
+  'Solo un administrador activo puede');
+SET @app_id_usuario = 5;
+UPDATE usuarios SET estado = 'Inactivo' WHERE id_usuario = @adm_inactivo;
+SET @app_id_usuario = @adm_inactivo;
+CALL pr_esperar_error('K05', 'B1: un administrador inactivo no puede reactivarse pasando por Bloqueado',
+  "UPDATE usuarios SET estado = 'Bloqueado', fecha_bloqueo = '2000-01-01' WHERE id_usuario = @adm_inactivo",
+  'Solo un administrador activo puede');
+CALL pr_verificar('K06', 'B1: el administrador inactivo sigue Inactivo',
+  (SELECT estado = 'Inactivo' FROM usuarios WHERE id_usuario = @adm_inactivo),
+  (SELECT CONCAT('estado=', estado) FROM usuarios WHERE id_usuario = @adm_inactivo));
+SET @app_id_usuario = 5;
+UPDATE usuarios SET estado = 'Activo' WHERE id_usuario = @a1;
+SET @app_id_usuario = @a1;
+CALL pr_esperar_exito('K07', 'B1: Activo -> Bloqueado con fecha_bloqueo de ayer se acepta',
+  "UPDATE usuarios SET estado = 'Bloqueado', intentos_fallidos = 3, fecha_bloqueo = NOW() - INTERVAL 1 DAY WHERE id_usuario = @a1");
+CALL pr_verificar('K08', 'B1: la base ignora la fecha recibida y guarda la hora actual',
+  (SELECT fecha_bloqueo >= NOW() - INTERVAL 1 MINUTE FROM usuarios WHERE id_usuario = @a1),
+  (SELECT CONCAT('fecha_bloqueo=', IFNULL(fecha_bloqueo, 'NULL')) FROM usuarios WHERE id_usuario = @a1));
+CALL pr_esperar_error('K09', 'B1: por eso el desbloqueo inmediato se rechaza',
+  "UPDATE usuarios SET estado = 'Activo' WHERE id_usuario = @a1",
+  'Solo un administrador activo puede');
+
+-- I1: una cuenta Bloqueada con fecha_bloqueo NULL no se desbloquea sola.
+SET @app_id_usuario = 5;
+UPDATE usuarios SET fecha_bloqueo = NULL WHERE id_usuario = @a1;
+SET @app_id_usuario = @a1;
+CALL pr_esperar_error('K10', 'I1: Bloqueado con fecha_bloqueo NULL no se desbloquea sin administrador',
+  "UPDATE usuarios SET estado = 'Activo' WHERE id_usuario = @a1",
+  'Solo un administrador activo puede');
+CALL pr_esperar_error('K11', 'I1: crear un usuario que no esté Activo exige administrador',
+  "INSERT INTO usuarios (documento, nombre, apellido, correo, password_hash, id_rol, estado) VALUES ('PRUEBA-A10', 'Aprendiz', 'Diez', 'a10@benefitrack.test', 'hash', @rol_aprendiz, 'Bloqueado')",
+  'Solo un administrador activo puede');
+SET @app_id_usuario = 5;
+CALL pr_esperar_exito('K12', 'I1: un administrador activo sí crea un usuario Bloqueado',
+  "INSERT INTO usuarios (documento, nombre, apellido, correo, password_hash, id_rol, estado) VALUES ('PRUEBA-A11', 'Aprendiz', 'Once', 'a11@benefitrack.test', 'hash', @rol_aprendiz, 'Bloqueado')");
+CALL pr_verificar('K13', 'I1: al crearlo Bloqueado sin fecha, la base pone la hora actual',
+  (SELECT fecha_bloqueo >= NOW() - INTERVAL 1 MINUTE FROM usuarios WHERE documento = 'PRUEBA-A11'),
+  (SELECT CONCAT('fecha_bloqueo=', IFNULL(fecha_bloqueo, 'NULL')) FROM usuarios WHERE documento = 'PRUEBA-A11'));
+UPDATE usuarios SET estado = 'Activo' WHERE id_usuario = @a1;
+SET @app_id_usuario = 5;
 SET @app_id_usuario = 5;
 
 -- =====================================================================
