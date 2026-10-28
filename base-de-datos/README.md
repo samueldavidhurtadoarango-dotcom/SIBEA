@@ -4,6 +4,7 @@
 |---|---|
 | `benefitrack_v2.sql` | Script que crea la base `benefitrack_v2` completa: tablas, reglas, triggers y datos iniciales. |
 | `pruebas/pruebas_reglas.sql` | Pruebas de las reglas de negocio. Imprime OK o FALLO por cada caso. |
+| `pruebas/pruebas_usuario_aplicacion.sql` | Pruebas que se ejecutan conectado como el usuario limitado `benefitrack_app`. |
 | `pruebas/concurrencia.md` y `pruebas/concurrencia/` | Pruebas con dos conexiones al mismo tiempo (cupos y último pago). |
 | `usuario_aplicacion.sql` | Ejemplo de usuario de MariaDB con permisos limitados para la aplicación. |
 | `CAMBIOS.md` | Qué cambió respecto al script original y por qué. |
@@ -63,7 +64,7 @@ C:\xampp\mysql\bin\mysql.exe -u root --default-character-set=utf8mb4 --table < b
 La salida muestra la misma tabla de resumen. Resultado esperado:
 
 ```
-| TOTAL | OK | 195 casos: 195 OK, 0 FALLO | TODAS LAS PRUEBAS PASAN |
+| TOTAL | OK | 222 casos: 222 OK, 0 FALLO | TODAS LAS PRUEBAS PASAN |
 ```
 
 Si algún caso dice `FALLO`, la columna `detalle` explica qué pasó (por ejemplo, el
@@ -90,9 +91,34 @@ usuario.
 documentos, pedir documentación, gestionar asignaciones, registrar o anular pagos, registrar
 novedades y cambiar cupos o estado de una convocatoria) solo se aceptan si `@app_id_usuario` es un
 usuario con rol Administrador y estado Activo. Si no, la base responde, por ejemplo,
-`Solo un administrador activo puede aprobar una postulación`. Si la variable es `NULL`, la base
-**permite** la acción (decisión D9); por eso la aplicación **siempre** debe fijarla. Las rutinas
-que hacen esta revisión son `fn_es_administrador` y `pr_exigir_administrador`.
+`Solo un administrador activo puede aprobar una postulación`. Las rutinas que hacen esta revisión
+son `fn_es_administrador` y `pr_exigir_administrador`.
+
+**Si la variable es `NULL`.** Conectado como `benefitrack_app` (el usuario de la aplicación), las
+acciones de gestión **se rechazan**: olvidar la variable no salta el control. Conectado como
+`root` (mantenimiento y pruebas), se permiten y se guarda `NULL` (decisión D9). En cualquier caso,
+la aplicación **siempre** debe fijarla.
+
+**Usuarios y roles.** Cambiar el rol o el estado de un usuario, o crear un usuario Administrador,
+exige un administrador activo. El registro de aprendices nuevos y la actualización de datos de
+contacto siguen libres.
+
+**Bloqueo por intentos fallidos.** Tras 3 intentos fallidos, la aplicación pasa la cuenta a
+`Bloqueado` (no necesita administrador; si no envía `fecha_bloqueo`, la base guarda la hora
+actual). La cuenta se **desbloquea sola a los 15 minutos**: la aplicación puede hacer
+`UPDATE usuarios SET estado = 'Activo' WHERE id_usuario = ...` sin administrador solo si
+`fecha_bloqueo` + 15 minutos ya llegó; antes, la base lo rechaza. Un administrador activo puede
+desbloquear en cualquier momento. Al desbloquear, la base deja `intentos_fallidos = 0` y
+`fecha_bloqueo = NULL`. Mientras la cuenta está Bloqueada, solo un administrador puede cambiar
+`fecha_bloqueo`. Para impedir el acceso de forma indefinida use el estado `Inactivo`, no
+`Bloqueado`.
+
+**Fecha de inicio de la asignación.** Debe estar entre el inicio de la convocatoria y un año
+después de hoy; si no, la base responde
+`La fecha de inicio de la asignación debe estar entre el inicio de la convocatoria (...) y un año después de hoy`.
+
+**Tipos de documento.** La semilla trae 4: 1 Documento de identidad, 2 Certificado bancario,
+3 Documento adicional y 4 Certificado de EPS.
 
 Si `@app_id_usuario` apunta a un id que **no existe** en `usuarios`, el cambio falla con el
 error **1452** de llave foránea (por ejemplo,
@@ -147,6 +173,15 @@ creó (`root@localhost`). Si el usuario intenta escribir directamente en una tab
 responde con el error 1142, por ejemplo:
 `INSERT command denied to user 'benefitrack_app'@'localhost' for table 'auditoria'`.
 
+Para comprobar los controles con ese usuario (después de `benefitrack_v2.sql`,
+`usuario_aplicacion.sql` y `pruebas\concurrencia\preparar.sql`, como `root`):
+
+```bat
+C:\xampp\mysql\bin\mysql.exe -u benefitrack_app -p --default-character-set=utf8mb4 --force --table < base-de-datos\pruebas\pruebas_usuario_aplicacion.sql
+```
+
+Los `ERROR 1644` que aparecen son los rechazos esperados; las filas U1 a U6 deben decir `OK`.
+
 ---
 
 ## 5. Pruebas de concurrencia
@@ -154,3 +189,7 @@ responde con el error 1142, por ejemplo:
 Dos reglas (cupos de la convocatoria y cierre de la asignación con el último pago) se prueban con
 dos conexiones al mismo tiempo. El procedimiento y los resultados reales están en
 `pruebas/concurrencia.md`.
+
+> **Atención:** `pruebas/concurrencia/ejecutar.sh` **borra y vuelve a crear** la base
+> `benefitrack_v2`. La salida de la segunda sesión va a un archivo temporal del sistema (fuera del
+> proyecto) que se borra al terminar, así que el guion no deja archivos en el repositorio.

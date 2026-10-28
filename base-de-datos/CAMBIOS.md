@@ -20,7 +20,7 @@ especificación no menciona, se indica como **Error del original**.
 | Al final había un bloque de "AJUSTES" que modificaba tablas ya creadas (`ALTER TABLE`) y reemplazaba triggers. | Cada tabla se crea una sola vez con su forma final. | Evita que la estructura dependa del orden de los parches. |
 | Tablas creadas en orden alfabético con las llaves foráneas desactivadas. | Tablas creadas en orden de dependencias (primero catálogos, luego usuarios, convocatorias, postulaciones, pagos...). | El script no necesita desactivar las llaves foráneas para funcionar. |
 | Nombres de índices y restricciones mezclados (`fk_...` usado también para índices simples). | Prefijos claros: `uk_` (único), `idx_` (índice), `fk_` (llave foránea), `chk_` (regla CHECK). | Se entiende de un vistazo qué es cada cosa. |
-| Las reglas de negocio vivían solo en la aplicación (o no existían). | Las reglas clave se fuerzan en la base con triggers que lanzan errores en español (`SQLSTATE '45000'`). | La aplicación no puede saltarse las reglas por error. **Ojo:** los triggers no protegen contra quien tiene permisos totales (por ejemplo `root`), que puede borrar triggers o escribir directamente en las tablas. Por eso la aplicación debe conectarse con un usuario de permisos limitados (`usuario_aplicacion.sql`, ver la sección 8). |
+| Las reglas de negocio vivían solo en la aplicación (o no existían). | Las reglas clave se fuerzan en la base con triggers que lanzan errores en español (`SQLSTATE '45000'`). | La aplicación no puede saltarse las reglas por error. **Ojo:** los triggers no protegen contra quien tiene permisos totales (por ejemplo `root`), que puede borrar triggers o escribir directamente en las tablas. Por eso la aplicación debe conectarse con un usuario de permisos limitados (`usuario_aplicacion.sql`, ver la sección 9). |
 | Los triggers guardaban un usuario fijo o el aprendiz dueño. | Todos usan la variable de sesión `@app_id_usuario`. | **D9** (ver la sección 4). |
 
 ---
@@ -34,6 +34,8 @@ especificación no menciona, se indica como **Error del original**.
 
 **`tipos_documento`**
 - Las descripciones dicen "aprendiz" en lugar de "estudiante". (**D7**)
+- Cuarta ronda: nuevo tipo **4 «Certificado de EPS»** (certificado de afiliación a la EPS del
+  aprendiz). Los tipos 1 a 3 no cambian (ver la sección 8).
 
 **`tipos_cuenta`, `entidades_bancarias`, `sesiones`, `informacion_bancaria`**
 - Sin cambios de fondo: solo la intercalación (**D12**) y nombres de índices.
@@ -52,6 +54,9 @@ especificación no menciona, se indica como **Error del original**.
 - `id_eps` ya viene en la tabla (antes se añadía con un parche).
 - Se quita el índice `idx_usuario_documento`, que repetía el índice único del documento.
 - Regla: `intentos_fallidos` no puede ser negativo.
+- Cuarta ronda: cambiar el rol o el estado exige un administrador activo, crear un Administrador
+  también, y una cuenta bloqueada por intentos fallidos se desbloquea sola a los 15 minutos (ver la
+  sección 8).
 
 **`beneficios`**
 - Nueva columna `id_institucion` (obligatoria). (**D10**)
@@ -125,7 +130,7 @@ especificación no menciona, se indica como **Error del original**.
 | `tr_postulacion_rechazada` | **Reemplazado** por `tr_postulacion_notificar`; el aviso incluye la justificación obligatoria. | **D1**, **D8** |
 | `tr_pago_completar_postulacion` | **Reemplazado** por `tr_pago_registrado`: ya no pasa la postulación a "Completado"; pasa la **asignación** a "Finalizado". | **D3** |
 
-### Triggers del script corregido (26)
+### Triggers del script corregido (28)
 
 **Postulaciones y convocatorias**
 
@@ -146,8 +151,8 @@ especificación no menciona, se indica como **Error del original**.
 
 | Trigger | Cuándo | Qué hace | Decisión |
 |---|---|---|---|
-| `tr_asignacion_validar_insercion` | antes de insertar | Solo permite una asignación por postulación, y solo si está Aprobada; debe empezar En curso. | D3 |
-| `tr_asignacion_validar_estado` | antes de actualizar | Transiciones válidas (En curso → Finalizado/Suspendido/Cancelado, Suspendido → En curso/Cancelado, Finalizado → En curso **solo** cuando lo pide `tr_pago_anulado`); Finalizado solo con todos los pagos vigentes (contados con `LOCK IN SHARE MODE`); motivo nuevo obligatorio al suspender, reactivar o cancelar; valor, número de pagos, duración y fecha de inicio solo se cambian si está En curso y aún no tiene pagos. | D3, D4 |
+| `tr_asignacion_validar_insercion` | antes de insertar | Solo permite una asignación por postulación, y solo si está Aprobada; debe empezar En curso; la fecha de inicio debe estar entre el inicio de la convocatoria y un año después de hoy. | D3 |
+| `tr_asignacion_validar_estado` | antes de actualizar | Transiciones válidas (En curso → Finalizado/Suspendido/Cancelado, Suspendido → En curso/Cancelado, Finalizado → En curso **solo** cuando lo pide `tr_pago_anulado`); Finalizado solo con todos los pagos vigentes (contados con `LOCK IN SHARE MODE`); motivo nuevo obligatorio al suspender, reactivar o cancelar; valor, número de pagos, duración y fecha de inicio solo se cambian si está En curso y aún no tiene pagos; la fecha de inicio nueva debe estar entre el inicio de la convocatoria y un año después de hoy. | D3, D4 |
 | `tr_asignacion_cambio_estado` | después de actualizar | Audita el cambio y crea automáticamente la novedad de Suspensión, Reactivación o Cancelación. | D5, D9 |
 | `tr_asignacion_no_eliminar` | antes de borrar | Impide borrar asignaciones (se cancelan con motivo). | D3 |
 
@@ -160,6 +165,13 @@ especificación no menciona, se indica como **Error del original**.
 | `tr_pago_inmutable` | antes de actualizar | Los pagos no se editan (ni siquiera su `id_pago`): lo único permitido es pasar de Registrado a Anulado con motivo; guarda quién anuló y cuándo. | D4 |
 | `tr_pago_anulado` | después de actualizar | Audita la anulación y, si la asignación estaba Finalizado, la devuelve a En curso para registrar el pago corregido. Es el único que puede hacerlo, con la variable interna `@_br_reapertura`. | D3, D4 |
 | `tr_pago_no_eliminar` | antes de borrar | Impide borrar pagos. | D4 |
+
+**Usuarios**
+
+| Trigger | Cuándo | Qué hace | Decisión |
+|---|---|---|---|
+| `tr_usuario_validar_insercion` | antes de insertar | Crear un usuario con rol Administrador exige un administrador activo. El registro de aprendices sigue libre. | D7, D9 |
+| `tr_usuario_validar` | antes de actualizar | Cambiar el rol (`id_rol`) o el estado exige un administrador activo. Sin administrador solo se permite pasar a Bloqueado (si falta `fecha_bloqueo`, guarda la hora actual) y el desbloqueo automático Bloqueado → Activo cuando ya pasaron 15 minutos desde `fecha_bloqueo`. Todo desbloqueo deja `intentos_fallidos = 0` y `fecha_bloqueo = NULL`. Mientras sigue Bloqueado, cambiar `fecha_bloqueo` exige administrador. | D7, D9 |
 
 **Otros**
 
@@ -188,10 +200,17 @@ Los triggers leen esa variable y la guardan en el historial, la auditoría, los 
 novedades. Si la aplicación no la define, se guarda `NULL` (nunca un id inventado).
 
 Desde la tercera ronda (sección 7), la variable también sirve para **comprobar el rol**: las
-acciones de gestión solo las puede hacer un Administrador con estado Activo. Si la variable es
-`NULL`, la base **permite** la acción y guarda `NULL` (así lo decidió D9). Por eso, **la aplicación
-SIEMPRE debe fijar `@app_id_usuario`** en cada conexión; si se le olvida, el control de rol no se
-aplica y la acción queda sin autor.
+acciones de gestión solo las puede hacer un Administrador con estado Activo.
+
+¿Y si la variable es `NULL`? Desde la cuarta ronda (sección 8) depende de **con qué usuario de
+MariaDB** se conectó:
+
+- Con el usuario limitado de la aplicación (`benefitrack_app`), la acción de gestión **se rechaza**
+  con `Solo un administrador activo puede <acción>`. Así, si la aplicación olvida fijar la
+  variable, no se salta el control de rol.
+- Con `root` (mantenimiento, scripts y pruebas), la acción se permite y se guarda `NULL` (D9).
+
+Igual, **la aplicación SIEMPRE debe fijar `@app_id_usuario`** en cada conexión.
 
 ---
 
@@ -311,15 +330,82 @@ así que el usuario limitado `benefitrack_app` no necesita permisos extra (`EXEC
 `@app_id_usuario` de un aprendiz el rechazo falla con
 `Solo un administrador activo puede rechazar una postulación`; con el administrador 5, funciona.
 
-**Importante.** Si `@app_id_usuario` es `NULL`, la acción se permite (D9). Ver la sección 4: la
-aplicación SIEMPRE debe fijar la variable.
+**Importante.** En esta ronda, con `@app_id_usuario` en `NULL` la acción se permitía siempre (D9).
+La cuarta ronda (sección 8) lo cierra para el usuario `benefitrack_app`.
 
 No se agregaron ni cambiaron tablas, columnas ni triggers; solo las dos rutinas y las llamadas
 dentro de los triggers existentes.
 
 ---
 
-## 8. Pendientes (solo documentados, no implementados todavía)
+## 8. Cuarta ronda: fechas, roles, bloqueos y variable vacía (explicado fácil)
+
+**1. Fecha de inicio absurda en la asignación.**
+Se podía decir que un beneficio empezó en 1900 (y luego registrar pagos de 1900) o dentro de
+diez años. Ahora la fecha de inicio de la asignación debe estar **entre el día en que empezó la
+convocatoria y un año después de hoy** (los dos extremos se permiten). Se revisa al crear la
+asignación (`tr_asignacion_validar_insercion`) y al cambiarla (`tr_asignacion_validar_estado`).
+Si no cumple, el mensaje es, por ejemplo:
+`La fecha de inicio de la asignación debe estar entre el inicio de la convocatoria (30/05/2026) y un año después de hoy`.
+
+**2. Un aprendiz podía darse a sí mismo el rol de Administrador.**
+Es como si un estudiante pudiera cambiar su propio carné por uno de profesor. Ahora hay dos
+triggers nuevos en `usuarios`:
+
+- `tr_usuario_validar` (antes de actualizar): cambiar el **rol** o el **estado** de un usuario
+  exige un administrador activo. Así un aprendiz no se hace administrador y un administrador
+  inactivo no se reactiva solo. Sigue libre actualizar datos de contacto (teléfono, correo...).
+- `tr_usuario_validar_insercion` (antes de insertar): crear un usuario **Administrador** exige un
+  administrador activo. El registro de aprendices nuevos sigue libre (no hay sesión todavía).
+
+**3. Bloqueo por intentos fallidos y desbloqueo automático a los 15 minutos.**
+Funciona como el cajero automático: tras 3 intentos fallidos la cuenta queda **Bloqueada** y,
+pasados **15 minutos**, se puede volver a entrar sin llamar a nadie.
+
+- Pasar a Bloqueado no necesita administrador (lo hace el inicio de sesión). Si la aplicación no
+  envía `fecha_bloqueo`, la base guarda la hora actual.
+- Sin administrador, Bloqueado → Activo **solo** se acepta si `fecha_bloqueo` + 15 minutos ya llegó
+  (`<= NOW()`). Antes de eso se rechaza con `Solo un administrador activo puede cambiar el rol o el
+  estado de un usuario`.
+- Un **administrador activo** puede desbloquear en cualquier momento.
+- En todo desbloqueo la base deja `intentos_fallidos = 0` y `fecha_bloqueo = NULL`, aunque la
+  aplicación no lo pida.
+- Trampa cerrada: mientras la cuenta sigue Bloqueada, cambiar `fecha_bloqueo` (por ejemplo, para
+  "adelantar el reloj") exige administrador.
+- Ojo: si un administrador pone a alguien en Bloqueado a mano, también se desbloqueará solo a los 15
+  minutos. Para impedir el acceso de forma indefinida use el estado **Inactivo**.
+
+**4. La variable vacía ya no abre la puerta con el usuario de la aplicación.**
+Antes, si la aplicación olvidaba `SET @app_id_usuario`, la base dejaba pasar cualquier acción de
+gestión. Ahora `pr_exigir_administrador` mira con qué usuario de MariaDB se conectó (`USER()`): si
+es `benefitrack_app` y la variable está en `NULL`, rechaza la acción. Con `root` sigue permitida
+(mantenimiento y pruebas, D9). El usuario se reconoce por su nombre, sin importar el host
+(`localhost` o `127.0.0.1`; ver la nota en `usuario_aplicacion.sql`).
+
+**5. Nuevo tipo de documento «Certificado de EPS».**
+La semilla de `tipos_documento` incluye el tipo **4 «Certificado de EPS»** (certificado de
+afiliación a la EPS del aprendiz). Los tipos 1 (Documento de identidad), 2 (Certificado bancario) y
+3 (Documento adicional) conservan su número.
+
+**6. La prueba de concurrencia ya no deja archivos en el proyecto.**
+`pruebas/concurrencia/ejecutar.sh` guardaba la salida de una de las sesiones en el archivo
+`.a.out` dentro del repositorio. Ahora usa un archivo temporal del sistema (`mktemp`), que se
+borra solo al terminar (`trap`), y `.gitignore` ignora los `*.out` por si acaso.
+
+**Pruebas nuevas.**
+- `pruebas/pruebas_reglas.sql`: A13 (tipos de documento) y bloque J (J01 a J26: fechas de inicio,
+  cambios de rol y estado, bloqueo y desbloqueo). Resultado: **222 casos, 222 OK**.
+- `pruebas/pruebas_usuario_aplicacion.sql` (U1 a U6): se ejecuta **conectado como
+  `benefitrack_app`** y comprueba que con la variable en `NULL` no se puede rechazar ni cambiar un
+  rol, que un aprendiz no se da el rol de Administrador, que el administrador 5 sí gestiona y que el
+  desbloqueo automático respeta los 15 minutos.
+
+No se cambiaron tablas ni columnas: se agregaron 2 triggers (ahora son 28), un tipo de documento, y
+se ajustaron 2 triggers de asignaciones y 1 procedimiento.
+
+---
+
+## 9. Pendientes (solo documentados, no implementados todavía)
 
 - **Usuario de la aplicación.** Las protecciones de la sección 6 dependen de que la aplicación use
   el usuario limitado de `usuario_aplicacion.sql` y no `root`. Con `root` se pueden borrar
