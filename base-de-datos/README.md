@@ -64,7 +64,7 @@ C:\xampp\mysql\bin\mysql.exe -u root --default-character-set=utf8mb4 --table < b
 La salida muestra la misma tabla de resumen. Resultado esperado:
 
 ```
-| TOTAL | OK | 222 casos: 222 OK, 0 FALLO | TODAS LAS PRUEBAS PASAN |
+| TOTAL | OK | 235 casos: 235 OK, 0 FALLO | TODAS LAS PRUEBAS PASAN |
 ```
 
 Si algún caso dice `FALLO`, la columna `detalle` explica qué pasó (por ejemplo, el
@@ -94,28 +94,36 @@ usuario con rol Administrador y estado Activo. Si no, la base responde, por ejem
 `Solo un administrador activo puede aprobar una postulación`. Las rutinas que hacen esta revisión
 son `fn_es_administrador` y `pr_exigir_administrador`.
 
-**Si la variable es `NULL`.** Conectado como `benefitrack_app` (el usuario de la aplicación), las
-acciones de gestión **se rechazan**: olvidar la variable no salta el control. Conectado como
-`root` (mantenimiento y pruebas), se permiten y se guarda `NULL` (decisión D9). En cualquier caso,
-la aplicación **siempre** debe fijarla.
+**Si la variable es `NULL`.** Solo el usuario de mantenimiento `root` puede hacer acciones de
+gestión con la variable en `NULL` (se guarda `NULL`, decisión D9). Con **cualquier otro usuario de
+conexión** (`benefitrack_app` o cualquiera que usted cree), las acciones de gestión **se
+rechazan**: la aplicación debe mandar **siempre** `@app_id_usuario` en cada acción de gestión.
 
-**Usuarios y roles.** Cambiar el rol o el estado de un usuario, o crear un usuario Administrador,
-exige un administrador activo. El registro de aprendices nuevos y la actualización de datos de
-contacto siguen libres.
+**Usuarios y roles.** Cambiar el rol o el estado de un usuario, crear un usuario Administrador o
+crear un usuario que no esté Activo exige un administrador activo. El registro de aprendices
+nuevos (que nacen Activos) y la actualización de datos de contacto siguen libres.
 
-**Bloqueo por intentos fallidos.** Tras 3 intentos fallidos, la aplicación pasa la cuenta a
-`Bloqueado` (no necesita administrador; si no envía `fecha_bloqueo`, la base guarda la hora
-actual). La cuenta se **desbloquea sola a los 15 minutos**: la aplicación puede hacer
+**Bloqueo por intentos fallidos.** Tras 3 intentos fallidos, la aplicación pasa la cuenta de
+`Activo` a `Bloqueado` (no necesita administrador). La base guarda siempre `fecha_bloqueo` con la
+hora actual e **ignora** la fecha que mande la aplicación. Pasar a `Bloqueado` desde `Inactivo`
+exige administrador. La cuenta se **desbloquea sola a los 15 minutos**: la aplicación puede hacer
 `UPDATE usuarios SET estado = 'Activo' WHERE id_usuario = ...` sin administrador solo si
-`fecha_bloqueo` + 15 minutos ya llegó; antes, la base lo rechaza. Un administrador activo puede
-desbloquear en cualquier momento. Al desbloquear, la base deja `intentos_fallidos = 0` y
-`fecha_bloqueo = NULL`. Mientras la cuenta está Bloqueada, solo un administrador puede cambiar
-`fecha_bloqueo`. Para impedir el acceso de forma indefinida use el estado `Inactivo`, no
-`Bloqueado`.
+`fecha_bloqueo` + 15 minutos ya llegó; antes, la base lo rechaza (y si `fecha_bloqueo` está vacía,
+también). Un administrador activo puede desbloquear en cualquier momento. Al desbloquear, la base
+deja `intentos_fallidos = 0` y `fecha_bloqueo = NULL`.
+
+Mientras la cuenta está Bloqueada, **la aplicación no debe tocar `fecha_bloqueo`**: solo puede
+sumar `intentos_fallidos`. Cambiar `fecha_bloqueo` en ese estado exige administrador.
+
+Para impedir el acceso de forma indefinida use el estado `Inactivo`, no `Bloqueado`: un usuario
+Inactivo (también un administrador inactivo) no puede reactivarse solo, ni directamente ni pasando
+por Bloqueado.
 
 **Fecha de inicio de la asignación.** Debe estar entre el inicio de la convocatoria y un año
 después de hoy; si no, la base responde
 `La fecha de inicio de la asignación debe estar entre el inicio de la convocatoria (...) y un año después de hoy`.
+La asignación que se crea sola al aprobar empieza hoy o, si la convocatoria todavía no ha
+empezado, el día de inicio de la convocatoria.
 
 **Tipos de documento.** La semilla trae 4: 1 Documento de identidad, 2 Certificado bancario,
 3 Documento adicional y 4 Certificado de EPS.
@@ -180,7 +188,7 @@ Para comprobar los controles con ese usuario (después de `benefitrack_v2.sql`,
 C:\xampp\mysql\bin\mysql.exe -u benefitrack_app -p --default-character-set=utf8mb4 --force --table < base-de-datos\pruebas\pruebas_usuario_aplicacion.sql
 ```
 
-Los `ERROR 1644` que aparecen son los rechazos esperados; las filas U1 a U6 deben decir `OK`.
+Los `ERROR 1644` que aparecen son los rechazos esperados; las filas U1 a U7 deben decir `OK`.
 
 ---
 

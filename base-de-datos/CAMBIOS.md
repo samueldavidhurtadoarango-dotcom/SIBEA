@@ -20,7 +20,7 @@ especificación no menciona, se indica como **Error del original**.
 | Al final había un bloque de "AJUSTES" que modificaba tablas ya creadas (`ALTER TABLE`) y reemplazaba triggers. | Cada tabla se crea una sola vez con su forma final. | Evita que la estructura dependa del orden de los parches. |
 | Tablas creadas en orden alfabético con las llaves foráneas desactivadas. | Tablas creadas en orden de dependencias (primero catálogos, luego usuarios, convocatorias, postulaciones, pagos...). | El script no necesita desactivar las llaves foráneas para funcionar. |
 | Nombres de índices y restricciones mezclados (`fk_...` usado también para índices simples). | Prefijos claros: `uk_` (único), `idx_` (índice), `fk_` (llave foránea), `chk_` (regla CHECK). | Se entiende de un vistazo qué es cada cosa. |
-| Las reglas de negocio vivían solo en la aplicación (o no existían). | Las reglas clave se fuerzan en la base con triggers que lanzan errores en español (`SQLSTATE '45000'`). | La aplicación no puede saltarse las reglas por error. **Ojo:** los triggers no protegen contra quien tiene permisos totales (por ejemplo `root`), que puede borrar triggers o escribir directamente en las tablas. Por eso la aplicación debe conectarse con un usuario de permisos limitados (`usuario_aplicacion.sql`, ver la sección 9). |
+| Las reglas de negocio vivían solo en la aplicación (o no existían). | Las reglas clave se fuerzan en la base con triggers que lanzan errores en español (`SQLSTATE '45000'`). | La aplicación no puede saltarse las reglas por error. **Ojo:** los triggers no protegen contra quien tiene permisos totales (por ejemplo `root`), que puede borrar triggers o escribir directamente en las tablas. Por eso la aplicación debe conectarse con un usuario de permisos limitados (`usuario_aplicacion.sql`, ver la sección 10). |
 | Los triggers guardaban un usuario fijo o el aprendiz dueño. | Todos usan la variable de sesión `@app_id_usuario`. | **D9** (ver la sección 4). |
 
 ---
@@ -142,7 +142,7 @@ especificación no menciona, se indica como **Error del original**.
 | `tr_postulacion_estado` | después de actualizar | Guarda cada cambio en `historial_estados` con `@app_id_usuario`. | D9 |
 | `tr_auditoria_postulacion` | después de actualizar | Guarda cada modificación en `auditoria` con `@app_id_usuario`. | D9 |
 | `tr_postulacion_notificar` | después de actualizar | Crea la notificación al pasar a Validada, Aprobada o Rechazada (esta última con la justificación). | D8 |
-| `tr_postulacion_crear_asignacion` | después de actualizar | Al aprobar, crea la asignación copiando valor por pago, número de pagos y duración de la convocatoria. | D3 |
+| `tr_postulacion_crear_asignacion` | después de actualizar | Al aprobar, crea la asignación copiando valor por pago, número de pagos y duración de la convocatoria; empieza hoy o, si la convocatoria aún no empezó, el día de inicio de la convocatoria. | D3 |
 | `tr_solicitud_documentacion_validar` | antes de insertar en `solicitudes_documentacion` | Solo permite pedir documentos a postulaciones Pendiente. | D1 |
 | `tr_postulacion_no_eliminar` | antes de borrar | Impide borrar postulaciones (se rechazan con justificación). | D9 |
 | `tr_convocatoria_validar` | antes de actualizar una convocatoria | Los cupos no pueden quedar por debajo de las postulaciones ya aprobadas. | D2 |
@@ -151,7 +151,7 @@ especificación no menciona, se indica como **Error del original**.
 
 | Trigger | Cuándo | Qué hace | Decisión |
 |---|---|---|---|
-| `tr_asignacion_validar_insercion` | antes de insertar | Solo permite una asignación por postulación, y solo si está Aprobada; debe empezar En curso; la fecha de inicio debe estar entre el inicio de la convocatoria y un año después de hoy. | D3 |
+| `tr_asignacion_validar_insercion` | antes de insertar | Solo si la postulación está Aprobada; solo una asignación por postulación (se revisa antes que la fecha); la fecha de inicio debe estar entre el inicio de la convocatoria y un año después de hoy; debe empezar En curso. | D3 |
 | `tr_asignacion_validar_estado` | antes de actualizar | Transiciones válidas (En curso → Finalizado/Suspendido/Cancelado, Suspendido → En curso/Cancelado, Finalizado → En curso **solo** cuando lo pide `tr_pago_anulado`); Finalizado solo con todos los pagos vigentes (contados con `LOCK IN SHARE MODE`); motivo nuevo obligatorio al suspender, reactivar o cancelar; valor, número de pagos, duración y fecha de inicio solo se cambian si está En curso y aún no tiene pagos; la fecha de inicio nueva debe estar entre el inicio de la convocatoria y un año después de hoy. | D3, D4 |
 | `tr_asignacion_cambio_estado` | después de actualizar | Audita el cambio y crea automáticamente la novedad de Suspensión, Reactivación o Cancelación. | D5, D9 |
 | `tr_asignacion_no_eliminar` | antes de borrar | Impide borrar asignaciones (se cancelan con motivo). | D3 |
@@ -170,8 +170,8 @@ especificación no menciona, se indica como **Error del original**.
 
 | Trigger | Cuándo | Qué hace | Decisión |
 |---|---|---|---|
-| `tr_usuario_validar_insercion` | antes de insertar | Crear un usuario con rol Administrador exige un administrador activo. El registro de aprendices sigue libre. | D7, D9 |
-| `tr_usuario_validar` | antes de actualizar | Cambiar el rol (`id_rol`) o el estado exige un administrador activo. Sin administrador solo se permite pasar a Bloqueado (si falta `fecha_bloqueo`, guarda la hora actual) y el desbloqueo automático Bloqueado → Activo cuando ya pasaron 15 minutos desde `fecha_bloqueo`. Todo desbloqueo deja `intentos_fallidos = 0` y `fecha_bloqueo = NULL`. Mientras sigue Bloqueado, cambiar `fecha_bloqueo` exige administrador. | D7, D9 |
+| `tr_usuario_validar_insercion` | antes de insertar | Crear un usuario con rol Administrador, o con un estado distinto de Activo, exige un administrador activo. La base pone `fecha_bloqueo` (hora actual si nace Bloqueado, `NULL` si no). El registro de aprendices sigue libre. | D7, D9 |
+| `tr_usuario_validar` | antes de actualizar | Cambiar el rol (`id_rol`) o el estado exige un administrador activo. Sin administrador solo se permite Activo → Bloqueado y el desbloqueo automático Bloqueado → Activo cuando ya pasaron 15 minutos desde `fecha_bloqueo` (nunca si `fecha_bloqueo` es `NULL`). Al pasar a Bloqueado, la base guarda `fecha_bloqueo` = hora actual e ignora la fecha recibida. Todo desbloqueo deja `intentos_fallidos = 0` y `fecha_bloqueo = NULL`. Mientras sigue Bloqueado, cambiar `fecha_bloqueo` exige administrador. | D7, D9 |
 
 **Otros**
 
@@ -202,13 +202,13 @@ novedades. Si la aplicación no la define, se guarda `NULL` (nunca un id inventa
 Desde la tercera ronda (sección 7), la variable también sirve para **comprobar el rol**: las
 acciones de gestión solo las puede hacer un Administrador con estado Activo.
 
-¿Y si la variable es `NULL`? Desde la cuarta ronda (sección 8) depende de **con qué usuario de
+¿Y si la variable es `NULL`? Desde la quinta ronda (sección 9) depende de **con qué usuario de
 MariaDB** se conectó:
 
-- Con el usuario limitado de la aplicación (`benefitrack_app`), la acción de gestión **se rechaza**
-  con `Solo un administrador activo puede <acción>`. Así, si la aplicación olvida fijar la
-  variable, no se salta el control de rol.
 - Con `root` (mantenimiento, scripts y pruebas), la acción se permite y se guarda `NULL` (D9).
+- Con **cualquier otro usuario** (`benefitrack_app` o el que se cree), la acción de gestión **se
+  rechaza** con `Solo un administrador activo puede <acción>`. Así, si la aplicación olvida fijar
+  la variable, no se salta el control de rol.
 
 Igual, **la aplicación SIEMPRE debe fijar `@app_id_usuario`** en cada conexión.
 
@@ -331,7 +331,8 @@ así que el usuario limitado `benefitrack_app` no necesita permisos extra (`EXEC
 `Solo un administrador activo puede rechazar una postulación`; con el administrador 5, funciona.
 
 **Importante.** En esta ronda, con `@app_id_usuario` en `NULL` la acción se permitía siempre (D9).
-La cuarta ronda (sección 8) lo cierra para el usuario `benefitrack_app`.
+La cuarta ronda (sección 8) lo cierra para el usuario `benefitrack_app` y la quinta (sección 9), para
+cualquier usuario distinto de `root`.
 
 No se agregaron ni cambiaron tablas, columnas ni triggers; solo las dos rutinas y las llamadas
 dentro de los triggers existentes.
@@ -374,13 +375,18 @@ pasados **15 minutos**, se puede volver a entrar sin llamar a nadie.
   "adelantar el reloj") exige administrador.
 - Ojo: si un administrador pone a alguien en Bloqueado a mano, también se desbloqueará solo a los 15
   minutos. Para impedir el acceso de forma indefinida use el estado **Inactivo**.
+- **Corregido en la quinta ronda (sección 9):** en esta ronda, un Inactivo todavía podía
+  reactivarse solo pasando por Bloqueado con una fecha vieja, y la fecha de bloqueo la podía mandar
+  la aplicación. Desde la quinta ronda, lo de «Inactivo impide el acceso indefinidamente» sí es
+  cierto.
 
 **4. La variable vacía ya no abre la puerta con el usuario de la aplicación.**
 Antes, si la aplicación olvidaba `SET @app_id_usuario`, la base dejaba pasar cualquier acción de
 gestión. Ahora `pr_exigir_administrador` mira con qué usuario de MariaDB se conectó (`USER()`): si
 es `benefitrack_app` y la variable está en `NULL`, rechaza la acción. Con `root` sigue permitida
 (mantenimiento y pruebas, D9). El usuario se reconoce por su nombre, sin importar el host
-(`localhost` o `127.0.0.1`; ver la nota en `usuario_aplicacion.sql`).
+(`localhost` o `127.0.0.1`; ver la nota en `usuario_aplicacion.sql`). **Quinta ronda:** la regla
+se invirtió y ahora solo `root` puede usar `NULL` (sección 9).
 
 **5. Nuevo tipo de documento «Certificado de EPS».**
 La semilla de `tipos_documento` incluye el tipo **4 «Certificado de EPS»** (certificado de
@@ -390,7 +396,7 @@ afiliación a la EPS del aprendiz). Los tipos 1 (Documento de identidad), 2 (Cer
 **6. La prueba de concurrencia ya no deja archivos en el proyecto.**
 `pruebas/concurrencia/ejecutar.sh` guardaba la salida de una de las sesiones en el archivo
 `.a.out` dentro del repositorio. Ahora usa un archivo temporal del sistema (`mktemp`), que se
-borra solo al terminar (`trap`), y `.gitignore` ignora los `*.out` por si acaso.
+borra solo al terminar (`trap`), y `.gitignore` ignora los `*.out` de esa carpeta por si acaso.
 
 **Pruebas nuevas.**
 - `pruebas/pruebas_reglas.sql`: A13 (tipos de documento) y bloque J (J01 a J26: fechas de inicio,
@@ -405,7 +411,59 @@ se ajustaron 2 triggers de asignaciones y 1 procedimiento.
 
 ---
 
-## 9. Pendientes (solo documentados, no implementados todavía)
+## 9. Quinta ronda: huecos encontrados en la revisión de la cuarta (explicado fácil)
+
+Un revisor volvió a "hacer trampa" contra las reglas de la cuarta ronda y encontró estos huecos.
+
+**B1. Un usuario Inactivo podía reactivarse solo.**
+El truco tenía dos pasos: pasar de Inactivo a Bloqueado (eso no pedía administrador) mandando una
+fecha de bloqueo vieja (`2000-01-01`), y luego pasar a Activo, porque «ya habían pasado 15
+minutos». Servía hasta para un administrador inactivo. Ahora:
+
+- Sin administrador, solo se puede pasar a Bloqueado **desde Activo**. Desde Inactivo se rechaza.
+- Al pasar a Bloqueado la base escribe **siempre** la hora actual en `fecha_bloqueo` e ignora la
+  fecha que mande la aplicación. Así nadie puede "adelantar el reloj" ni en el mismo `UPDATE`.
+
+**I1. Una cuenta Bloqueada sin fecha se desbloqueaba sin administrador.**
+Si `fecha_bloqueo` estaba vacía (`NULL`), la cuenta de «fecha + 15 minutos» daba "no sé" y la base
+lo tomaba como permiso. Ahora una cuenta sin fecha de bloqueo **no** se desbloquea sola: hace falta
+un administrador. Además, al **crear** un usuario:
+
+- si no nace Activo (por ejemplo, Bloqueado o Inactivo), hace falta un administrador;
+- la fecha de bloqueo la pone la base (la hora actual si nace Bloqueado; vacía si no).
+
+**I2. Lista blanca en lugar de lista negra para la variable vacía.**
+Antes solo se rechazaba `@app_id_usuario` en `NULL` si el usuario de conexión se llamaba
+exactamente `benefitrack_app`; con otro nombre, la puerta seguía abierta. Ahora es al revés: **solo
+`root`** (el usuario de mantenimiento) puede hacer acciones de gestión con la variable en `NULL`.
+Cualquier otro usuario de conexión debe mandar siempre `@app_id_usuario`. Se probó con un usuario
+temporal `otro_usuario`: con la variable en `NULL`, cambiar un rol se rechazó.
+
+**Menores.**
+- **M1.** La asignación que se crea al aprobar empezaba siempre «hoy». Si el administrador había
+  movido el inicio de la convocatoria al futuro, aprobar fallaba con un mensaje confuso. Ahora
+  empieza el día más tarde entre hoy y el inicio de la convocatoria (`GREATEST`).
+- **M2.** El README aclara que, con la cuenta Bloqueada, la aplicación no debe tocar
+  `fecha_bloqueo` (solo sumar `intentos_fallidos`).
+- **M4.** `ejecutar.sh` borra su archivo temporal también si se interrumpe (Ctrl+C), y
+  `.gitignore` solo ignora los `*.out` de `base-de-datos/pruebas/concurrencia/`.
+- **M5.** Al crear una asignación para una postulación que ya tiene una, el mensaje es «La
+  postulación ya tiene una asignación de beneficio», aunque la fecha también esté mal.
+
+**Pruebas nuevas.**
+- `pruebas/pruebas_reglas.sql`, bloque K (K01 a K13), y J06 ajustada por M5. Resultado:
+  **235 casos, 235 OK**.
+- `pruebas/pruebas_usuario_aplicacion.sql`, U7: conectado como `benefitrack_app` y con la variable
+  en `NULL`, un Inactivo no se reactiva pasando por Bloqueado.
+
+No se cambiaron tablas ni columnas; se ajustaron 4 triggers (`tr_usuario_validar`,
+`tr_usuario_validar_insercion`, `tr_postulacion_crear_asignacion`,
+`tr_asignacion_validar_insercion`) y el procedimiento `pr_exigir_administrador`. Siguen siendo 28
+triggers.
+
+---
+
+## 10. Pendientes (solo documentados, no implementados todavía)
 
 - **Usuario de la aplicación.** Las protecciones de la sección 6 dependen de que la aplicación use
   el usuario limitado de `usuario_aplicacion.sql` y no `root`. Con `root` se pueden borrar
