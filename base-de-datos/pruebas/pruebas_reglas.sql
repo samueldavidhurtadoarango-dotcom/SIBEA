@@ -1021,7 +1021,7 @@ CALL pr_esperar_exito('J04', 'fecha_inicio exactamente un año después de hoy s
 CALL pr_esperar_exito('J05', 'fecha_inicio igual al inicio de la convocatoria se permite',
   "UPDATE asignaciones_beneficio SET fecha_inicio = @f_conv2 WHERE id_asignacion = @j1");
 -- Ronda 5 (M5): la duplicada se reporta antes que la fecha. La fecha al
--- crear se prueba por la vía real (aprobación) en J30.
+-- crear se prueba por la vía real (aprobación) en K03.
 CALL pr_esperar_error('J06', 'Una postulación que ya tiene asignación responde eso antes que la fecha absurda',
   "INSERT INTO asignaciones_beneficio (id_postulacion, valor_pago, numero_pagos, duracion_meses, fecha_inicio) VALUES (@p1, 150000, 3, 3, '1900-01-01')",
   'La postulación ya tiene una asignación de beneficio');
@@ -1175,7 +1175,34 @@ CALL pr_verificar('K13', 'I1: al crearlo Bloqueado sin fecha, la base pone la ho
   (SELECT CONCAT('fecha_bloqueo=', IFNULL(fecha_bloqueo, 'NULL')) FROM usuarios WHERE documento = 'PRUEBA-A11'));
 UPDATE usuarios SET estado = 'Activo' WHERE id_usuario = @a1;
 SET @app_id_usuario = 5;
+
+-- Ronda 6: la base ignora la fecha_bloqueo recibida al crear un Activo.
+SET @app_id_usuario = NULL;
+CALL pr_esperar_exito('K14', 'Registro de un aprendiz Activo que trae fecha_bloqueo = 2000-01-01',
+  "INSERT INTO usuarios (documento, nombre, apellido, correo, password_hash, id_rol, fecha_bloqueo) VALUES ('PRUEBA-A12', 'Aprendiz', 'Doce', 'a12@benefitrack.test', 'hash', @rol_aprendiz, '2000-01-01')");
+CALL pr_verificar('K15', 'Un usuario creado Activo queda con fecha_bloqueo NULL',
+  (SELECT fecha_bloqueo IS NULL FROM usuarios WHERE documento = 'PRUEBA-A12'),
+  (SELECT CONCAT('fecha_bloqueo=', IFNULL(fecha_bloqueo, 'NULL')) FROM usuarios WHERE documento = 'PRUEBA-A12'));
+
+-- Ronda 6: SET timestamp cambia NOW() en la sesión; el bloqueo y el
+-- desbloqueo usan la hora real del servidor (SYSDATE()).
+SET @app_id_usuario = @a1;
+SET timestamp = UNIX_TIMESTAMP('2000-01-01');
+UPDATE usuarios SET estado = 'Bloqueado', intentos_fallidos = 3 WHERE id_usuario = @a1;
+SET timestamp = DEFAULT;
+CALL pr_esperar_error('K16', 'Trampa SET timestamp en el pasado al bloquear: el desbloqueo inmediato se rechaza',
+  "UPDATE usuarios SET estado = 'Activo' WHERE id_usuario = @a1",
+  'Solo un administrador activo puede');
+CALL pr_verificar('K17', 'Con SET timestamp en el pasado, fecha_bloqueo guarda la hora real',
+  (SELECT fecha_bloqueo >= NOW() - INTERVAL 1 MINUTE FROM usuarios WHERE id_usuario = @a1),
+  (SELECT CONCAT('fecha_bloqueo=', IFNULL(fecha_bloqueo, 'NULL')) FROM usuarios WHERE id_usuario = @a1));
+SET timestamp = UNIX_TIMESTAMP() + 86400;
+CALL pr_esperar_error('K18', 'Trampa SET timestamp un día en el futuro: el desbloqueo se rechaza',
+  "UPDATE usuarios SET estado = 'Activo' WHERE id_usuario = @a1",
+  'Solo un administrador activo puede');
+SET timestamp = DEFAULT;
 SET @app_id_usuario = 5;
+UPDATE usuarios SET estado = 'Activo' WHERE id_usuario = @a1;
 
 -- =====================================================================
 -- Fin: deshacer los datos de prueba e imprimir el resumen
