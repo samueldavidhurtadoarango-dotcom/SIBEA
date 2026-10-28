@@ -97,7 +97,7 @@ CALL pr_verificar('A01', 'CA1: existen las 23 tablas esperadas',
                          'novedades','notificaciones','auditoria','migraciones')) = 23,
   CONCAT('Tablas encontradas: ', (SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE())));
 
-CALL pr_verificar('A02', 'CA1: existen los 34 triggers esperados',
+CALL pr_verificar('A02', 'CA1: existen los 36 triggers esperados',
   (SELECT COUNT(*) FROM information_schema.triggers
     WHERE trigger_schema = DATABASE()
       AND trigger_name IN ('tr_validacion_documento','tr_postulacion_inicial','tr_postulacion_creada',
@@ -112,7 +112,8 @@ CALL pr_verificar('A02', 'CA1: existen los 34 triggers esperados',
                            'tr_auditoria_no_modificar','tr_auditoria_no_eliminar',
                            'tr_usuario_validar','tr_usuario_validar_insercion','tr_usuario_auditar',
                            'tr_migracion_creada','tr_migracion_actualizada','tr_migracion_preparar',
-                           'tr_migracion_validar','tr_auditoria_fecha')) = 34,
+                           'tr_migracion_validar','tr_auditoria_fecha','tr_documento_validar_insercion',
+                           'tr_convocatoria_validar_insercion')) = 36,
   CONCAT('Triggers encontrados: ', (SELECT COUNT(*) FROM information_schema.triggers WHERE trigger_schema = DATABASE())));
 
 CALL pr_verificar('A03', 'D7: roles semilla son exactamente Administrador y Aprendiz',
@@ -1556,6 +1557,80 @@ CALL pr_verificar('N09', 'M2: tras ese error, @app_justificacion queda en NULL',
   @app_justificacion IS NULL, CONCAT('@app_justificacion=', IFNULL(@app_justificacion, 'NULL')));
 CALL pr_esperar_error('N10', 'I1: un rol NULL se rechaza',
   "CALL pr_cambiar_rol_usuario(@a9, NULL, 'motivo')", 'No existe el rol indicado');
+
+-- =====================================================================
+-- Bloque O. Datos de «quién y cuándo» al crear filas (ronda 9)
+-- =====================================================================
+-- Documentos: un aprendiz no puede subir un documento ya validado.
+SET @app_id_usuario = @a1;
+CALL pr_esperar_error('O01', 'Un documento nuevo no puede nacer Validado',
+  "INSERT INTO documentos_postulacion (id_postulacion, id_tipo_documento, nombre_archivo, ruta_archivo, extension, tamano_mb, estado_validacion) VALUES (@p1, 1, 'falso.pdf', 'docs/falso.pdf', 'pdf', 1.00, 'Validado')",
+  'Un documento nuevo debe empezar en estado Pendiente');
+CALL pr_esperar_exito('O02', 'Un documento nuevo con datos de validación inventados se acepta, sin esos datos',
+  "INSERT INTO documentos_postulacion (id_postulacion, id_tipo_documento, nombre_archivo, ruta_archivo, extension, tamano_mb, id_usuario_validacion, fecha_validacion, observaciones) VALUES (@p1, 1, 'o02.pdf', 'docs/o02.pdf', 'pdf', 1.00, 5, '2000-01-01', 'Revisado y aprobado')");
+CALL pr_verificar('O03', 'La base deja el documento Pendiente y sin validador, fecha ni observación',
+  (SELECT estado_validacion = 'Pendiente' AND id_usuario_validacion IS NULL AND fecha_validacion IS NULL
+          AND observaciones IS NULL
+     FROM documentos_postulacion WHERE nombre_archivo = 'o02.pdf'),
+  (SELECT CONCAT('estado=', estado_validacion, ' validador=', IFNULL(id_usuario_validacion, 'NULL'),
+                 ' fecha=', IFNULL(fecha_validacion, 'NULL'), ' obs=', IFNULL(observaciones, 'NULL'))
+     FROM documentos_postulacion WHERE nombre_archivo = 'o02.pdf'));
+
+-- Pagos: quien registra es el usuario de sesión; nada de datos de anulación.
+SET @app_id_usuario = 5;
+CALL pr_esperar_exito('O04', 'Un pago con otro autor y datos de anulación inventados se acepta, sin esos datos',
+  "INSERT INTO pagos (id_asignacion, numero_pago, monto, fecha_pago, id_usuario_registro, motivo_anulacion, fecha_anulacion, id_usuario_anulacion) VALUES (@j1, 1, 150000, CURDATE(), @a1, 'inventado', '2000-01-01', @a1)");
+CALL pr_verificar('O05', 'El pago queda registrado por el usuario de sesión y sin datos de anulación',
+  (SELECT id_usuario_registro = 5 AND motivo_anulacion IS NULL AND fecha_anulacion IS NULL
+          AND id_usuario_anulacion IS NULL
+     FROM pagos WHERE id_asignacion = @j1 AND numero_pago = 1),
+  (SELECT CONCAT('registro=', IFNULL(id_usuario_registro, 'NULL'), ' anulacion=', IFNULL(id_usuario_anulacion, 'NULL'))
+     FROM pagos WHERE id_asignacion = @j1 AND numero_pago = 1));
+
+-- Novedades: quien la registra es el usuario de sesión.
+CALL pr_esperar_exito('O06', 'Una novedad con otro autor se acepta',
+  "INSERT INTO novedades (id_asignacion, tipo, descripcion, id_usuario) VALUES (@j1, 'Otra', 'Cambio de cuenta bancaria', @a1)");
+CALL pr_verificar('O07', 'La novedad queda registrada por el usuario de sesión',
+  (SELECT id_usuario = 5 FROM novedades WHERE id_asignacion = @j1 AND descripcion = 'Cambio de cuenta bancaria'),
+  (SELECT CONCAT('id_usuario=', IFNULL(id_usuario, 'NULL')) FROM novedades
+    WHERE id_asignacion = @j1 AND descripcion = 'Cambio de cuenta bancaria'));
+
+-- Solicitudes de documentación: quien la pide es el usuario de sesión; nace Pendiente.
+-- Postulación Pendiente propia para este bloque.
+SET @app_id_usuario = NULL;
+INSERT INTO usuarios (documento, nombre, apellido, correo, password_hash, id_rol)
+VALUES ('PRUEBA-A13', 'Aprendiz', 'Trece', 'a13@benefitrack.test', 'hash', @rol_aprendiz);
+SET @a13 = LAST_INSERT_ID();
+INSERT INTO postulaciones (id_usuario, id_convocatoria, datos_formulario) VALUES (@a13, @conv2, '{}');
+SET @q13 = LAST_INSERT_ID();
+SET @app_id_usuario = 5;
+CALL pr_esperar_error('O08', 'Una solicitud nueva no puede nacer Atendida',
+  "INSERT INTO solicitudes_documentacion (id_postulacion, id_usuario, observacion, estado) VALUES (@q13, 5, 'x', 'Atendida')",
+  'Una solicitud nueva debe empezar en estado Pendiente');
+CALL pr_esperar_exito('O09', 'Una solicitud con otro autor y fecha de atención inventada se acepta, sin esos datos',
+  "INSERT INTO solicitudes_documentacion (id_postulacion, id_usuario, observacion, fecha_atencion) VALUES (@q13, @a1, 'O09: adjunte el RUT', '2000-01-01')");
+CALL pr_verificar('O10', 'La solicitud queda a nombre del usuario de sesión y sin fecha de atención',
+  (SELECT id_usuario = 5 AND fecha_atencion IS NULL FROM solicitudes_documentacion
+    WHERE observacion = 'O09: adjunte el RUT'),
+  (SELECT CONCAT('id_usuario=', id_usuario, ' fecha_atencion=', IFNULL(fecha_atencion, 'NULL'))
+     FROM solicitudes_documentacion WHERE observacion = 'O09: adjunte el RUT'));
+
+-- Convocatorias: las crea un administrador, nacen Activa o Inactiva y sin
+-- datos de cierre.
+SET @app_id_usuario = @a1;
+CALL pr_esperar_error('O11', 'Un aprendiz no puede crear una convocatoria',
+  "INSERT INTO convocatorias (id_beneficio, nombre, fecha_inicio, fecha_cierre, cupos, requisitos, valor_pago, numero_pagos, duracion_meses, estado) VALUES (@ben, 'O11', CURDATE(), CURDATE() + INTERVAL 10 DAY, 1, 'r', 1000, 1, 1, 'Activa')",
+  'Solo un administrador activo puede');
+SET @app_id_usuario = 5;
+CALL pr_esperar_error('O12', 'Una convocatoria nueva no puede nacer Cerrada',
+  "INSERT INTO convocatorias (id_beneficio, nombre, fecha_inicio, fecha_cierre, cupos, requisitos, valor_pago, numero_pagos, duracion_meses, estado) VALUES (@ben, 'O12', CURDATE(), CURDATE() + INTERVAL 10 DAY, 1, 'r', 1000, 1, 1, 'Cerrada')",
+  'Una convocatoria nueva debe estar Activa o Inactiva');
+CALL pr_esperar_exito('O13', 'Una convocatoria con datos de cierre inventados se acepta, sin esos datos',
+  "INSERT INTO convocatorias (id_beneficio, nombre, fecha_inicio, fecha_cierre, cupos, requisitos, valor_pago, numero_pagos, duracion_meses, estado, usuario_cierre, fecha_cierre_real) VALUES (@ben, 'O13', CURDATE(), CURDATE() + INTERVAL 10 DAY, 1, 'r', 1000, 1, 1, 'Activa', @a1, '2000-01-01')");
+CALL pr_verificar('O14', 'La convocatoria queda sin usuario ni fecha de cierre',
+  (SELECT usuario_cierre IS NULL AND fecha_cierre_real IS NULL FROM convocatorias WHERE nombre = 'O13'),
+  (SELECT CONCAT('usuario_cierre=', IFNULL(usuario_cierre, 'NULL'), ' fecha_cierre_real=', IFNULL(fecha_cierre_real, 'NULL'))
+     FROM convocatorias WHERE nombre = 'O13'));
 
 SET @app_id_usuario = 5;
 SET @app_justificacion = 'Cambio hecho por las pruebas automáticas';

@@ -10,7 +10,8 @@
 --   * un cambio de estado del administrador exige @app_justificacion y
 --     queda en auditoria; benefitrack_app no escribe en auditoria;
 --   * pr_cambiar_estado_usuario se puede usar (EXECUTE) y limpia la
---     justificación; un aprendiz con sesión no bloquea a otros.
+--     justificación; un aprendiz con sesión no bloquea a otros;
+--   * un aprendiz no sube documentos ya validados.
 --
 -- Preparación (como root):
 --   1. benefitrack_v2.sql
@@ -116,6 +117,20 @@ SET @app_justificacion = NULL;
 UPDATE usuarios SET estado = 'Bloqueado', intentos_fallidos = 3 WHERE estado = 'Activo' AND id_usuario <> 21;
 SELECT COUNT(*) INTO @u11 FROM usuarios WHERE estado = 'Bloqueado';
 
+-- U12: el aprendiz 21 no puede subir un documento ya Validado (debe fallar)
+-- y, si lo sube con datos de validación inventados, la base los borra.
+SET @app_id_usuario = 21;
+INSERT INTO documentos_postulacion (id_postulacion, id_tipo_documento, nombre_archivo, ruta_archivo,
+                                    extension, tamano_mb, estado_validacion, id_usuario_validacion, fecha_validacion)
+VALUES (1, 1, 'u12_validado.pdf', 'docs/u12_validado.pdf', 'pdf', 1.00, 'Validado', 5, '2000-01-01');
+INSERT INTO documentos_postulacion (id_postulacion, id_tipo_documento, nombre_archivo, ruta_archivo,
+                                    extension, tamano_mb, id_usuario_validacion, fecha_validacion, observaciones)
+VALUES (1, 1, 'u12_pendiente.pdf', 'docs/u12_pendiente.pdf', 'pdf', 1.00, 5, '2000-01-01', 'Aprobado');
+SELECT COUNT(*) INTO @u12a FROM documentos_postulacion WHERE nombre_archivo = 'u12_validado.pdf';
+SELECT estado_validacion, id_usuario_validacion, fecha_validacion, observaciones
+  INTO @u12e, @u12u, @u12f, @u12o
+  FROM documentos_postulacion WHERE nombre_archivo = 'u12_pendiente.pdf';
+
 ROLLBACK;
 SET @app_id_usuario = NULL;
 
@@ -150,3 +165,9 @@ SELECT 'U10' AS caso, 'pr_cambiar_estado_usuario funciona con benefitrack_app y 
               ' variable después=', IFNULL(@u10v, 'NULL')) AS detalle;
 SELECT 'U11' AS caso, 'Un aprendiz con sesión no puede bloquear a los demás (ni con intentos = 3)' AS descripcion,
        IF(@u11 = 0, 'OK', 'FALLO') AS resultado, CONCAT('bloqueados=', IFNULL(@u11, 'NULL')) AS detalle;
+SELECT 'U12' AS caso, 'Un aprendiz no sube documentos ya validados ni con datos de validación inventados' AS descripcion,
+       IF(@u12a = 0 AND @u12e = 'Pendiente' AND @u12u IS NULL AND @u12f IS NULL AND @u12o IS NULL,
+          'OK', 'FALLO') AS resultado,
+       CONCAT('validados=', IFNULL(@u12a, 'NULL'), ' estado=', IFNULL(@u12e, 'NULL'),
+              ' validador=', IFNULL(@u12u, 'NULL'), ' fecha=', IFNULL(@u12f, 'NULL'),
+              ' obs=', IFNULL(@u12o, 'NULL')) AS detalle;
