@@ -174,6 +174,17 @@ CALL pr_verificar('A12', 'D7: ningún dato semilla menciona "Estudiante"',
   AND (SELECT COUNT(*) FROM tipos_documento WHERE nombre LIKE '%studiante%' OR descripcion LIKE '%studiante%') = 0,
   'roles / tipos_documento');
 
+CALL pr_verificar('A13', 'Semilla: tipos de documento 1-3 sin cambios y 4 = Certificado de EPS',
+  (SELECT COUNT(*) FROM tipos_documento) = 4
+  AND (SELECT nombre FROM tipos_documento WHERE id_tipo_documento = 1) = 'Documento de identidad'
+  AND (SELECT nombre FROM tipos_documento WHERE id_tipo_documento = 2) = 'Certificado bancario'
+  AND (SELECT nombre FROM tipos_documento WHERE id_tipo_documento = 3) = 'Documento adicional'
+  AND (SELECT nombre FROM tipos_documento WHERE id_tipo_documento = 4) = 'Certificado de EPS'
+  AND (SELECT descripcion FROM tipos_documento WHERE id_tipo_documento = 4)
+      = 'Certificado de afiliación a la EPS del aprendiz',
+  (SELECT CONCAT('tipos_documento: ', GROUP_CONCAT(CONCAT(id_tipo_documento, '=', nombre) ORDER BY id_tipo_documento SEPARATOR ', '))
+     FROM tipos_documento));
+
 -- =====================================================================
 -- Datos de prueba (dentro de una transacción que se deshace al final)
 -- =====================================================================
@@ -1039,6 +1050,47 @@ CALL pr_esperar_exito('J15', 'Un administrador activo puede crear un usuario Adm
 SET @app_id_usuario = NULL;
 CALL pr_esperar_exito('J16', 'El registro de un aprendiz nuevo (sin sesión) se permite',
   "INSERT INTO usuarios (documento, nombre, apellido, correo, password_hash, id_rol) VALUES ('PRUEBA-A7', 'Aprendiz', 'Siete', 'a7@benefitrack.test', 'hash', @rol_aprendiz)");
+
+-- Desbloqueo automático a los 15 minutos (ronda 4). Aquí @a1 está Activo.
+-- "Sin administrador" = la sesión es el propio aprendiz (@a1); con root y
+-- NULL el control no aplica (D9), con benefitrack_app y NULL se prueba en
+-- pruebas_usuario_aplicacion.sql.
+SET @app_id_usuario = @a1;
+CALL pr_esperar_exito('J17', 'Bloqueo por intentos: pasar a Bloqueado con fecha_bloqueo = ahora',
+  "UPDATE usuarios SET estado = 'Bloqueado', intentos_fallidos = 3, fecha_bloqueo = NOW() WHERE id_usuario = @a1");
+CALL pr_esperar_error('J18', 'Desbloqueo sin administrador antes de 15 minutos se rechaza',
+  "UPDATE usuarios SET estado = 'Activo', intentos_fallidos = 0, fecha_bloqueo = NULL WHERE id_usuario = @a1",
+  'Solo un administrador activo puede');
+CALL pr_esperar_error('J19', 'Trampa: sin administrador no se puede adelantar fecha_bloqueo para desbloquear antes',
+  "UPDATE usuarios SET fecha_bloqueo = NOW() - INTERVAL 1 DAY WHERE id_usuario = @a1",
+  'Solo un administrador activo puede');
+SET @app_id_usuario = 5;
+UPDATE usuarios SET fecha_bloqueo = NOW() - INTERVAL 14 MINUTE WHERE id_usuario = @a1;
+SET @app_id_usuario = @a1;
+CALL pr_esperar_error('J20', 'Desbloqueo sin administrador a los 14 minutos se rechaza',
+  "UPDATE usuarios SET estado = 'Activo' WHERE id_usuario = @a1",
+  'Solo un administrador activo puede');
+SET @app_id_usuario = 5;
+UPDATE usuarios SET fecha_bloqueo = NOW() - INTERVAL 15 MINUTE WHERE id_usuario = @a1;
+SET @app_id_usuario = @a1;
+CALL pr_esperar_exito('J21', 'Desbloqueo sin administrador a los 15 minutos o más se permite',
+  "UPDATE usuarios SET estado = 'Activo' WHERE id_usuario = @a1");
+CALL pr_verificar('J22', 'Al desbloquear, intentos_fallidos vuelve a 0 y fecha_bloqueo a NULL',
+  (SELECT estado = 'Activo' AND intentos_fallidos = 0 AND fecha_bloqueo IS NULL FROM usuarios WHERE id_usuario = @a1),
+  (SELECT CONCAT('estado=', estado, ' intentos=', intentos_fallidos, ' fecha_bloqueo=', IFNULL(fecha_bloqueo, 'NULL'))
+     FROM usuarios WHERE id_usuario = @a1));
+CALL pr_esperar_exito('J23', 'Bloqueo sin fecha_bloqueo: la base la llena con la hora actual',
+  "UPDATE usuarios SET estado = 'Bloqueado', intentos_fallidos = 3 WHERE id_usuario = @a1");
+CALL pr_verificar('J24', 'El bloqueo deja fecha_bloqueo con la hora actual',
+  (SELECT fecha_bloqueo >= NOW() - INTERVAL 1 MINUTE FROM usuarios WHERE id_usuario = @a1),
+  (SELECT CONCAT('fecha_bloqueo=', IFNULL(fecha_bloqueo, 'NULL')) FROM usuarios WHERE id_usuario = @a1));
+SET @app_id_usuario = 5;
+CALL pr_esperar_exito('J25', 'Un administrador activo puede desbloquear en cualquier momento (antes de 15 minutos)',
+  "UPDATE usuarios SET estado = 'Activo' WHERE id_usuario = @a1");
+CALL pr_verificar('J26', 'El desbloqueo del administrador también deja intentos en 0 y fecha_bloqueo en NULL',
+  (SELECT estado = 'Activo' AND intentos_fallidos = 0 AND fecha_bloqueo IS NULL FROM usuarios WHERE id_usuario = @a1),
+  (SELECT CONCAT('estado=', estado, ' intentos=', intentos_fallidos, ' fecha_bloqueo=', IFNULL(fecha_bloqueo, 'NULL'))
+     FROM usuarios WHERE id_usuario = @a1));
 SET @app_id_usuario = 5;
 
 -- =====================================================================
