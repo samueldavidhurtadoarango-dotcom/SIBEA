@@ -89,7 +89,7 @@ C:\xampp\mysql\bin\mysql.exe -u root --default-character-set=utf8mb4 --table < b
 La salida muestra la misma tabla de resumen. Resultado esperado:
 
 ```
-| TOTAL | OK | 288 casos: 288 OK, 0 FALLO | TODAS LAS PRUEBAS PASAN |
+| TOTAL | OK | 298 casos: 298 OK, 0 FALLO | TODAS LAS PRUEBAS PASAN |
 ```
 
 Si algún caso dice `FALLO`, la columna `detalle` explica qué pasó (por ejemplo, el
@@ -157,9 +157,23 @@ CALL pr_cambiar_estado_usuario(<id_usuario>, 'Inactivo', 'Retiro voluntario del 
 CALL pr_cambiar_rol_usuario(<id_usuario>, 'Administrador', 'Nuevo integrante de Bienestar');
 ```
 
-`benefitrack_app` tiene permiso `EXECUTE` sobre los dos (ver `usuario_aplicacion.sql`). También se
-puede hacer a mano, pero entonces la aplicación debe limpiar la variable, porque si no el motivo se
-**arrastra** al siguiente cambio de la misma sesión (la prueba L23 lo muestra):
+`benefitrack_app` tiene permiso `EXECUTE` sobre los dos (ver `usuario_aplicacion.sql`). Los
+procedimientos responden con un error claro, y dejan `@app_justificacion` en `NULL`, si:
+
+- el estado no es `Activo`, `Inactivo` ni `Bloqueado` (o es `NULL`): `Estado no válido: ...`;
+- el rol no existe (o es `NULL`): `No existe el rol indicado`;
+- el usuario no existe: `No existe el usuario indicado`;
+- el usuario ya tiene ese estado o ese rol: `El usuario ya tiene ese estado` / `... ese rol`.
+
+El motivo puede ser largo (es `TEXT`) y se guarda completo en la auditoría. Única excepción a la
+limpieza: si los argumentos no caben en sus parámetros (por ejemplo, un estado de más de 255
+caracteres o un motivo de más de 64 KB), MariaDB rechaza la llamada **antes** de entrar al
+procedimiento, y la variable queda como estaba.
+
+También se puede hacer a mano, pero entonces la aplicación debe limpiar la variable, porque si no el
+motivo se **arrastra** al siguiente cambio de la misma sesión. La prueba L23 lo deja a la vista: su
+«OK» significa que el riesgo existe por la vía directa, **no** que esté resuelto. Por eso se
+recomiendan los procedimientos:
 
 ```sql
 SET @app_justificacion = 'Retiro voluntario del programa';

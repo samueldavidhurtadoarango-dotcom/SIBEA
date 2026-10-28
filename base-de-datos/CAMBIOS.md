@@ -20,7 +20,7 @@ especificación no menciona, se indica como **Error del original**.
 | Al final había un bloque de "AJUSTES" que modificaba tablas ya creadas (`ALTER TABLE`) y reemplazaba triggers. | Cada tabla se crea una sola vez con su forma final. | Evita que la estructura dependa del orden de los parches. |
 | Tablas creadas en orden alfabético con las llaves foráneas desactivadas. | Tablas creadas en orden de dependencias (primero catálogos, luego usuarios, convocatorias, postulaciones, pagos...). | El script no necesita desactivar las llaves foráneas para funcionar. |
 | Nombres de índices y restricciones mezclados (`fk_...` usado también para índices simples). | Prefijos claros: `uk_` (único), `idx_` (índice), `fk_` (llave foránea), `chk_` (regla CHECK). | Se entiende de un vistazo qué es cada cosa. |
-| Las reglas de negocio vivían solo en la aplicación (o no existían). | Las reglas clave se fuerzan en la base con triggers que lanzan errores en español (`SQLSTATE '45000'`). | La aplicación no puede saltarse las reglas por error. **Ojo:** los triggers no protegen contra quien tiene permisos totales (por ejemplo `root`), que puede borrar triggers o escribir directamente en las tablas. Por eso la aplicación debe conectarse con un usuario de permisos limitados (`usuario_aplicacion.sql`, ver la sección 13). |
+| Las reglas de negocio vivían solo en la aplicación (o no existían). | Las reglas clave se fuerzan en la base con triggers que lanzan errores en español (`SQLSTATE '45000'`). | La aplicación no puede saltarse las reglas por error. **Ojo:** los triggers no protegen contra quien tiene permisos totales (por ejemplo `root`), que puede borrar triggers o escribir directamente en las tablas. Por eso la aplicación debe conectarse con un usuario de permisos limitados (`usuario_aplicacion.sql`, ver la sección 14). |
 | Los triggers guardaban un usuario fijo o el aprendiz dueño. | Todos usan la variable de sesión `@app_id_usuario`. | **D9** (ver la sección 4). |
 
 ---
@@ -583,7 +583,10 @@ sesión, y un segundo cambio la reutilizaba sin que nadie escribiera un motivo n
 procedimientos, `pr_cambiar_estado_usuario` y `pr_cambiar_rol_usuario`, que fijan el motivo solo
 para ese cambio y lo borran al terminar, aunque falle. `benefitrack_app` tiene permiso `EXECUTE`
 sobre ellos y son la vía recomendada. Para que sea coherente, **los cambios de rol también exigen
-justificación**, así nunca se guarda un motivo que no se pidió.
+justificación**, así nunca se guarda un motivo que no se pidió. Ojo con la prueba **L23**: documenta
+el **riesgo** de la vía directa (`SET @app_justificacion` + `UPDATE`). Que salga «OK» significa que
+el arrastre sigue ocurriendo por esa vía, no que esté resuelto. La solución es usar los
+procedimientos (L24 a L28).
 
 **I4. Una migración terminada se podía reescribir sin dejar huella.** Ahora, cuando una carga
 termina (Completada, Completada con errores o Fallida), ya no se puede modificar
@@ -620,7 +623,48 @@ se ajustaron `fn_cambio_estado_sistema`, `tr_usuario_validar` y `tr_usuario_audi
 
 ---
 
-## 13. Pendientes (solo documentados, no implementados todavía)
+## 13. Novena ronda: los procedimientos de cambio de cuentas, sin cabos sueltos (explicado fácil)
+
+La revisión de la octava ronda dio el visto bueno, con tres arreglos en los procedimientos
+`pr_cambiar_estado_usuario` y `pr_cambiar_rol_usuario`.
+
+**I1. Un estado inexistente dejaba el motivo puesto.**
+Con `CALL pr_cambiar_estado_usuario(3, 'Nada', 'motivo')`, MariaDB daba el error 1265 («Data
+truncated»). En modo estricto ese error llega con un código de clase *advertencia* (`01000`), y el
+manejador del procedimiento solo atrapaba errores, así que `@app_justificacion` quedaba con
+«motivo». Ahora:
+
+- el procedimiento revisa el estado al principio y responde
+  `Estado no válido: debe ser Activo, Inactivo o Bloqueado`;
+- el manejador atrapa también las advertencias (`SQLWARNING`).
+
+El rol también se revisa: si no existe o es `NULL`, la respuesta es `No existe el rol indicado`.
+
+**M1. Un motivo largo fallaba antes de empezar.** El parámetro del motivo era `VARCHAR(1000)`; con
+1001 caracteres MariaDB rechazaba la llamada antes de entrar al procedimiento. Ahora es `TEXT` y se
+guarda completo en la auditoría (que es `LONGTEXT`). Se probó con 5000 caracteres.
+
+**M2. Pedir un cambio que no cambia nada no avisaba.** Si el usuario ya tenía ese estado o ese rol,
+el procedimiento terminaba «bien» sin hacer nada. Ahora responde `El usuario ya tiene ese estado` o
+`El usuario ya tiene ese rol`. Además, si el `UPDATE` no cambió ninguna fila (`ROW_COUNT() = 0`),
+avisa. La comparación se hace antes del `UPDATE` porque algunos conectores (por ejemplo, JDBC con su
+configuración por defecto) hacen que `ROW_COUNT()` cuente las filas encontradas y no las
+cambiadas. En todos los casos la variable queda en `NULL`.
+
+**M4.** Se aclaró, en la sección 12 y en el README, que la prueba L23 documenta un riesgo de la vía
+directa: su «OK» no significa que esté resuelto.
+
+**En las pruebas.** Ahora `pr_esperar_error` atrapa también advertencias. Sin eso, el error 1265
+cortaba toda la ejecución de las pruebas en vez de contarse como un caso fallido.
+
+**Pruebas nuevas.** Bloque N (N01 a N10) en `pruebas/pruebas_reglas.sql`. Resultado: **298 casos,
+298 OK**. Con `benefitrack_app`, U1 a U11 siguen en OK.
+
+No se cambiaron tablas, columnas ni triggers: solo los dos procedimientos.
+
+---
+
+## 14. Pendientes (solo documentados, no implementados todavía)
 
 - **Usuario de la aplicación.** Las protecciones de la sección 6 dependen de que la aplicación use
   el usuario limitado de `usuario_aplicacion.sql` y no `root`. Con `root` se pueden borrar
