@@ -1,6 +1,11 @@
 # Herramientas para regenerar los entregables
 
-- `generar_ficha.js` crea `Ficha_Proyecto_BenefitRack_v2.docx`. Necesita `npm install docx@9.5.1`. Uso: `node generar_ficha.js <ruta_salida.docx>`.
+Todos los comandos se ejecutan desde la raíz del repositorio.
+
+- `generar_ficha.js` crea la ficha del proyecto. Necesita `npm install docx@9.5.1`.
+  Uso: `node herramientas/generar_ficha.js <ruta_salida.docx>` (normalmente
+  `entregables/Ficha_Proyecto_BenefitRack_v2.docx`); si falta el argumento, se detiene con un mensaje de error
+  (código 1) y no escribe nada.
 - `generar_matriz.js` y `datos_matriz.js` crean la matriz de requisitos. Necesitan `npm install exceljs@4.4.0`.
   El contenido (requisitos y control de cambios) está en `datos_matriz.js`; `generar_matriz.js` solo le da formato.
   Uso: `node herramientas/generar_matriz.js <ruta_salida.xlsx>`. El único argumento es la ruta del Excel que se va

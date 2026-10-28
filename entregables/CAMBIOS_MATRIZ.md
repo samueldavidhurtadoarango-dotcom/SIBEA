@@ -4,7 +4,7 @@ Este documento explica, en palabras sencillas, qué cambió entre la matriz orig
 (`originales/Matriz_Requisitos.xlsx`) y la nueva (`entregables/Matriz_Requisitos_v2.xlsx`), y por qué.
 
 Cada cambio cita la decisión de la especificación `specs/001-correccion-entregables.md`
-que lo justifica (D1 a D12). Cuando no hay una decisión detrás, se indica con «—».
+que lo justifica (D1 a D17). Cuando no hay una decisión detrás, se indica con «—».
 
 ---
 
@@ -34,7 +34,7 @@ base de datos, la matriz deja de servir como guía para programar. Eso es justo 
 Los números de los módulos originales (1 a 6) **se conservaron** para que nadie del equipo pierda la
 referencia: RF-4.1 sigue siendo «comparar datos» y RF-6.0 sigue siendo «registrar pago». Los módulos
 nuevos son el 7, el 8 y el 9. En el Excel, el número de cada requisito nuevo tiene fondo verde, y la
-hoja «Control de cambios» tiene una fila por cada cambio (fechas 26/10/2026 y 27/10/2026, responsable
+hoja «Control de cambios» tiene una fila por cada cambio (fechas 26/10/2026, 27/10/2026 y 28/10/2026, responsable
 Samuel David Hurtado Arango).
 
 ## 2. ¿Cómo se comprobó? (el verificador)
@@ -50,21 +50,21 @@ node entregables/verificar_matriz.js originales/Matriz_Requisitos.xlsx # revisa 
 | Regla | Qué revisa | Original | v2 |
 |---|---|---|---|
 | (c) | Cada `tabla: campo` del RI existe en `benefitrack_v2.sql`, y cada procedimiento, función o trigger citado en la hoja (`pr_…`, `fn_…`, `tr_…`) también existe | FALLO (15 problemas) | OK |
-| (d) | No aparecen «OCR», «resultado_ocr», «datos_extraidos», «Estudiante», «Completado», «Borrador», «En revisión» ni «Enviada» | FALLO (5 problemas) | OK |
+| (d) | No aparecen «OCR», «resultado_ocr», «datos_extraidos», «Estudiante», «Completado», «Borrador», «En revisión» ni «Enviada» («Enviada» se permite solo en RF-5.7, donde es un valor real de `notificaciones.estado_correo`) | FALLO (5 problemas) | OK |
 | (e) | RF-x.y, RN-x.y y RI-x.y tienen el mismo número en cada fila | FALLO (4 problemas) | OK |
 | (g) | El estado del requisito es «Obligatorio» u «Opcional» | FALLO (2 problemas) | OK |
-| (h) | Frases acordadas de las reglas de la base de datos (rondas 2 a 8) presentes en el requisito que corresponde, y ausencia de algunas frases equivocadas conocidas | FALLO (29 problemas) | OK |
+| (h) | Frases acordadas de las reglas de la base de datos (rondas 2 a 9) y marcas «lo valida la aplicación» presentes en el requisito que corresponde, y ausencia de algunas frases equivocadas conocidas | FALLO (48 problemas) | OK |
 | (i) | Los tipos de documento de la semilla del SQL (`tipos_documento`) aparecen en RF-3.1 | FALLO (4 problemas) | OK |
 | (j) | RF-2.0 y RF-1.3 dicen los mismos minutos de desbloqueo que el SQL (15). Lee todas las apariciones en el bloque de usuarios del SQL (hoy, `fn_cambio_estado_sistema` y el texto de la auditoría), exige que sean iguales entre sí y compara el número completo | FALLO (2 problemas) | OK |
 | (k) | No quedan preguntas abiertas ni temas «por confirmar» en la hoja ni en la sección 7 de este documento | OK | OK |
 | (l) | Frases acordadas del bloqueo de la cuenta (quién bloquea y quién desbloquea) presentes | FALLO (8 problemas) | OK |
-| (m) | Frases acordadas de la auditoría de cuentas y migraciones (rondas 7 y 8) presentes | FALLO (25 problemas) | OK |
+| (m) | Frases acordadas de la auditoría de cuentas y migraciones (rondas 7 y 8) presentes | FALLO (24 problemas) | OK |
 
 La regla (d) revisa solo la hoja «Matriz de Requisitos». La hoja «Control de cambios» sí nombra esas
 palabras, porque explica qué se quitó.
 
 Las reglas (h) a (l) se agregaron el 27/10/2026 (sección 9) y la (m), el mismo día en la segunda tanda
-(sección 10). El 28/10/2026, con la octava ronda, (c) pasó a revisar también los nombres de las
+(sección 10). El 27/10/2026 por la noche, con la octava ronda, (c) pasó a revisar también los nombres de las
 rutinas y (j) a leer los minutos de todo el bloque de usuarios (sección 11).
 
 **Qué lee del SQL y qué no (dicho con honestidad).** Hay dos tipos de reglas:
@@ -76,8 +76,8 @@ rutinas y (j) a leer los minutos de todo el bloque de usuarios (sección 11).
   el verificador **no lee el SQL** para estas reglas. Comprueban que esas frases estén y que no
   aparezcan algunas frases equivocadas que ya conocemos; no pueden garantizar que ninguna otra frase
   de la matriz contradiga la base. Si la base de datos cambia, hay que actualizar la lista. Las frases de
-  (h), (l) y (m) ya incluyen la octava ronda, que desde el 28/10/2026 está en el SQL de esta rama
-  (sección 11).
+  (h), (l) y (m) ya incluyen la octava ronda, que desde el 27/10/2026 está en el SQL de esta rama
+  (sección 11), y (h) incluye la novena (sección 12).
 
 **Sobre la regla (k).** Nunca estuvo en rojo contra la original, porque la hoja original no tenía
 frases como «por confirmar»: las preguntas abiertas estaban escritas en la sección 7 de este documento.
@@ -235,6 +235,11 @@ Ninguno se borró. Lo que se quitó fue **contenido equivocado** dentro de requi
 | D10 Instituciones | RF-7.0 |
 | D11 Datos faltantes | RF-1.0 (fecha de nacimiento), RF-2.2 (recuperación), RF-4.3 (migraciones) |
 | D12 Compatibilidad MariaDB 10.4 | No es un requisito funcional: se cumple en el script de base de datos |
+| D13 Bloqueo y desbloqueo automáticos | RF-1.3, RF-2.0, RF-2.3 |
+| D14 Certificado de EPS | RF-3.1, RF-3.2 |
+| D15 Auditoría de cuentas y migraciones con justificación | RF-1.2, RF-1.3, RF-2.0, RF-4.3, RF-4.4 |
+| D16 Hora real del servidor | RF-2.0, RF-4.3, RF-4.4 |
+| D17 Lista blanca de `root` (mantenimiento) | RF-1.3, RF-2.0, RF-2.3, RF-4.4 |
 
 ## 7. Decisiones que tomé y que las fuentes no cubrían
 
@@ -309,9 +314,9 @@ Esta tabla sale de la columna «Requisitos de información» de la matriz. Las 2
 
 ## 9. Cambios del 27/10/2026: reglas de la base de datos y decisiones de Samuel
 
-La base de datos tuvo varias rondas más de correcciones (de la segunda a la octava: secciones 6 a 12
+La base de datos tuvo varias rondas más de correcciones (de la segunda a la novena: secciones 6 a 13
 de `base-de-datos/CAMBIOS.md`). Esta sección cubre las rondas 2 a 6; la séptima (auditoría de cuentas y
-migraciones) está en la sección 10 y la octava, en la sección 11. La matriz las tiene que decir también; si no, quien programe la
+migraciones) está en la sección 10, la octava en la sección 11 y la novena en la sección 12. La matriz las tiene que decir también; si no, quien programe la
 aplicación se encontraría con errores de la base de datos que ningún requisito explica. Es como un
 reglamento del colegio: si el portero no deja entrar sin carné, el reglamento escrito tiene que
 decirlo.
@@ -352,7 +357,7 @@ fallaron (rojo). Luego se cambiaron los datos de `herramientas/datos_matriz.js`,
 con `herramientas/generar_matriz.js` y el verificador quedó, en ese momento, en **9 de 9 reglas OK** (verde). La hoja
 «Control de cambios» tiene 11 filas nuevas con fecha 27/10/2026.
 
-**La base de datos ya lo cumple.** Esta rama se rebasó sobre la séptima ronda de la base de datos.
+**La base de datos ya lo cumple.** Esta rama está rebasada sobre la novena ronda de la base de datos.
 Los tres puntos del bloqueo que antes estaban pendientes ya los hace cumplir el script
 `base-de-datos/benefitrack_v2.sql` (quinta y sexta ronda, trigger `tr_usuario_validar`): sin
 administrador, solo una cuenta Activa pasa a Bloqueado; la fecha de bloqueo la pone siempre la base
@@ -404,7 +409,7 @@ octava ronda.
 ### 10.4 La octava ronda: el SQL ya la cumple
 
 Cuando se escribió esta tanda, algunas reglas se redactaron en su forma final antes de que la octava
-ronda llegara al SQL. Desde el 28/10/2026 esta rama está rebasada sobre esa ronda y
+ronda llegara al SQL. Desde el 27/10/2026 por la noche esta rama está rebasada sobre esa ronda y
 `base-de-datos/benefitrack_v2.sql` **ya las cumple**:
 
 - el bloqueo automático solo cuenta como tal si lo hace el inicio de sesión (sin usuario de sesión) y
@@ -415,7 +420,7 @@ ronda llegara al SQL. Desde el 28/10/2026 esta rama está rebasada sobre esa ron
 - los procedimientos `pr_cambiar_estado_usuario` y `pr_cambiar_rol_usuario` usan la justificación
   solo para ese cambio y la borran al terminar, aunque el cambio falle.
 
-## 11. Cambios del 28/10/2026: octava ronda de la base de datos (decisiones D13 a D17)
+## 11. Cambios del 27/10/2026 (tercera tanda): octava ronda de la base de datos (decisiones D13 a D17)
 
 La octava ronda (sección 12 de `base-de-datos/CAMBIOS.md` y decisiones D13 a D17 de
 `specs/001-correccion-entregables.md`) cambió quién cuenta como autor de cada cambio. Es como el libro
@@ -450,6 +455,63 @@ La hoja «Control de cambios» tiene 1 fila nueva por esta ronda (65 en total).
 
 Primero se cambió el verificador y se ejecutó contra la matriz anterior (rojo: 8 de 10, fallaban (h)
 y (m)). Luego se cambiaron los datos, se regeneró el Excel y quedó en **10 de 10 reglas OK** (verde).
-Contra la matriz original da **1 de 10**: solo pasa (k); (m) tiene 25 problemas. Se revisaron los RN
+Contra la matriz original daba, en ese momento, **1 de 10**: solo pasaba (k); (m) tenía 25 problemas. Se revisaron los RN
 de cuentas, auditoría y migraciones contra el SQL de la octava ronda y no se encontraron
 contradicciones.
+
+## 12. Cambios del 28/10/2026: novena ronda, reglas de la aplicación y textos más claros
+
+Es la última pasada antes de unir la rama. La revisión final dio el visto bueno, con algunos arreglos.
+
+### 12.1 Novena ronda de la base de datos (secciones 13 y 13.1 de `base-de-datos/CAMBIOS.md`, D9 y D15)
+
+Lo que se crea nace limpio: nadie puede subir algo con el sello de «aprobado» ya puesto.
+
+| Requisito | Qué dice ahora |
+|---|---|
+| RN-3.1, RN-4.1 | Un documento nuevo debe empezar en estado Pendiente y sin datos de validación; si trae datos de validación, el sistema los deja vacíos. La fecha de carga la pone el sistema. |
+| RN-4.5 | Una solicitud de documentación nueva debe empezar en Pendiente; el autor y la fecha los pone el sistema. |
+| RN-6.0, RN-9.0 | Quién registró un pago o una novedad, y cuándo, lo pone el sistema. |
+| RN-7.1, RN-2.3 | Solo un administrador activo crea convocatorias, que nacen Activa o Inactiva (por defecto, Inactiva). Antes decía «se crea Inactiva», y la base también acepta Activa. |
+| RN-1.2, RN-1.3 | Los procedimientos `pr_cambiar_rol_usuario` y `pr_cambiar_estado_usuario` dan error si el rol o el estado no es válido o si el cambio no cambia nada. |
+
+### 12.2 Qué valida la base y qué valida la aplicación
+
+Muchas reglas de la matriz las hace cumplir la base de datos (por ejemplo, los permisos de RN-2.3).
+**Las demás reglas y permisos de esta matriz los valida la aplicación.** Para que no haya dudas, se
+marcaron con «lo valida la aplicación» las reglas que la base **no** comprueba (revisado contra el SQL):
+
+- RN-1.2: el número de documento no se puede modificar;
+- RN-3.1: el formato del archivo (PDF, JPG o PNG) y que el tipo de documento esté Activo;
+- RN-3.2: que estén los tres documentos obligatorios antes de enviar (ya estaba marcada);
+- RN-3.3: atender la solicitud (cargar el documento adicional y pasarla a Atendida);
+- RN-7.0: que un beneficio Inactivo no admita convocatorias nuevas;
+- RN-7.2: guardar quién cerró la convocatoria y la fecha real de cierre (la base todavía no los llena
+  sola al cerrar; es un pendiente de la sección 14 de `base-de-datos/CAMBIOS.md`).
+
+### 12.3 Otros arreglos
+
+- **«Enviada».** La regla (d) prohibía la palabra «Enviada» (era un estado viejo de la postulación),
+  pero `notificaciones.estado_correo` sí tiene el valor «Enviada». Ahora (d) la permite solo en RF-5.7, y
+  RN-5.7 dice «Enviada cuando se envía».
+- **RN-8.6.** El motivo de la cancelación debe ser distinto del motivo anterior, como en suspender y
+  reactivar.
+- **RN-1.3 y RN-2.0.** Dicen «(salvo mantenimiento, RF-2.3)», y RN-2.0 aclara que el desbloqueo
+  automático ocurre cuando el usuario vuelve a intentar entrar.
+- **Textos más cortos.** RN-1.3, RN-2.0, RN-2.3 y RN-4.4 se reescribieron en frases cortas y sin
+  repeticiones; las reglas no cambiaron. En el verificador se quitó una frase acordada de RN-4.4 que
+  repetía otra: «en el bloqueo y el desbloqueo automáticos de una cuenta el campo queda vacío y
+  significa que lo hizo el sistema» (ya lo dice «el usuario vacío solo significa “el sistema” cuando el
+  origen es Sistema»).
+- **Generadores.** `generar_ficha.js`, igual que `generar_matriz.js`, avisa con un mensaje claro y
+  termina con código 1 si falta la ruta de salida.
+- **Fechas.** Se unificaron: la primera y la segunda tanda y la octava ronda son del 27/10/2026; esta
+  sección es del 28/10/2026.
+
+La hoja «Control de cambios» tiene 3 filas nuevas con fecha 28/10/2026 (68 en total).
+
+### 12.4 Cómo se comprobó
+
+Primero se cambió el verificador (rojo: 9 de 10, con 24 problemas en (h)). Luego se cambiaron los
+datos, se regeneró el Excel y quedó en **10 de 10 reglas OK** (verde). Contra la matriz original da
+**1 de 10** (solo pasa (k)).
