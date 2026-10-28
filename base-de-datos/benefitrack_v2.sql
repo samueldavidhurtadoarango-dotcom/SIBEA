@@ -716,34 +716,51 @@ END//
 -- @app_justificacion en NULL, también si el cambio falla. Así un motivo no
 -- se arrastra al siguiente cambio de la sesión. Los controles (administrador
 -- activo, justificación, auditoría) los siguen haciendo los triggers.
+-- Errores claros antes de tocar la tabla: estado no válido, usuario que no
+-- existe y usuario que ya tiene ese estado. La justificación es TEXT y se
+-- guarda completa en auditoria.detalle (LONGTEXT). El manejador atrapa
+-- también SQLWARNING porque, en modo estricto, algunos errores (1265,
+-- «Data truncated») llegan con un SQLSTATE de advertencia.
 CREATE PROCEDURE pr_cambiar_estado_usuario(IN p_id_usuario    INT,
-                                           IN p_estado        VARCHAR(20),
-                                           IN p_justificacion VARCHAR(1000))
+                                           IN p_estado        VARCHAR(255),
+                                           IN p_justificacion TEXT)
 MODIFIES SQL DATA
 BEGIN
-  DECLARE EXIT HANDLER FOR SQLEXCEPTION
+  DECLARE EXIT HANDLER FOR SQLEXCEPTION, SQLWARNING
   BEGIN
     SET @app_justificacion = NULL;
     RESIGNAL;
   END;
 
   SET @app_justificacion = p_justificacion;
+  IF p_estado IS NULL OR p_estado NOT IN ('Activo', 'Inactivo', 'Bloqueado') THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'Estado no válido: debe ser Activo, Inactivo o Bloqueado';
+  END IF;
   IF NOT EXISTS (SELECT 1 FROM usuarios WHERE id_usuario = p_id_usuario) THEN
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'No existe el usuario indicado';
   END IF;
+  IF EXISTS (SELECT 1 FROM usuarios WHERE id_usuario = p_id_usuario AND estado = p_estado) THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'El usuario ya tiene ese estado';
+  END IF;
+
   UPDATE usuarios SET estado = p_estado WHERE id_usuario = p_id_usuario;
+  -- Respaldo: si por cualquier motivo no cambió ninguna fila, se avisa.
+  IF ROW_COUNT() = 0 THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'No se cambió el estado del usuario';
+  END IF;
   SET @app_justificacion = NULL;
 END//
 
 -- Igual que pr_cambiar_estado_usuario, para el rol (por nombre:
 -- 'Administrador' o 'Aprendiz').
 CREATE PROCEDURE pr_cambiar_rol_usuario(IN p_id_usuario    INT,
-                                        IN p_rol           VARCHAR(50),
-                                        IN p_justificacion VARCHAR(1000))
+                                        IN p_rol           VARCHAR(255),
+                                        IN p_justificacion TEXT)
 MODIFIES SQL DATA
 BEGIN
   DECLARE v_id_rol INT DEFAULT NULL;
-  DECLARE EXIT HANDLER FOR SQLEXCEPTION
+  DECLARE EXIT HANDLER FOR SQLEXCEPTION, SQLWARNING
   BEGIN
     SET @app_justificacion = NULL;
     RESIGNAL;
@@ -757,7 +774,14 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM usuarios WHERE id_usuario = p_id_usuario) THEN
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'No existe el usuario indicado';
   END IF;
+  IF EXISTS (SELECT 1 FROM usuarios WHERE id_usuario = p_id_usuario AND id_rol = v_id_rol) THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'El usuario ya tiene ese rol';
+  END IF;
+
   UPDATE usuarios SET id_rol = v_id_rol WHERE id_usuario = p_id_usuario;
+  IF ROW_COUNT() = 0 THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'No se cambió el rol del usuario';
+  END IF;
   SET @app_justificacion = NULL;
 END//
 
