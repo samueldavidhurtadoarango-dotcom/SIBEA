@@ -21,8 +21,13 @@
 -- CURRENT_USER() devuelve benefitrack_app@localhost). Si su servidor usa
 -- skip-name-resolve o la aplicación se conecta desde otra máquina, cree el
 -- mismo usuario también para ese host (por ejemplo 'benefitrack_app'@'127.0.0.1')
--- y repita los GRANT para él. Los triggers reconocen al usuario limitado por
--- su nombre (benefitrack_app), sin importar el host.
+-- y repita los GRANT para él.
+--
+-- @app_id_usuario: con CUALQUIER usuario de conexión distinto de root
+-- (benefitrack_app o el que usted cree), las acciones de gestión exigen que
+-- la aplicación fije siempre SET @app_id_usuario = <id del administrador>.
+-- Si la variable está en NULL, la base rechaza la acción. Solo root (el
+-- usuario de mantenimiento) puede actuar con la variable en NULL.
 -- =====================================================================
 
 CREATE USER IF NOT EXISTS 'benefitrack_app'@'localhost' IDENTIFIED BY 'CAMBIE_ESTA_CLAVE';

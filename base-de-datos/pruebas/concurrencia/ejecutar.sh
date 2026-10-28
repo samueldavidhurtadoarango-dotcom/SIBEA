@@ -9,7 +9,7 @@ DIR=$(dirname "$0")
 # La salida de la sesión A va a un archivo temporal del sistema, fuera del
 # repositorio, y se borra al terminar.
 TMPA=$(mktemp "${TMPDIR:-/tmp}/benefitrack_concurrencia.XXXXXX") || exit 1
-trap 'rm -f "$TMPA"' EXIT
+trap 'rm -f "$TMPA"' EXIT INT TERM
 $M < "$DIR/../../benefitrack_v2.sql" || exit 1
 $M < "$DIR/preparar.sql"
 echo "===== Prueba B1: dos aprobaciones en paralelo con 1 cupo ====="

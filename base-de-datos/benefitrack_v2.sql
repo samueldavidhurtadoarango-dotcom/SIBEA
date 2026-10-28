@@ -524,17 +524,18 @@ END//
 
 -- Lanza un error si la acción no la hace un administrador activo:
 --   * @app_id_usuario definido y que no es administrador activo, o
---   * @app_id_usuario NULL cuando la conexión es el usuario limitado de la
---     aplicación (benefitrack_app): la aplicación no puede "olvidar" la
---     variable para saltarse el control.
--- Con root (mantenimiento, scripts, pruebas) el NULL sigue permitido (D9).
+--   * @app_id_usuario NULL con cualquier usuario de conexión que no sea
+--     root (lista blanca): la aplicación (benefitrack_app u otro usuario)
+--     no puede "olvidar" la variable para saltarse el control.
+-- Solo con root (mantenimiento, scripts, pruebas) el NULL sigue permitido
+-- (D9). Se compara solo el nombre, sin el host.
 -- USER() es el usuario que se conectó, aunque el trigger corra como DEFINER.
 CREATE PROCEDURE pr_exigir_administrador(IN p_accion VARCHAR(80))
 READS SQL DATA
 BEGIN
   DECLARE v_mensaje VARCHAR(128);
 
-  IF (@app_id_usuario IS NULL AND SUBSTRING_INDEX(USER(), '@', 1) = 'benefitrack_app')
+  IF (@app_id_usuario IS NULL AND NOT (SUBSTRING_INDEX(USER(), '@', 1) <=> 'root'))
      OR (@app_id_usuario IS NOT NULL AND NOT fn_es_administrador(@app_id_usuario)) THEN
     SET v_mensaje = CONCAT('Solo un administrador activo puede ', p_accion);
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = v_mensaje;
@@ -554,18 +555,32 @@ BEGIN
   IF NEW.id_rol = (SELECT id_rol FROM roles WHERE nombre = 'Administrador') THEN
     CALL pr_exigir_administrador('crear un usuario Administrador');
   END IF;
+
+  -- Un usuario nuevo nace Activo; otro estado lo decide un administrador.
+  IF NOT (NEW.estado <=> 'Activo') THEN
+    CALL pr_exigir_administrador('crear un usuario que no esté Activo');
+  END IF;
+
+  -- La fecha de bloqueo la pone la base, nunca la aplicación.
+  IF NEW.estado = 'Bloqueado' THEN
+    SET NEW.fecha_bloqueo = NOW();
+  ELSE
+    SET NEW.fecha_bloqueo = NULL;
+  END IF;
 END//
 
 -- Cambiar el rol o el estado de un usuario exige un administrador activo,
 -- para que nadie se dé a sí mismo el rol de Administrador. Excepciones (las
 -- usa el inicio de sesión, cuando todavía no hay usuario de sesión):
---   * pasar a Bloqueado (3 intentos fallidos); si no se indica
---     fecha_bloqueo, se guarda la hora actual;
+--   * Activo -> Bloqueado (3 intentos fallidos). Desde Inactivo exige
+--     administrador, para que un Inactivo no se reactive pasando por
+--     Bloqueado;
 --   * desbloqueo automático: Bloqueado -> Activo cuando ya pasaron 15
---     minutos desde fecha_bloqueo.
--- En todo desbloqueo (automático o de un administrador) intentos_fallidos
--- vuelve a 0 y fecha_bloqueo a NULL. Mientras la cuenta sigue Bloqueada,
--- cambiar fecha_bloqueo exige administrador (para no adelantar el reloj).
+--     minutos desde fecha_bloqueo (si fecha_bloqueo es NULL, no).
+-- Al pasar a Bloqueado la base guarda fecha_bloqueo = NOW() e ignora la
+-- fecha recibida. En todo desbloqueo (automático o de un administrador)
+-- intentos_fallidos vuelve a 0 y fecha_bloqueo a NULL. Mientras la cuenta
+-- sigue Bloqueada, cambiar fecha_bloqueo exige administrador.
 CREATE TRIGGER tr_usuario_validar
 BEFORE UPDATE ON usuarios
 FOR EACH ROW
@@ -578,11 +593,13 @@ BEGIN
 
   IF NOT (OLD.estado <=> NEW.estado) THEN
     IF NEW.estado = 'Bloqueado' THEN
-      IF NEW.fecha_bloqueo IS NULL THEN
-        SET NEW.fecha_bloqueo = NOW();
+      IF NOT (OLD.estado <=> 'Activo') THEN
+        CALL pr_exigir_administrador(v_accion);
       END IF;
+      SET NEW.fecha_bloqueo = NOW();
     ELSE
       IF NOT (OLD.estado = 'Bloqueado' AND NEW.estado = 'Activo'
+              AND OLD.fecha_bloqueo IS NOT NULL
               AND OLD.fecha_bloqueo + INTERVAL 15 MINUTE <= NOW()) THEN
         CALL pr_exigir_administrador(v_accion);
       END IF;
@@ -883,7 +900,8 @@ BEGIN
   IF NOT (OLD.estado <=> NEW.estado) AND NEW.estado = 'Aprobada' THEN
     INSERT INTO asignaciones_beneficio
            (id_postulacion, valor_pago, numero_pagos, duracion_meses, fecha_inicio, id_usuario_registro)
-    SELECT NEW.id_postulacion, c.valor_pago, c.numero_pagos, c.duracion_meses, CURDATE(), @app_id_usuario
+    SELECT NEW.id_postulacion, c.valor_pago, c.numero_pagos, c.duracion_meses,
+           GREATEST(CURDATE(), c.fecha_inicio), @app_id_usuario
       FROM convocatorias c
      WHERE c.id_convocatoria = NEW.id_convocatoria;
   END IF;
@@ -934,6 +952,11 @@ BEGIN
       SET MESSAGE_TEXT = 'Solo se puede crear una asignación para una postulación Aprobada';
   END IF;
 
+  IF EXISTS (SELECT 1 FROM asignaciones_beneficio WHERE id_postulacion = NEW.id_postulacion) THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'La postulación ya tiene una asignación de beneficio';
+  END IF;
+
   -- fecha_inicio razonable: desde el inicio de la convocatoria hasta un año
   -- después de hoy.
   SELECT c.fecha_inicio INTO v_inicio_conv
@@ -945,11 +968,6 @@ BEGIN
     SET v_mensaje = CONCAT('La fecha de inicio de la asignación debe estar entre el inicio de la convocatoria (',
                            DATE_FORMAT(v_inicio_conv, '%d/%m/%Y'), ') y un año después de hoy');
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = v_mensaje;
-  END IF;
-
-  IF EXISTS (SELECT 1 FROM asignaciones_beneficio WHERE id_postulacion = NEW.id_postulacion) THEN
-    SIGNAL SQLSTATE '45000'
-      SET MESSAGE_TEXT = 'La postulación ya tiene una asignación de beneficio';
   END IF;
 
   IF NOT (NEW.estado <=> 'En curso') THEN
