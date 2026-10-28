@@ -11,7 +11,9 @@
 --     queda en auditoria; benefitrack_app no escribe en auditoria;
 --   * pr_cambiar_estado_usuario se puede usar (EXECUTE) y limpia la
 --     justificación; un aprendiz con sesión no bloquea a otros;
---   * un aprendiz no sube documentos ya validados.
+--   * un aprendiz no sube documentos ya validados;
+--   * ni un aprendiz ni una sesión NULL cambian convocatorias, documentos
+--     validados, solicitudes de documentación o catálogos (U13).
 --
 -- Preparación (como root):
 --   1. benefitrack_v2.sql
@@ -131,6 +133,36 @@ SELECT estado_validacion, id_usuario_validacion, fecha_validacion, observaciones
   INTO @u12e, @u12u, @u12f, @u12o
   FROM documentos_postulacion WHERE nombre_archivo = 'u12_pendiente.pdf';
 
+-- U13 (ronda 10): con benefitrack_app, ni un aprendiz ni una sesión NULL
+-- cambian convocatorias, documentos validados, solicitudes o catálogos.
+SET @app_id_usuario = 21;
+UPDATE convocatorias SET valor_pago = 9999999 WHERE id_convocatoria = 1;
+SET @app_id_usuario = NULL;
+UPDATE convocatorias SET numero_pagos = 99 WHERE id_convocatoria = 1;
+SET @app_id_usuario = 5;
+UPDATE documentos_postulacion SET estado_validacion = 'Validado' WHERE nombre_archivo = 'u12_pendiente.pdf';
+SET @app_id_usuario = 21;
+UPDATE documentos_postulacion SET ruta_archivo = 'docs/otro.pdf' WHERE nombre_archivo = 'u12_pendiente.pdf';
+UPDATE documentos_postulacion SET observaciones = 'Aprobado por Ana' WHERE nombre_archivo = 'u12_pendiente.pdf';
+INSERT INTO postulaciones (id_usuario, id_convocatoria) VALUES (21, 2);
+SET @u13p = LAST_INSERT_ID();
+SET @app_id_usuario = 5;
+INSERT INTO solicitudes_documentacion (id_postulacion, id_usuario, observacion) VALUES (@u13p, 5, 'U13: adjunte el RUT');
+SET @app_id_usuario = 21;
+UPDATE solicitudes_documentacion SET id_usuario = 21, fecha_solicitud = '2000-01-01' WHERE observacion = 'U13: adjunte el RUT';
+UPDATE solicitudes_documentacion SET estado = 'Atendida', fecha_atencion = '2000-01-02' WHERE observacion = 'U13: adjunte el RUT';
+INSERT INTO programas (id_institucion, nombre) VALUES (1, 'U13 programa falso');
+SET @app_id_usuario = NULL;
+INSERT INTO eps (nombre) VALUES ('U13 EPS falsa');
+SELECT valor_pago, numero_pagos INTO @u13v, @u13n FROM convocatorias WHERE id_convocatoria = 1;
+SELECT estado_validacion, ruta_archivo, IFNULL(observaciones, 'NULL') INTO @u13e, @u13r, @u13o
+  FROM documentos_postulacion WHERE nombre_archivo = 'u12_pendiente.pdf';
+SELECT id_usuario, estado, fecha_solicitud > '2001-01-01', fecha_atencion >= NOW() - INTERVAL 1 MINUTE
+  INTO @u13su, @u13se, @u13sf, @u13sa
+  FROM solicitudes_documentacion WHERE observacion = 'U13: adjunte el RUT';
+SELECT (SELECT COUNT(*) FROM programas WHERE nombre = 'U13 programa falso')
+     + (SELECT COUNT(*) FROM eps WHERE nombre = 'U13 EPS falsa') INTO @u13c;
+
 ROLLBACK;
 SET @app_id_usuario = NULL;
 
@@ -171,3 +203,11 @@ SELECT 'U12' AS caso, 'Un aprendiz no sube documentos ya validados ni con datos 
        CONCAT('validados=', IFNULL(@u12a, 'NULL'), ' estado=', IFNULL(@u12e, 'NULL'),
               ' validador=', IFNULL(@u12u, 'NULL'), ' fecha=', IFNULL(@u12f, 'NULL'),
               ' obs=', IFNULL(@u12o, 'NULL')) AS detalle;
+SELECT 'U13' AS caso, 'Ni un aprendiz ni una sesión NULL cambian convocatorias, documentos validados, solicitudes o catálogos' AS descripcion,
+       IF(@u13v = 100000 AND @u13n = 2 AND @u13e = 'Validado' AND @u13r = 'docs/u12_pendiente.pdf'
+          AND @u13o = 'NULL' AND @u13su = 5 AND @u13se = 'Atendida' AND @u13sf = 1 AND @u13sa = 1 AND @u13c = 0,
+          'OK', 'FALLO') AS resultado,
+       CONCAT('valor_pago=', IFNULL(@u13v, 'NULL'), ' numero_pagos=', IFNULL(@u13n, 'NULL'),
+              ' doc=', IFNULL(@u13e, 'NULL'), '/', IFNULL(@u13r, 'NULL'), '/', IFNULL(@u13o, 'NULL'),
+              ' solicitud=', IFNULL(@u13su, 'NULL'), '/', IFNULL(@u13se, 'NULL'), '/', IFNULL(@u13sf, 'NULL'),
+              '/', IFNULL(@u13sa, 'NULL'), ' catalogos_falsos=', IFNULL(@u13c, 'NULL')) AS detalle;

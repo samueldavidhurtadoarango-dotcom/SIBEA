@@ -57,21 +57,30 @@ BEGIN
           LEFT(COALESCE(CONCAT('Error: ', v_error), 'No se produjo ningún error (se esperaba que fallara)'), 300));
 END//
 
--- Ejecuta p_sql y espera que funcione sin errores.
+-- Ejecuta p_sql y espera que funcione sin errores NI advertencias.
 CREATE PROCEDURE pr_esperar_exito(IN p_caso VARCHAR(10), IN p_desc VARCHAR(200), IN p_sql TEXT)
 BEGIN
-  DECLARE v_error TEXT DEFAULT NULL;
+  DECLARE v_error  TEXT DEFAULT NULL;
+  DECLARE v_avisos INT  DEFAULT 0;
+  -- Solo SQLEXCEPTION: una advertencia no detiene la sentencia, así que no
+  -- se atrapa aquí; se cuenta justo después con GET DIAGNOSTICS (que no
+  -- borra la lista de avisos) y, si hay alguna, el caso es FALLO (M2).
   DECLARE CONTINUE HANDLER FOR SQLEXCEPTION
     GET DIAGNOSTICS CONDITION 1 v_error = MESSAGE_TEXT;
 
   SET @pr_sql = p_sql;
   PREPARE st FROM @pr_sql;
   EXECUTE st;
+  GET DIAGNOSTICS v_avisos = NUMBER;
   DEALLOCATE PREPARE st;
 
   INSERT INTO resultados_pruebas (caso, descripcion, resultado, detalle)
-  VALUES (p_caso, p_desc, IF(v_error IS NULL, 'OK', 'FALLO'),
-          LEFT(COALESCE(CONCAT('Error inesperado: ', v_error), 'Sin errores'), 300));
+  VALUES (p_caso, p_desc, IF(v_error IS NULL AND v_avisos = 0, 'OK', 'FALLO'),
+          LEFT(CASE
+                 WHEN v_error IS NOT NULL THEN CONCAT('Error inesperado: ', v_error)
+                 WHEN v_avisos > 0        THEN CONCAT('Advertencias: ', v_avisos)
+                 ELSE 'Sin errores'
+               END, 300));
 END//
 
 -- Registra OK si la condición es verdadera.
@@ -97,7 +106,7 @@ CALL pr_verificar('A01', 'CA1: existen las 23 tablas esperadas',
                          'novedades','notificaciones','auditoria','migraciones')) = 23,
   CONCAT('Tablas encontradas: ', (SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE())));
 
-CALL pr_verificar('A02', 'CA1: existen los 36 triggers esperados',
+CALL pr_verificar('A02', 'CA1: existen los 51 triggers esperados',
   (SELECT COUNT(*) FROM information_schema.triggers
     WHERE trigger_schema = DATABASE()
       AND trigger_name IN ('tr_validacion_documento','tr_postulacion_inicial','tr_postulacion_creada',
@@ -113,7 +122,12 @@ CALL pr_verificar('A02', 'CA1: existen los 36 triggers esperados',
                            'tr_usuario_validar','tr_usuario_validar_insercion','tr_usuario_auditar',
                            'tr_migracion_creada','tr_migracion_actualizada','tr_migracion_preparar',
                            'tr_migracion_validar','tr_auditoria_fecha','tr_documento_validar_insercion',
-                           'tr_convocatoria_validar_insercion')) = 36,
+                           'tr_convocatoria_validar_insercion','tr_solicitud_documentacion_actualizar',
+                           'tr_institucion_crear','tr_institucion_modificar','tr_tipo_cuenta_crear',
+                           'tr_tipo_cuenta_modificar','tr_tipo_documento_crear','tr_tipo_documento_modificar',
+                           'tr_banco_crear','tr_banco_modificar','tr_eps_crear','tr_eps_modificar',
+                           'tr_programa_crear','tr_programa_modificar','tr_beneficio_crear',
+                           'tr_beneficio_modificar')) = 51,
   CONCAT('Triggers encontrados: ', (SELECT COUNT(*) FROM information_schema.triggers WHERE trigger_schema = DATABASE())));
 
 CALL pr_verificar('A03', 'D7: roles semilla son exactamente Administrador y Aprendiz',
@@ -1631,6 +1645,179 @@ CALL pr_verificar('O14', 'La convocatoria queda sin usuario ni fecha de cierre',
   (SELECT usuario_cierre IS NULL AND fecha_cierre_real IS NULL FROM convocatorias WHERE nombre = 'O13'),
   (SELECT CONCAT('usuario_cierre=', IFNULL(usuario_cierre, 'NULL'), ' fecha_cierre_real=', IFNULL(fecha_cierre_real, 'NULL'))
      FROM convocatorias WHERE nombre = 'O13'));
+
+-- =====================================================================
+-- Bloque P. Cambios (UPDATE) que solo hace quien debe (ronda 10)
+-- =====================================================================
+-- B1. Convocatorias: todo cambio exige administrador; el cierre lo anota la base.
+SET @app_id_usuario = @a1;
+CALL pr_esperar_error('P01', 'Un aprendiz no puede cambiar el valor del pago de una convocatoria',
+  "UPDATE convocatorias SET valor_pago = 9999999 WHERE id_convocatoria = @conv2",
+  'Solo un administrador activo puede');
+CALL pr_esperar_error('P02', 'Un aprendiz no puede cambiar la fecha de cierre de una convocatoria',
+  "UPDATE convocatorias SET fecha_cierre = CURDATE() + INTERVAL 1 YEAR WHERE id_convocatoria = @conv2",
+  'Solo un administrador activo puede');
+SET @app_id_usuario = 5;
+CALL pr_esperar_error('P03', 'Ni un administrador escribe a mano quién cerró una convocatoria abierta',
+  "UPDATE convocatorias SET usuario_cierre = @a1, fecha_cierre_real = '2000-01-01' WHERE nombre = 'O13'",
+  'Los datos del cierre de la convocatoria los registra la base de datos');
+CALL pr_esperar_exito('P04', 'Un administrador cierra una convocatoria (con datos de cierre inventados)',
+  "UPDATE convocatorias SET estado = 'Cerrada', usuario_cierre = @a1, fecha_cierre_real = '2000-01-01' WHERE nombre = 'O13'");
+CALL pr_verificar('P05', 'Al cerrar, la base anota al usuario de sesión y la hora real',
+  (SELECT usuario_cierre = 5 AND fecha_cierre_real >= NOW() - INTERVAL 1 MINUTE
+     FROM convocatorias WHERE nombre = 'O13'),
+  (SELECT CONCAT('usuario_cierre=', IFNULL(usuario_cierre, 'NULL'), ' fecha_cierre_real=', IFNULL(fecha_cierre_real, 'NULL'))
+     FROM convocatorias WHERE nombre = 'O13'));
+CALL pr_esperar_exito('P06', 'Un administrador reabre la convocatoria',
+  "UPDATE convocatorias SET estado = 'Activa' WHERE nombre = 'O13'");
+CALL pr_verificar('P07', 'Al reabrir, se vacían los datos del cierre',
+  (SELECT usuario_cierre IS NULL AND fecha_cierre_real IS NULL FROM convocatorias WHERE nombre = 'O13'),
+  (SELECT CONCAT('usuario_cierre=', IFNULL(usuario_cierre, 'NULL'), ' fecha_cierre_real=', IFNULL(fecha_cierre_real, 'NULL'))
+     FROM convocatorias WHERE nombre = 'O13'));
+
+-- B2. Documentos: un documento Validado no se reemplaza; uno Pendiente o
+-- Rechazado sí, y vuelve a Pendiente sin datos de validación.
+SET @app_id_usuario = @a1;
+INSERT INTO documentos_postulacion (id_postulacion, id_tipo_documento, nombre_archivo, ruta_archivo, extension, tamano_mb)
+VALUES (@p1, 1, 'p_validado.pdf', 'docs/p_validado.pdf', 'pdf', 1.00),
+       (@p1, 1, 'p_rechazado.pdf', 'docs/p_rechazado.pdf', 'pdf', 1.00);
+SET @app_id_usuario = 5;
+UPDATE documentos_postulacion SET estado_validacion = 'Validado', observaciones = 'OK admin'
+ WHERE nombre_archivo = 'p_validado.pdf';
+UPDATE documentos_postulacion SET estado_validacion = 'Rechazado', observaciones = 'Ilegible'
+ WHERE nombre_archivo = 'p_rechazado.pdf';
+SET @app_id_usuario = @a1;
+CALL pr_esperar_error('P08', 'El archivo de un documento Validado no se puede cambiar',
+  "UPDATE documentos_postulacion SET ruta_archivo = 'docs/otro.pdf' WHERE nombre_archivo = 'p_validado.pdf'",
+  'Un documento validado no se puede reemplazar');
+CALL pr_esperar_error('P09', 'Un aprendiz no escribe la observación del administrador',
+  "UPDATE documentos_postulacion SET observaciones = 'Aprobado por Ana' WHERE nombre_archivo = 'p_validado.pdf'",
+  'Solo un administrador activo puede');
+CALL pr_esperar_error('P10', 'La fecha de carga no se cambia a mano',
+  "UPDATE documentos_postulacion SET fecha_carga = '2000-01-01' WHERE nombre_archivo = 'p_rechazado.pdf'",
+  'La fecha de carga la registra la base de datos');
+CALL pr_esperar_error('P11', 'Un documento no se pasa a otra postulación',
+  "UPDATE documentos_postulacion SET id_postulacion = @p2 WHERE nombre_archivo = 'p_rechazado.pdf'",
+  'Un documento no se puede pasar a otra postulación');
+SET @app_id_usuario = @a2;
+CALL pr_esperar_error('P12', 'Otro aprendiz no reemplaza el archivo de un documento ajeno',
+  "UPDATE documentos_postulacion SET ruta_archivo = 'docs/ajeno.pdf' WHERE nombre_archivo = 'p_rechazado.pdf'",
+  'Solo el aprendiz dueño de la postulación o un administrador activo puede');
+SET @app_id_usuario = 5;
+CALL pr_esperar_error('P13', 'Al reemplazar el archivo no se puede dejar Validado a la vez',
+  "UPDATE documentos_postulacion SET ruta_archivo = 'docs/x.pdf', estado_validacion = 'Validado' WHERE nombre_archivo = 'p_rechazado.pdf'",
+  'Al reemplazar el archivo, el documento vuelve a Pendiente');
+SET @app_id_usuario = @a1;
+CALL pr_esperar_exito('P14', 'El dueño reemplaza el archivo de un documento Rechazado',
+  "UPDATE documentos_postulacion SET nombre_archivo = 'p_nuevo.pdf', ruta_archivo = 'docs/p_nuevo.pdf' WHERE nombre_archivo = 'p_rechazado.pdf'");
+CALL pr_verificar('P15', 'El documento reemplazado vuelve a Pendiente, sin datos de validación y con fecha de carga nueva',
+  (SELECT estado_validacion = 'Pendiente' AND id_usuario_validacion IS NULL AND fecha_validacion IS NULL
+          AND observaciones IS NULL AND fecha_carga >= NOW() - INTERVAL 1 MINUTE
+     FROM documentos_postulacion WHERE nombre_archivo = 'p_nuevo.pdf'),
+  (SELECT CONCAT('estado=', estado_validacion, ' validador=', IFNULL(id_usuario_validacion, 'NULL'),
+                 ' obs=', IFNULL(observaciones, 'NULL'), ' fecha_carga=', fecha_carga)
+     FROM documentos_postulacion WHERE nombre_archivo = 'p_nuevo.pdf'));
+CALL pr_verificar('P16', 'El documento Validado sigue intacto',
+  (SELECT estado_validacion = 'Validado' AND ruta_archivo = 'docs/p_validado.pdf' AND observaciones = 'OK admin'
+     FROM documentos_postulacion WHERE nombre_archivo = 'p_validado.pdf'),
+  (SELECT CONCAT('estado=', estado_validacion, ' ruta=', ruta_archivo, ' obs=', IFNULL(observaciones, 'NULL'))
+     FROM documentos_postulacion WHERE nombre_archivo = 'p_validado.pdf'));
+
+-- B3. Solicitudes de documentación: datos fijos; Pendiente -> Atendida (el
+-- aprendiz dueño o un administrador) o Pendiente -> Cerrada (administrador).
+-- La solicitud de O09 es de la postulación @q13 del aprendiz @a13.
+SET @app_id_usuario = @a13;
+CALL pr_esperar_error('P17', 'El aprendiz no cambia el texto de la solicitud',
+  "UPDATE solicitudes_documentacion SET observacion = 'nada' WHERE observacion = 'O09: adjunte el RUT'",
+  'Los datos de la solicitud no se pueden modificar');
+SET @app_id_usuario = 5;
+CALL pr_esperar_error('P18', 'Nadie cambia quién pidió la solicitud ni cuándo',
+  "UPDATE solicitudes_documentacion SET id_usuario = @a13, fecha_solicitud = '2000-01-01' WHERE observacion = 'O09: adjunte el RUT'",
+  'Los datos de la solicitud no se pueden modificar');
+CALL pr_esperar_error('P19', 'La fecha de atención no se escribe a mano',
+  "UPDATE solicitudes_documentacion SET fecha_atencion = '2000-01-02' WHERE observacion = 'O09: adjunte el RUT'",
+  'La fecha de atención la registra la base de datos');
+SET @app_id_usuario = @a1;
+CALL pr_esperar_error('P20', 'Un aprendiz que no es el dueño no atiende la solicitud',
+  "UPDATE solicitudes_documentacion SET estado = 'Atendida' WHERE observacion = 'O09: adjunte el RUT'",
+  'Solo el aprendiz dueño de la postulación o un administrador activo puede');
+SET @app_id_usuario = @a13;
+CALL pr_esperar_exito('P21', 'El aprendiz dueño marca la solicitud como atendida (con fecha inventada)',
+  "UPDATE solicitudes_documentacion SET estado = 'Atendida', fecha_atencion = '2000-01-02' WHERE observacion = 'O09: adjunte el RUT'");
+CALL pr_verificar('P22', 'La fecha de atención es la hora real',
+  (SELECT estado = 'Atendida' AND fecha_atencion >= NOW() - INTERVAL 1 MINUTE
+     FROM solicitudes_documentacion WHERE observacion = 'O09: adjunte el RUT'),
+  (SELECT CONCAT('estado=', estado, ' fecha_atencion=', IFNULL(fecha_atencion, 'NULL'))
+     FROM solicitudes_documentacion WHERE observacion = 'O09: adjunte el RUT'));
+SET @app_id_usuario = 5;
+CALL pr_esperar_error('P23', 'Una solicitud Atendida no cambia de estado',
+  "UPDATE solicitudes_documentacion SET estado = 'Cerrada' WHERE observacion = 'O09: adjunte el RUT'",
+  'Una solicitud solo puede pasar de Pendiente a Atendida o a Cerrada');
+INSERT INTO solicitudes_documentacion (id_postulacion, id_usuario, observacion)
+VALUES (@q13, 5, 'P24: adjunte el certificado');
+SET @app_id_usuario = @a13;
+CALL pr_esperar_error('P24', 'El aprendiz no cierra una solicitud',
+  "UPDATE solicitudes_documentacion SET estado = 'Cerrada' WHERE observacion = 'P24: adjunte el certificado'",
+  'Solo un administrador activo puede');
+SET @app_id_usuario = 5;
+CALL pr_esperar_exito('P25', 'Un administrador cierra la solicitud',
+  "UPDATE solicitudes_documentacion SET estado = 'Cerrada', fecha_atencion = '2000-01-02' WHERE observacion = 'P24: adjunte el certificado'");
+CALL pr_verificar('P26', 'La solicitud cerrada no tiene fecha de atención',
+  (SELECT estado = 'Cerrada' AND fecha_atencion IS NULL
+     FROM solicitudes_documentacion WHERE observacion = 'P24: adjunte el certificado'),
+  (SELECT CONCAT('estado=', estado, ' fecha_atencion=', IFNULL(fecha_atencion, 'NULL'))
+     FROM solicitudes_documentacion WHERE observacion = 'P24: adjunte el certificado'));
+
+-- I2. Beneficios y catálogos: crear y modificar exige administrador.
+SET @app_id_usuario = @a1;
+CALL pr_esperar_error('P27', 'Un aprendiz no crea instituciones',
+  "INSERT INTO instituciones (nombre) VALUES ('P27 falsa')", 'Solo un administrador activo puede');
+CALL pr_esperar_error('P28', 'Un aprendiz no modifica instituciones',
+  "UPDATE instituciones SET ciudad = 'X' WHERE id_institucion = @inst", 'Solo un administrador activo puede');
+CALL pr_esperar_error('P29', 'Un aprendiz no crea tipos de cuenta',
+  "INSERT INTO tipos_cuenta (nombre) VALUES ('P29 falsa')", 'Solo un administrador activo puede');
+CALL pr_esperar_error('P30', 'Un aprendiz no modifica tipos de cuenta',
+  "UPDATE tipos_cuenta SET nombre = 'P30 falsa' WHERE id_tipo_cuenta = 1", 'Solo un administrador activo puede');
+CALL pr_esperar_error('P31', 'Un aprendiz no crea tipos de documento',
+  "INSERT INTO tipos_documento (nombre) VALUES ('P31 falso')", 'Solo un administrador activo puede');
+CALL pr_esperar_error('P32', 'Un aprendiz no modifica tipos de documento',
+  "UPDATE tipos_documento SET estado = 'Inactivo' WHERE id_tipo_documento = 1", 'Solo un administrador activo puede');
+CALL pr_esperar_error('P33', 'Un aprendiz no crea entidades bancarias',
+  "INSERT INTO entidades_bancarias (nombre) VALUES ('P33 falso')", 'Solo un administrador activo puede');
+CALL pr_esperar_error('P34', 'Un aprendiz no modifica entidades bancarias',
+  "UPDATE entidades_bancarias SET estado = 'Inactivo'", 'Solo un administrador activo puede');
+CALL pr_esperar_error('P35', 'Un aprendiz no crea EPS',
+  "INSERT INTO eps (nombre) VALUES ('P35 falsa')", 'Solo un administrador activo puede');
+CALL pr_esperar_error('P36', 'Un aprendiz no modifica EPS',
+  "UPDATE eps SET estado = 'Inactivo' WHERE id_eps = 1", 'Solo un administrador activo puede');
+CALL pr_esperar_error('P37', 'Un aprendiz no crea programas',
+  "INSERT INTO programas (id_institucion, nombre) VALUES (@inst, 'P37 falso')", 'Solo un administrador activo puede');
+CALL pr_esperar_error('P38', 'Un aprendiz no modifica programas',
+  "UPDATE programas SET estado = 'Inactivo' WHERE id_programa = @prog", 'Solo un administrador activo puede');
+CALL pr_esperar_error('P39', 'Un aprendiz no crea beneficios',
+  "INSERT INTO beneficios (id_institucion, nombre, descripcion, categoria) VALUES (@inst, 'P39 falso', 'x', 'Otro')",
+  'Solo un administrador activo puede');
+CALL pr_esperar_error('P40', 'Un aprendiz no modifica beneficios',
+  "UPDATE beneficios SET estado = 'Inactivo' WHERE id_beneficio = @ben", 'Solo un administrador activo puede');
+SET @app_id_usuario = 5;
+CALL pr_esperar_exito('P41', 'Un administrador sí crea un programa',
+  "INSERT INTO programas (id_institucion, nombre) VALUES (@inst, 'P41 programa nuevo')");
+CALL pr_esperar_exito('P42', 'Un administrador sí modifica un beneficio',
+  "UPDATE beneficios SET descripcion = 'Descripción revisada' WHERE id_beneficio = @ben");
+
+-- M3. El usuario que registró una asignación no se cambia.
+CALL pr_esperar_error('P43', 'Ni un administrador cambia quién registró una asignación',
+  "UPDATE asignaciones_beneficio SET id_usuario_registro = @a1 WHERE id_asignacion = @j1",
+  'El usuario que registró la asignación no se puede modificar');
+
+-- M2. pr_esperar_exito cuenta como FALLO una sentencia que deja advertencias.
+SET @app_id_usuario = 5;
+CALL pr_esperar_exito('P44', 'Caso de control: una sentencia con advertencia (texto convertido a número)',
+  "SELECT CAST('abc' AS SIGNED) INTO @p44");
+UPDATE resultados_pruebas
+   SET resultado = IF(resultado = 'FALLO' AND detalle LIKE 'Advertencia%', 'OK', 'FALLO'),
+       descripcion = 'M2: pr_esperar_exito marca FALLO cuando la sentencia deja advertencias'
+ WHERE caso = 'P44';
 
 SET @app_id_usuario = 5;
 SET @app_justificacion = 'Cambio hecho por las pruebas automáticas';
