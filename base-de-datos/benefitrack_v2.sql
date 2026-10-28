@@ -9,6 +9,11 @@
 -- al abrir cada conexión):
 --   SET @app_id_usuario = <id del usuario que inició sesión>;   -- D9
 --   SET @app_ip         = '<ip del cliente>';                    -- opcional
+--   SET @app_justificacion = '<motivo>';  -- antes de cambiar el estado de
+--                                         -- un usuario (RF-1.3)
+-- @app_justificacion es obligatoria cuando un administrador (o root) cambia
+-- el estado de un usuario; se guarda en auditoria. No hace falta en el
+-- bloqueo y desbloqueo automáticos del inicio de sesión.
 -- Si no están definidas, los triggers guardan NULL. Pero, salvo cuando la
 -- conexión es el usuario root (mantenimiento, instalación y pruebas), las
 -- acciones de gestión con @app_id_usuario NULL se RECHAZAN: la aplicación

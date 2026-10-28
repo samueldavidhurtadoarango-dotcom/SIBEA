@@ -20,7 +20,7 @@ especificación no menciona, se indica como **Error del original**.
 | Al final había un bloque de "AJUSTES" que modificaba tablas ya creadas (`ALTER TABLE`) y reemplazaba triggers. | Cada tabla se crea una sola vez con su forma final. | Evita que la estructura dependa del orden de los parches. |
 | Tablas creadas en orden alfabético con las llaves foráneas desactivadas. | Tablas creadas en orden de dependencias (primero catálogos, luego usuarios, convocatorias, postulaciones, pagos...). | El script no necesita desactivar las llaves foráneas para funcionar. |
 | Nombres de índices y restricciones mezclados (`fk_...` usado también para índices simples). | Prefijos claros: `uk_` (único), `idx_` (índice), `fk_` (llave foránea), `chk_` (regla CHECK). | Se entiende de un vistazo qué es cada cosa. |
-| Las reglas de negocio vivían solo en la aplicación (o no existían). | Las reglas clave se fuerzan en la base con triggers que lanzan errores en español (`SQLSTATE '45000'`). | La aplicación no puede saltarse las reglas por error. **Ojo:** los triggers no protegen contra quien tiene permisos totales (por ejemplo `root`), que puede borrar triggers o escribir directamente en las tablas. Por eso la aplicación debe conectarse con un usuario de permisos limitados (`usuario_aplicacion.sql`, ver la sección 11). |
+| Las reglas de negocio vivían solo en la aplicación (o no existían). | Las reglas clave se fuerzan en la base con triggers que lanzan errores en español (`SQLSTATE '45000'`). | La aplicación no puede saltarse las reglas por error. **Ojo:** los triggers no protegen contra quien tiene permisos totales (por ejemplo `root`), que puede borrar triggers o escribir directamente en las tablas. Por eso la aplicación debe conectarse con un usuario de permisos limitados (`usuario_aplicacion.sql`, ver la sección 12). |
 | Los triggers guardaban un usuario fijo o el aprendiz dueño. | Todos usan la variable de sesión `@app_id_usuario`. | **D9** (ver la sección 4). |
 
 ---
@@ -130,7 +130,7 @@ especificación no menciona, se indica como **Error del original**.
 | `tr_postulacion_rechazada` | **Reemplazado** por `tr_postulacion_notificar`; el aviso incluye la justificación obligatoria. | **D1**, **D8** |
 | `tr_pago_completar_postulacion` | **Reemplazado** por `tr_pago_registrado`: ya no pasa la postulación a "Completado"; pasa la **asignación** a "Finalizado". | **D3** |
 
-### Triggers del script corregido (28)
+### Triggers del script corregido (31)
 
 **Postulaciones y convocatorias**
 
@@ -171,7 +171,15 @@ especificación no menciona, se indica como **Error del original**.
 | Trigger | Cuándo | Qué hace | Decisión |
 |---|---|---|---|
 | `tr_usuario_validar_insercion` | antes de insertar | Crear un usuario con rol Administrador, o con un estado distinto de Activo, exige un administrador activo. La base pone `fecha_bloqueo` (hora actual si nace Bloqueado, `NULL` si no). El registro de aprendices sigue libre. | D7, D9 |
-| `tr_usuario_validar` | antes de actualizar | Cambiar el rol (`id_rol`) o el estado exige un administrador activo. Sin administrador solo se permite Activo → Bloqueado y el desbloqueo automático Bloqueado → Activo cuando ya pasaron 15 minutos desde `fecha_bloqueo` (nunca si `fecha_bloqueo` es `NULL`). Al pasar a Bloqueado, la base guarda `fecha_bloqueo` = hora actual e ignora la fecha recibida. Todo desbloqueo deja `intentos_fallidos = 0` y `fecha_bloqueo = NULL`. Mientras sigue Bloqueado, cambiar `fecha_bloqueo` exige administrador. | D7, D9 |
+| `tr_usuario_validar` | antes de actualizar | Cambiar el rol (`id_rol`) o el estado exige un administrador activo. Sin administrador solo se permite Activo → Bloqueado y el desbloqueo automático Bloqueado → Activo cuando ya pasaron 15 minutos desde `fecha_bloqueo` (nunca si `fecha_bloqueo` es `NULL`). Al pasar a Bloqueado, la base guarda `fecha_bloqueo` = hora actual e ignora la fecha recibida. Todo desbloqueo deja `intentos_fallidos = 0` y `fecha_bloqueo = NULL`. Mientras sigue Bloqueado, cambiar `fecha_bloqueo` exige administrador. Un cambio de estado que no sea automático exige `@app_justificacion` (séptima ronda). | D7, D9 |
+| `tr_usuario_auditar` | después de actualizar | Cada cambio de rol o de estado queda en `auditoria` con quién, valor anterior y nuevo, origen (`Sistema` o `Usuario`) y justificación. Sumar `intentos_fallidos` solo no se audita. | D9 |
+
+**Migraciones**
+
+| Trigger | Cuándo | Qué hace | Decisión |
+|---|---|---|---|
+| `tr_migracion_creada` | después de insertar | Registrar o iniciar una carga queda en `auditoria` (`INICIAR_MIGRACION` / `REGISTRAR_MIGRACION`). | D11 (RI-4.3) |
+| `tr_migracion_actualizada` | después de actualizar | Cada cambio de estado de la carga queda en `auditoria` con los totales (`FINALIZAR_MIGRACION`). | D11 (RI-4.3) |
 
 **Otros**
 
@@ -211,6 +219,10 @@ MariaDB** se conectó:
   la variable, no se salta el control de rol.
 
 Igual, **la aplicación SIEMPRE debe fijar `@app_id_usuario`** en cada conexión.
+
+Desde la séptima ronda (sección 11) hay una tercera variable, **`@app_justificacion`**: el motivo
+que escribe el administrador antes de cambiar el estado de un usuario. Es obligatoria en esos
+cambios (salvo los automáticos del inicio de sesión) y se guarda en `auditoria`.
 
 ---
 
@@ -487,7 +499,50 @@ fecha de bloqueo; `SET timestamp` no permite desbloquear antes de tiempo). Resul
 
 ---
 
-## 11. Pendientes (solo documentados, no implementados todavía)
+## 11. Séptima ronda: auditoría de cuentas y migraciones (explicado fácil)
+
+**Por qué.** La matriz (RF-1.3) pide que el cambio de estado de un usuario lleve una justificación
+guardada en la auditoría, y RI-4.3 pide que las migraciones desde Excel dejen huella en la
+auditoría. Antes, la base solo controlaba *quién* podía cambiar una cuenta, pero no anotaba nada.
+
+**1. Justificación obligatoria: `@app_justificacion`.**
+Es como la casilla «motivo» de un formulario: sin escribirla, no se puede enviar. Antes de cambiar
+el estado de un usuario, la aplicación fija `SET @app_justificacion = '<motivo>';`. Si está vacía,
+la base responde `El cambio de estado de un usuario exige una justificación (@app_justificacion)`.
+No se pide en los cambios **automáticos** (bloqueo por 3 intentos fallidos y desbloqueo a los 15
+minutos), porque ahí no hay una persona decidiendo. Si un administrador bloquea a alguien a mano,
+sí se pide.
+
+**2. Cada cambio de cuenta queda anotado.**
+El trigger nuevo `tr_usuario_auditar` escribe una fila en `auditoria` cada vez que cambia el rol o
+el estado de un usuario: quién lo hizo, el rol y el estado anterior y nuevo, la justificación y el
+origen. Si el origen es `Sistema` (bloqueo o desbloqueo automático), `id_usuario` queda en `NULL`,
+que aquí significa «lo hizo el sistema», y la justificación la escribe la base («Bloqueo
+automático por intentos fallidos» o «Desbloqueo automático pasados 15 minutos»). Sumar intentos
+fallidos sin cambiar el estado no se anota, para no llenar la tabla en cada intento.
+
+**3. Las migraciones también quedan anotadas.**
+`tr_migracion_creada` anota cada carga nueva y `tr_migracion_actualizada`, cada cambio de su estado
+(por ejemplo, cuando termina), con los totales de filas exitosas y fallidas. Actualizar solo los
+contadores mientras sigue «En proceso» no se anota.
+
+**4. Quién escribe en la auditoría.** Solo los triggers. El usuario de la aplicación
+(`benefitrack_app`) sigue sin permiso de `INSERT` en `auditoria`, y las filas siguen sin poderse
+modificar ni borrar.
+
+**Pruebas nuevas.**
+- `pruebas/pruebas_reglas.sql`, bloque L (L01 a L17) y A02 (ahora 31 triggers). Resultado:
+  **257 casos, 257 OK**.
+- `pruebas/pruebas_usuario_aplicacion.sql`, U8 (conectado como `benefitrack_app`: sin
+  justificación el administrador 5 no puede reactivar a un aprendiz; con ella sí, y queda la fila
+  en auditoría) y U9 (`benefitrack_app` no puede insertar en `auditoria`: error 1142).
+
+No se cambiaron tablas ni columnas: se agregaron 3 triggers (ahora son 31) y la función
+`fn_cambio_estado_sistema`, y se ajustó `tr_usuario_validar`.
+
+---
+
+## 12. Pendientes (solo documentados, no implementados todavía)
 
 - **Usuario de la aplicación.** Las protecciones de la sección 6 dependen de que la aplicación use
   el usuario limitado de `usuario_aplicacion.sql` y no `root`. Con `root` se pueden borrar

@@ -28,6 +28,14 @@
 -- la aplicación fije siempre SET @app_id_usuario = <id del administrador>.
 -- Si la variable está en NULL, la base rechaza la acción. Solo root (el
 -- usuario de mantenimiento) puede actuar con la variable en NULL.
+--
+-- @app_justificacion: antes de cambiar el estado de un usuario (Activo,
+-- Inactivo, Bloqueado), la aplicación debe fijar
+-- SET @app_justificacion = '<motivo>'; si está en NULL o vacía, la base
+-- rechaza el cambio. El motivo queda en auditoria, que escriben solo los
+-- triggers: este usuario NO tiene INSERT sobre auditoria. Después del
+-- cambio, vuelva a poner la variable en NULL para no reutilizar un motivo
+-- viejo. No hace falta en el bloqueo y desbloqueo automáticos.
 -- =====================================================================
 
 CREATE USER IF NOT EXISTS 'benefitrack_app'@'localhost' IDENTIFIED BY 'CAMBIE_ESTA_CLAVE';

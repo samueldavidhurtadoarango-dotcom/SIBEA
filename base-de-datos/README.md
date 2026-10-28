@@ -89,7 +89,7 @@ C:\xampp\mysql\bin\mysql.exe -u root --default-character-set=utf8mb4 --table < b
 La salida muestra la misma tabla de resumen. Resultado esperado:
 
 ```
-| TOTAL | OK | 240 casos: 240 OK, 0 FALLO | TODAS LAS PRUEBAS PASAN |
+| TOTAL | OK | 257 casos: 257 OK, 0 FALLO | TODAS LAS PRUEBAS PASAN |
 ```
 
 Si algún caso dice `FALLO`, la columna `detalle` explica qué pasó (por ejemplo, el
@@ -107,6 +107,9 @@ después de conectarse y antes de cualquier otra consulta:
 SET @app_id_usuario = <id del usuario que inició sesión>;
 SET @app_ip = '<IP del cliente>';   -- opcional, para la auditoría
 ```
+
+Y, solo antes de cambiar el estado de un usuario, `SET @app_justificacion = '<motivo>';` (ver
+«Justificación de los cambios de estado» más abajo).
 
 Si no se define, la base guarda `NULL` en lugar del usuario, **pero** las acciones de gestión con
 `@app_id_usuario` en `NULL` se **rechazan** salvo cuando la conexión es el usuario `root` (ver
@@ -129,6 +132,37 @@ rechazan**: la aplicación debe mandar **siempre** `@app_id_usuario` en cada acc
 **Usuarios y roles.** Cambiar el rol o el estado de un usuario, crear un usuario Administrador o
 crear un usuario que no esté Activo exige un administrador activo. El registro de aprendices
 nuevos (que nacen Activos) y la actualización de datos de contacto siguen libres.
+
+**Justificación de los cambios de estado: `@app_justificacion`.** Igual que `@app_id_usuario`,
+es una variable de sesión que fija la aplicación. Antes de cambiar el estado de un usuario
+(Activo, Inactivo o Bloqueado), la aplicación debe ejecutar:
+
+```sql
+SET @app_justificacion = 'Retiro voluntario del programa';   -- el motivo que escribió el administrador
+UPDATE usuarios SET estado = 'Inactivo' WHERE id_usuario = ...;
+SET @app_justificacion = NULL;   -- para no reutilizar un motivo viejo
+```
+
+Si la variable está en `NULL` o vacía, la base responde
+`El cambio de estado de un usuario exige una justificación (@app_justificacion)`. No hace falta en
+el bloqueo y desbloqueo **automáticos** del inicio de sesión.
+
+**Auditoría de cuentas.** Cada cambio de rol o de estado de un usuario queda en `auditoria`
+(`entidad = 'usuarios'`, acción `CAMBIO_ESTADO`, `CAMBIO_ROL` o `CAMBIO_ROL_ESTADO`) con quién lo
+hizo, el rol y el estado anterior y nuevo, la justificación y el origen:
+
+- `Usuario`: lo hizo una persona (normalmente un administrador).
+- `Sistema`: bloqueo automático por intentos fallidos o desbloqueo automático a los 15 minutos. En
+  ese caso `id_usuario` queda en `NULL`, que significa «el sistema», y la justificación la escribe
+  la base.
+
+Sumar `intentos_fallidos` sin cambiar el estado **no** se audita, para no llenar la tabla en cada
+intento. La aplicación no puede escribir en `auditoria`: solo lo hacen los triggers.
+
+**Migraciones (RI-4.3).** Registrar o iniciar una carga en `migraciones` y cada cambio de su estado
+(por ejemplo, al terminar) quedan en `auditoria` (`INICIAR_MIGRACION`, `REGISTRAR_MIGRACION`,
+`FINALIZAR_MIGRACION`) con los totales. Actualizar solo los contadores mientras sigue «En proceso»
+no se audita.
 
 **Bloqueo por intentos fallidos.** Tras 3 intentos fallidos, la aplicación pasa la cuenta de
 `Activo` a `Bloqueado` (no necesita administrador). La base guarda siempre `fecha_bloqueo` con la
@@ -215,7 +249,7 @@ Para comprobar los controles con ese usuario (después de `benefitrack_v2.sql`,
 C:\xampp\mysql\bin\mysql.exe -u benefitrack_app -p --default-character-set=utf8mb4 --force --table < base-de-datos\pruebas\pruebas_usuario_aplicacion.sql
 ```
 
-Los `ERROR 1644` que aparecen son los rechazos esperados; las filas U1 a U7 deben decir `OK`.
+Los `ERROR 1644` que aparecen son los rechazos esperados; las filas U1 a U9 deben decir `OK` (también aparece un `ERROR 1142`, el rechazo esperado de U9).
 
 ---
 
