@@ -13,7 +13,17 @@
  *   (c) cada "tabla: campo" citado en Requisitos de información existe en el SQL;
  *   (d) no aparecen palabras prohibidas (OCR, Estudiante, estados eliminados);
  *   (e) en cada fila coinciden los números RF-x.y, RN-x.y y RI-x.y;
- *   (g) el estado del requisito es "Obligatorio" u "Opcional".
+ *   (g) el estado del requisito es "Obligatorio" u "Opcional";
+ *   (h) las reglas que la base de datos hace cumplir (rondas 2 a 4 de
+ *       base-de-datos/CAMBIOS.md) están escritas en el RF/RN que corresponde,
+ *       y no quedan frases que las contradigan;
+ *   (i) todos los tipos de documento de la semilla del SQL aparecen en RF-3.1;
+ *   (j) los minutos del desbloqueo automático de RN-2.0 son los del SQL;
+ *   (k) no quedan preguntas abiertas ni temas "por confirmar";
+ *   (l) el bloqueo de la cuenta deja claro quién bloquea y quién desbloquea
+ *       (solo una cuenta Activa se bloquea, la fecha la pone el sistema, una
+ *       cuenta Inactiva solo la reactiva un administrador activo y este puede
+ *       desbloquear en cualquier momento).
  * Termina con código 1 si alguna regla falla.
  */
 'use strict';
@@ -232,6 +242,144 @@ function reglaEstadoRequisito(filas) {
 }
 
 // ---------------------------------------------------------------------------
+// Reglas de contenido (h, i, j, k, l)
+// ---------------------------------------------------------------------------
+
+/** Minúsculas, sin tildes y con espacios simples, para comparar frases. */
+function normalizar(texto) {
+  return texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ');
+}
+
+/** Texto RF + RN de una fila, normalizado (null si la fila no existe). */
+function textoRequisito(filas, rf) {
+  const fila = filas.find((f) => f.rf === rf);
+  return fila ? normalizar(fila.rfDesc + ' ' + fila.rnDesc) : null;
+}
+
+/** Revisa una lista de { rf, que, debe: [frases], noDebe: [frases] }. */
+function revisarFrases(filas, lista) {
+  const errores = [];
+  for (const r of lista) {
+    const texto = textoRequisito(filas, r.rf);
+    if (texto === null) { errores.push(`${r.rf}: no existe (debería decir: ${r.que})`); continue; }
+    for (const frase of r.debe || []) {
+      if (!texto.includes(normalizar(frase))) errores.push(`${r.rf}: falta «${frase}» (${r.que})`);
+    }
+    for (const frase of r.noDebe || []) {
+      if (texto.includes(normalizar(frase))) errores.push(`${r.rf}: contradice la base de datos con «${frase}»`);
+    }
+  }
+  return errores;
+}
+
+// (h) Reglas de la base de datos (rondas 2 a 4) y decisiones de Samuel del 27/10/2026.
+const REGLAS_BD = [
+  { rf: 'RF-3.0', que: 'solo un Aprendiz se postula, a una convocatoria Activa y dentro de sus fechas',
+    debe: ['solo un usuario con rol aprendiz', 'activa', 'dentro de sus fechas de inicio y cierre'] },
+  { rf: 'RF-6.0', que: 'fechas y montos de los pagos',
+    debe: ['la fecha de pago debe estar entre la fecha de inicio de la asignación y hoy',
+      'la fecha programada', 'no puede ser anterior a la fecha de inicio de la asignación',
+      'el monto debe ser mayor que cero', 'distinto del valor por pago', 'la observación es obligatoria'] },
+  { rf: 'RF-4.4', que: 'trazabilidad, historial y auditoría no se modifican ni se borran',
+    debe: ['no se pueden modificar ni borrar', 'el sistema rechaza'] },
+  { rf: 'RF-4.2', que: 'los datos de validación los registra el sistema y no se cambian',
+    debe: ['los registra el sistema', 'no se pueden cambiar', 'solo se corrige mientras la postulación está pendiente'] },
+  { rf: 'RF-2.3', que: 'solo un administrador activo hace acciones de gestión',
+    debe: ['administrador en estado activo', 'cambiar el rol o el estado de un usuario',
+      'crear un usuario administrador', 'registrar y anular pagos', 'solo un administrador activo puede'] },
+  { rf: 'RF-1.0', que: 'crear un Administrador exige un administrador activo',
+    debe: ['solo un administrador activo puede crear un usuario con rol administrador'] },
+  { rf: 'RF-1.2', que: 'cambiar el rol exige un administrador activo',
+    debe: ['solo un administrador activo puede cambiar el rol'] },
+  { rf: 'RF-1.3', que: 'cambiar el estado exige un administrador activo',
+    debe: ['solo un administrador activo puede cambiar el estado'],
+    noDebe: ['hasta que el administrador lo reactive'] },
+  { rf: 'RF-7.1', que: 'los cupos no bajan de las postulaciones aprobadas',
+    debe: ['los cupos no pueden quedar por debajo del número de postulaciones aprobadas'] },
+  { rf: 'RF-8.3', que: 'condiciones congeladas en cuanto hay pagos o deja de estar En curso',
+    debe: ['solo mientras la asignación está en curso y no tiene ningún pago', 'anulado', 'quedan congelad'],
+    noDebe: ['no puede quedar por debajo de los pagos ya registrados'] },
+  { rf: 'RF-8.2', que: 'fecha_inicio entre el inicio de la convocatoria y hoy + 1 año',
+    debe: ['entre la fecha de inicio de la convocatoria y un año después de hoy'] },
+  { rf: 'RF-8.3', que: 'fecha_inicio entre el inicio de la convocatoria y hoy + 1 año',
+    debe: ['fecha de inicio', 'entre la fecha de inicio de la convocatoria y un año después de hoy'] },
+  { rf: 'RF-2.0', que: 'bloqueo tras 3 intentos y desbloqueo automático (decisión del 27/10/2026)',
+    debe: ['3 intentos fallidos', 'se desbloquea sola', 'un administrador activo también puede desbloquearla antes'],
+    noDebe: ['hasta que el administrador lo reactive', 'temporalmente'] },
+  { rf: 'RF-3.2', que: 'el certificado de EPS es obligatorio para enviar (decisión del 27/10/2026)',
+    debe: ['certificado de eps'] },
+];
+
+/** (h) Las reglas de la base de datos están en el requisito que corresponde. */
+function reglaReglasBaseDatos(filas) {
+  return revisarFrases(filas, REGLAS_BD);
+}
+
+/** Nombres de la semilla INSERT INTO tipos_documento del SQL. */
+function tiposDocumentoSql(rutaSql) {
+  const sql = fs.readFileSync(rutaSql, 'utf8');
+  const m = sql.match(/INSERT\s+INTO\s+tipos_documento\b[^;]*;/i);
+  if (!m) return [];
+  return [...m[0].matchAll(/\(\s*\d+\s*,\s*'([^']+)'/g)].map((x) => x[1]);
+}
+
+/** (i) Cada tipo de documento del SQL aparece en RF-3.1 / RN-3.1. */
+function reglaTiposDocumento(filas, rutaSql) {
+  const tipos = tiposDocumentoSql(rutaSql);
+  if (tipos.length === 0) return ['no se encontró la semilla de tipos_documento en el SQL'];
+  const texto = textoRequisito(filas, 'RF-3.1');
+  if (texto === null) return ['RF-3.1 no existe'];
+  return tipos.filter((t) => !texto.includes(normalizar(t)))
+    .map((t) => `RF-3.1: no menciona el tipo de documento «${t}», que existe en el SQL`);
+}
+
+/** (j) RN-2.0 y RN-1.3 dicen los mismos minutos de desbloqueo que tr_usuario_validar. */
+function reglaMinutosDesbloqueo(filas, rutaSql) {
+  const sql = fs.readFileSync(rutaSql, 'utf8');
+  const trigger = sql.match(/CREATE\s+TRIGGER\s+tr_usuario_validar\b[\s\S]*?END\/\//i);
+  const m = trigger && trigger[0].match(/INTERVAL\s+(\d+)\s+MINUTE/i);
+  if (!m) return ['no se encontró el INTERVAL ... MINUTE de tr_usuario_validar en el SQL'];
+  const frase = `${m[1]} minutos`;
+  const errores = [];
+  for (const rf of ['RF-2.0', 'RF-1.3']) {
+    const texto = textoRequisito(filas, rf);
+    if (texto === null) errores.push(`${rf} no existe`);
+    else if (!texto.includes(frase)) errores.push(`${rf}: debe decir «${frase}» (desbloqueo automático del SQL)`);
+  }
+  return errores;
+}
+
+const FRASES_ABIERTAS = ['pregunta abierta', 'por confirmar', 'por definir', 'hay que definir', 'sin definir',
+  'pendiente de confirmar', 'a confirmar', 'si se quiere'];
+
+/** (k) Ninguna celda de la hoja deja temas abiertos. */
+function reglaSinPreguntasAbiertas(celdas) {
+  const errores = [];
+  for (const [ref, valor] of Object.entries(celdas)) {
+    const texto = normalizar(valor);
+    for (const frase of FRASES_ABIERTAS) if (texto.includes(frase)) errores.push(`celda ${ref}: contiene «${frase}»`);
+  }
+  return errores;
+}
+
+// (l) Quién bloquea y quién desbloquea una cuenta.
+const REGLAS_BLOQUEO = [
+  { rf: 'RF-2.0', que: 'solo una cuenta Activa se bloquea y la fecha la pone el sistema',
+    debe: ['solo una cuenta activa puede quedar bloqueada por intentos fallidos',
+      'la fecha de bloqueo la pone el sistema en el momento del bloqueo'] },
+  { rf: 'RF-1.3', que: 'una cuenta Inactiva solo la reactiva un administrador activo',
+    debe: ['una cuenta inactiva solo la reactiva un administrador activo',
+      'no se reactiva sola ni pasando por bloqueado'] },
+  { rf: 'RF-1.3', que: 'un administrador activo desbloquea en cualquier momento',
+    debe: ['un administrador activo puede desbloquear una cuenta en cualquier momento'] },
+];
+
+/** (l) El bloqueo de la cuenta está explicado sin huecos. */
+function reglaBloqueoCuenta(filas) {
+  return revisarFrases(filas, REGLAS_BLOQUEO);
+}
+
+// ---------------------------------------------------------------------------
 // (f) Informe
 // ---------------------------------------------------------------------------
 
@@ -250,6 +398,11 @@ function main() {
     ['(d) Sin palabras prohibidas', reglaPalabrasProhibidas(celdas)],
     ['(e) Numeración RF/RN/RI coincide', reglaNumeracion(filas)],
     ['(g) Estado del requisito válido', reglaEstadoRequisito(filas)],
+    ['(h) Reglas de la base de datos reflejadas en la matriz', reglaReglasBaseDatos(filas)],
+    ['(i) Tipos de documento del SQL en RF-3.1', reglaTiposDocumento(filas, RUTA_SQL)],
+    ['(j) Minutos de desbloqueo iguales al SQL', reglaMinutosDesbloqueo(filas, RUTA_SQL)],
+    ['(k) Sin preguntas abiertas', reglaSinPreguntasAbiertas(celdas)],
+    ['(l) Bloqueo de la cuenta sin huecos', reglaBloqueoCuenta(filas)],
   ];
 
   let fallidas = 0;
