@@ -789,6 +789,24 @@ END//
 -- Documentos de la postulación
 -- ---------------------------------------------------------------------
 
+-- Un documento nuevo (lo sube el aprendiz) nace Pendiente: si llega con otro
+-- estado se rechaza, y los datos de la validación (quién, cuándo y la
+-- observación del administrador) se descartan, porque solo los escribe
+-- tr_validacion_documento al validar. La fecha de carga es la hora real.
+CREATE TRIGGER tr_documento_validar_insercion
+BEFORE INSERT ON documentos_postulacion
+FOR EACH ROW
+BEGIN
+  IF NOT (NEW.estado_validacion <=> 'Pendiente') THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'Un documento nuevo debe empezar en estado Pendiente';
+  END IF;
+  SET NEW.id_usuario_validacion = NULL;
+  SET NEW.fecha_validacion      = NULL;
+  SET NEW.observaciones         = NULL;
+  SET NEW.fecha_carga           = SYSDATE();
+END//
+
 -- Al cambiar el estado de validación de un documento guarda cuándo y
 -- quién lo validó (D6, D9). Esos dos datos solo los escribe este trigger:
 -- no se pueden modificar a mano (I3).
@@ -812,6 +830,22 @@ END//
 -- ---------------------------------------------------------------------
 -- Convocatorias
 -- ---------------------------------------------------------------------
+
+-- Crear una convocatoria es una acción de gestión: solo un administrador
+-- activo. Nace Activa o Inactiva, y los datos del cierre (quién y cuándo)
+-- los deja vacíos la base.
+CREATE TRIGGER tr_convocatoria_validar_insercion
+BEFORE INSERT ON convocatorias
+FOR EACH ROW
+BEGIN
+  CALL pr_exigir_administrador('crear una convocatoria');
+  IF NEW.estado NOT IN ('Activa', 'Inactiva') THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'Una convocatoria nueva debe estar Activa o Inactiva';
+  END IF;
+  SET NEW.usuario_cierre    = NULL;
+  SET NEW.fecha_cierre_real = NULL;
+END//
 
 -- Solo un administrador activo cambia cupos o estado, y los cupos no pueden
 -- quedar por debajo de las postulaciones ya aprobadas.
@@ -1097,6 +1131,18 @@ BEGIN
     SIGNAL SQLSTATE '45000'
       SET MESSAGE_TEXT = 'Solo se puede solicitar documentación de una postulación Pendiente';
   END IF;
+
+  -- Una solicitud nace Pendiente, sin fecha de atención, a nombre del
+  -- usuario de sesión (sin sesión, solo root, se respeta el recibido).
+  IF NOT (NEW.estado <=> 'Pendiente') THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'Una solicitud nueva debe empezar en estado Pendiente';
+  END IF;
+  SET NEW.fecha_atencion  = NULL;
+  SET NEW.fecha_solicitud = SYSDATE();
+  IF @app_id_usuario IS NOT NULL THEN
+    SET NEW.id_usuario = @app_id_usuario;
+  END IF;
 END//
 
 -- ---------------------------------------------------------------------
@@ -1147,7 +1193,11 @@ BEGIN
       SET MESSAGE_TEXT = 'Una asignación nueva debe iniciar en estado En curso';
   END IF;
 
-  SET NEW.id_usuario_registro = COALESCE(NEW.id_usuario_registro, @app_id_usuario);
+  -- Con usuario de sesión, el registro es suyo; sin sesión (solo root) se
+  -- respeta el valor recibido.
+  IF @app_id_usuario IS NOT NULL THEN
+    SET NEW.id_usuario_registro = @app_id_usuario;
+  END IF;
 END//
 
 -- Valida los cambios de una asignación (D3, D4):
@@ -1398,7 +1448,17 @@ BEGIN
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = v_mensaje;
   END IF;
 
-  SET NEW.id_usuario_registro = COALESCE(NEW.id_usuario_registro, @app_id_usuario);
+  -- Quién y cuándo los pone la base (ronda 9): con usuario de sesión,
+  -- registra ese usuario (se ignora el valor recibido); sin sesión (solo
+  -- root, mantenimiento) se respeta el recibido. Un pago nuevo no trae
+  -- datos de anulación.
+  IF @app_id_usuario IS NOT NULL THEN
+    SET NEW.id_usuario_registro = @app_id_usuario;
+  END IF;
+  SET NEW.fecha_registro       = SYSDATE();
+  SET NEW.motivo_anulacion     = NULL;
+  SET NEW.fecha_anulacion      = NULL;
+  SET NEW.id_usuario_anulacion = NULL;
 END//
 
 -- Tras registrar un pago: notifica al aprendiz (D8), audita (D9) y, si ya
@@ -1536,7 +1596,12 @@ BEGIN
       SET MESSAGE_TEXT = 'La descripción de la novedad es obligatoria';
   END IF;
 
-  SET NEW.id_usuario = COALESCE(NEW.id_usuario, @app_id_usuario);
+  -- Con usuario de sesión, la novedad es suya; sin sesión (solo root) se
+  -- respeta el valor recibido. La fecha es la hora real.
+  IF @app_id_usuario IS NOT NULL THEN
+    SET NEW.id_usuario = @app_id_usuario;
+  END IF;
+  SET NEW.fecha = SYSDATE();
 END//
 
 -- Notifica al aprendiz cada novedad (D8) y la audita (D9).
