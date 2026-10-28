@@ -95,7 +95,7 @@ CALL pr_verificar('A01', 'CA1: existen las 23 tablas esperadas',
                          'novedades','notificaciones','auditoria','migraciones')) = 23,
   CONCAT('Tablas encontradas: ', (SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE())));
 
-CALL pr_verificar('A02', 'CA1: existen los 31 triggers esperados',
+CALL pr_verificar('A02', 'CA1: existen los 34 triggers esperados',
   (SELECT COUNT(*) FROM information_schema.triggers
     WHERE trigger_schema = DATABASE()
       AND trigger_name IN ('tr_validacion_documento','tr_postulacion_inicial','tr_postulacion_creada',
@@ -109,7 +109,8 @@ CALL pr_verificar('A02', 'CA1: existen los 31 triggers esperados',
                            'tr_historial_no_modificar','tr_historial_no_eliminar',
                            'tr_auditoria_no_modificar','tr_auditoria_no_eliminar',
                            'tr_usuario_validar','tr_usuario_validar_insercion','tr_usuario_auditar',
-                           'tr_migracion_creada','tr_migracion_actualizada')) = 31,
+                           'tr_migracion_creada','tr_migracion_actualizada','tr_migracion_preparar',
+                           'tr_migracion_validar','tr_auditoria_fecha')) = 34,
   CONCAT('Triggers encontrados: ', (SELECT COUNT(*) FROM information_schema.triggers WHERE trigger_schema = DATABASE())));
 
 CALL pr_verificar('A03', 'D7: roles semilla son exactamente Administrador y Aprendiz',
@@ -1037,8 +1038,14 @@ CALL pr_esperar_error('J07', 'Escalada: un aprendiz no puede darse el rol de Adm
   "UPDATE usuarios SET id_rol = @rol_admin WHERE id_usuario = @a1", 'Solo un administrador activo puede');
 CALL pr_esperar_exito('J08', 'Un aprendiz sí puede actualizar sus datos de contacto',
   "UPDATE usuarios SET telefono = '3001234567' WHERE id_usuario = @a1");
+-- Ronda 8: el bloqueo automático lo hace el inicio de sesión, que no tiene
+-- usuario de sesión (@app_id_usuario NULL) ni justificación.
+SET @app_id_usuario = NULL;
+SET @app_justificacion = NULL;
 CALL pr_esperar_exito('J09', 'El bloqueo por intentos fallidos (-> Bloqueado) no exige administrador',
   "UPDATE usuarios SET estado = 'Bloqueado', intentos_fallidos = 3, fecha_bloqueo = NOW() WHERE id_usuario = @a1");
+SET @app_justificacion = 'Cambio hecho por las pruebas automáticas';
+SET @app_id_usuario = @a1;
 CALL pr_esperar_error('J10', 'Un aprendiz bloqueado no puede desbloquearse solo',
   "UPDATE usuarios SET estado = 'Activo', intentos_fallidos = 0 WHERE id_usuario = @a1", 'Solo un administrador activo puede');
 CALL pr_esperar_error('J11', 'Escalada: un aprendiz no puede crear un usuario Administrador',
@@ -1059,27 +1066,30 @@ CALL pr_esperar_exito('J16', 'El registro de un aprendiz nuevo (sin sesión) se 
   "INSERT INTO usuarios (documento, nombre, apellido, correo, password_hash, id_rol) VALUES ('PRUEBA-A7', 'Aprendiz', 'Siete', 'a7@benefitrack.test', 'hash', @rol_aprendiz)");
 
 -- Desbloqueo automático a los 15 minutos (ronda 4). Aquí @a1 está Activo.
--- "Sin administrador" = la sesión es el propio aprendiz (@a1); con root y
--- NULL el control no aplica (D9), con benefitrack_app y NULL se prueba en
--- pruebas_usuario_aplicacion.sql.
-SET @app_id_usuario = @a1;
+-- "Sin administrador" = el inicio de sesión: @app_id_usuario NULL y sin
+-- justificación (ronda 8). Con root, un cambio que NO es automático pide
+-- justificación (por eso esos casos esperan ese mensaje); con
+-- benefitrack_app pide administrador (U5 y U6 en pruebas_usuario_aplicacion.sql).
+SET @app_id_usuario = NULL;
+SET @app_justificacion = NULL;
 CALL pr_esperar_exito('J17', 'Bloqueo por intentos: pasar a Bloqueado con fecha_bloqueo = ahora',
   "UPDATE usuarios SET estado = 'Bloqueado', intentos_fallidos = 3, fecha_bloqueo = NOW() WHERE id_usuario = @a1");
-CALL pr_esperar_error('J18', 'Desbloqueo sin administrador antes de 15 minutos se rechaza',
+CALL pr_esperar_error('J18', 'Desbloqueo sin administrador antes de 15 minutos no es automático (se rechaza)',
   "UPDATE usuarios SET estado = 'Activo', intentos_fallidos = 0, fecha_bloqueo = NULL WHERE id_usuario = @a1",
-  'Solo un administrador activo puede');
+  'exige una justificación');
+SET @app_id_usuario = @a1;
 CALL pr_esperar_error('J19', 'Trampa: sin administrador no se puede adelantar fecha_bloqueo para desbloquear antes',
   "UPDATE usuarios SET fecha_bloqueo = NOW() - INTERVAL 1 DAY WHERE id_usuario = @a1",
   'Solo un administrador activo puede');
 SET @app_id_usuario = 5;
 UPDATE usuarios SET fecha_bloqueo = NOW() - INTERVAL 14 MINUTE WHERE id_usuario = @a1;
-SET @app_id_usuario = @a1;
-CALL pr_esperar_error('J20', 'Desbloqueo sin administrador a los 14 minutos se rechaza',
+SET @app_id_usuario = NULL;
+CALL pr_esperar_error('J20', 'Desbloqueo sin administrador a los 14 minutos no es automático (se rechaza)',
   "UPDATE usuarios SET estado = 'Activo' WHERE id_usuario = @a1",
-  'Solo un administrador activo puede');
+  'exige una justificación');
 SET @app_id_usuario = 5;
 UPDATE usuarios SET fecha_bloqueo = NOW() - INTERVAL 15 MINUTE WHERE id_usuario = @a1;
-SET @app_id_usuario = @a1;
+SET @app_id_usuario = NULL;
 CALL pr_esperar_exito('J21', 'Desbloqueo sin administrador a los 15 minutos o más se permite',
   "UPDATE usuarios SET estado = 'Activo' WHERE id_usuario = @a1");
 CALL pr_verificar('J22', 'Al desbloquear, intentos_fallidos vuelve a 0 y fecha_bloqueo a NULL',
@@ -1091,6 +1101,7 @@ CALL pr_esperar_exito('J23', 'Bloqueo sin fecha_bloqueo: la base la llena con la
 CALL pr_verificar('J24', 'El bloqueo deja fecha_bloqueo con la hora actual',
   (SELECT fecha_bloqueo >= NOW() - INTERVAL 1 MINUTE FROM usuarios WHERE id_usuario = @a1),
   (SELECT CONCAT('fecha_bloqueo=', IFNULL(fecha_bloqueo, 'NULL')) FROM usuarios WHERE id_usuario = @a1));
+SET @app_justificacion = 'Cambio hecho por las pruebas automáticas';
 SET @app_id_usuario = 5;
 CALL pr_esperar_exito('J25', 'Un administrador activo puede desbloquear en cualquier momento (antes de 15 minutos)',
   "UPDATE usuarios SET estado = 'Activo' WHERE id_usuario = @a1");
@@ -1152,23 +1163,28 @@ CALL pr_verificar('K06', 'B1: el administrador inactivo sigue Inactivo',
   (SELECT CONCAT('estado=', estado) FROM usuarios WHERE id_usuario = @adm_inactivo));
 SET @app_id_usuario = 5;
 UPDATE usuarios SET estado = 'Activo' WHERE id_usuario = @a1;
-SET @app_id_usuario = @a1;
+SET @app_id_usuario = NULL;
+SET @app_justificacion = NULL;
 CALL pr_esperar_exito('K07', 'B1: Activo -> Bloqueado con fecha_bloqueo de ayer se acepta',
   "UPDATE usuarios SET estado = 'Bloqueado', intentos_fallidos = 3, fecha_bloqueo = NOW() - INTERVAL 1 DAY WHERE id_usuario = @a1");
 CALL pr_verificar('K08', 'B1: la base ignora la fecha recibida y guarda la hora actual',
   (SELECT fecha_bloqueo >= NOW() - INTERVAL 1 MINUTE FROM usuarios WHERE id_usuario = @a1),
   (SELECT CONCAT('fecha_bloqueo=', IFNULL(fecha_bloqueo, 'NULL')) FROM usuarios WHERE id_usuario = @a1));
-CALL pr_esperar_error('K09', 'B1: por eso el desbloqueo inmediato se rechaza',
+CALL pr_esperar_error('K09', 'B1: por eso el desbloqueo inmediato no es automático (se rechaza)',
   "UPDATE usuarios SET estado = 'Activo' WHERE id_usuario = @a1",
-  'Solo un administrador activo puede');
+  'exige una justificación');
 
 -- I1: una cuenta Bloqueada con fecha_bloqueo NULL no se desbloquea sola.
 SET @app_id_usuario = 5;
+SET @app_justificacion = 'Cambio hecho por las pruebas automáticas';
 UPDATE usuarios SET fecha_bloqueo = NULL WHERE id_usuario = @a1;
-SET @app_id_usuario = @a1;
-CALL pr_esperar_error('K10', 'I1: Bloqueado con fecha_bloqueo NULL no se desbloquea sin administrador',
+SET @app_id_usuario = NULL;
+SET @app_justificacion = NULL;
+CALL pr_esperar_error('K10', 'I1: Bloqueado con fecha_bloqueo NULL no se desbloquea solo',
   "UPDATE usuarios SET estado = 'Activo' WHERE id_usuario = @a1",
-  'Solo un administrador activo puede');
+  'exige una justificación');
+SET @app_justificacion = 'Cambio hecho por las pruebas automáticas';
+SET @app_id_usuario = @a1;
 CALL pr_esperar_error('K11', 'I1: crear un usuario que no esté Activo exige administrador',
   "INSERT INTO usuarios (documento, nombre, apellido, correo, password_hash, id_rol, estado) VALUES ('PRUEBA-A10', 'Aprendiz', 'Diez', 'a10@benefitrack.test', 'hash', @rol_aprendiz, 'Bloqueado')",
   'Solo un administrador activo puede');
@@ -1191,21 +1207,23 @@ CALL pr_verificar('K15', 'Un usuario creado Activo queda con fecha_bloqueo NULL'
 
 -- Ronda 6: SET timestamp cambia NOW() en la sesión; el bloqueo y el
 -- desbloqueo usan la hora real del servidor (SYSDATE()).
-SET @app_id_usuario = @a1;
+SET @app_id_usuario = NULL;
+SET @app_justificacion = NULL;
 SET timestamp = UNIX_TIMESTAMP('2000-01-01');
 UPDATE usuarios SET estado = 'Bloqueado', intentos_fallidos = 3 WHERE id_usuario = @a1;
 SET timestamp = DEFAULT;
 CALL pr_esperar_error('K16', 'Trampa SET timestamp en el pasado al bloquear: el desbloqueo inmediato se rechaza',
   "UPDATE usuarios SET estado = 'Activo' WHERE id_usuario = @a1",
-  'Solo un administrador activo puede');
+  'exige una justificación');
 CALL pr_verificar('K17', 'Con SET timestamp en el pasado, fecha_bloqueo guarda la hora real',
   (SELECT fecha_bloqueo >= NOW() - INTERVAL 1 MINUTE FROM usuarios WHERE id_usuario = @a1),
   (SELECT CONCAT('fecha_bloqueo=', IFNULL(fecha_bloqueo, 'NULL')) FROM usuarios WHERE id_usuario = @a1));
 SET timestamp = UNIX_TIMESTAMP() + 86400;
 CALL pr_esperar_error('K18', 'Trampa SET timestamp un día en el futuro: el desbloqueo se rechaza',
   "UPDATE usuarios SET estado = 'Activo' WHERE id_usuario = @a1",
-  'Solo un administrador activo puede');
+  'exige una justificación');
 SET timestamp = DEFAULT;
+SET @app_justificacion = 'Cambio hecho por las pruebas automáticas';
 SET @app_id_usuario = 5;
 UPDATE usuarios SET estado = 'Activo' WHERE id_usuario = @a1;
 
@@ -1217,15 +1235,15 @@ SET @app_id_usuario = 5;
 SET @app_justificacion = NULL;
 CALL pr_esperar_error('L01', 'RF-1.3: un administrador no puede cambiar el estado sin justificación',
   "UPDATE usuarios SET estado = 'Inactivo' WHERE id_usuario = @a1",
-  'El cambio de estado de un usuario exige una justificación');
+  'exige una justificación');
 SET @app_justificacion = '   ';
 CALL pr_esperar_error('L02', 'RF-1.3: una justificación vacía (solo espacios) también se rechaza',
   "UPDATE usuarios SET estado = 'Inactivo' WHERE id_usuario = @a1",
-  'El cambio de estado de un usuario exige una justificación');
+  'exige una justificación');
 SET @app_justificacion = NULL;
 CALL pr_esperar_error('L03', 'RF-1.3: un administrador que bloquea a mano también debe justificar',
   "UPDATE usuarios SET estado = 'Bloqueado' WHERE id_usuario = @a1",
-  'El cambio de estado de un usuario exige una justificación');
+  'exige una justificación');
 SET @app_justificacion = 'Retiro voluntario del programa';
 CALL pr_esperar_exito('L04', 'RF-1.3: con justificación, el administrador cambia el estado',
   "UPDATE usuarios SET estado = 'Inactivo' WHERE id_usuario = @a1");
@@ -1277,14 +1295,18 @@ CALL pr_verificar('L10', 'El desbloqueo automático queda en la auditoría con a
      FROM auditoria WHERE entidad = 'usuarios' AND id_entidad = @a1 ORDER BY id_auditoria DESC LIMIT 1));
 
 -- Cambio de rol: también queda en la auditoría.
+-- Ronda 8: el cambio de rol también exige justificación y se hace con el
+-- procedimiento pr_cambiar_rol_usuario (que no deja la variable puesta).
 SET @app_id_usuario = 5;
-SET @app_justificacion = 'Nuevo integrante de Bienestar';
-CALL pr_esperar_exito('L11', 'Un administrador cambia el rol de un usuario',
-  "UPDATE usuarios SET id_rol = @rol_admin WHERE documento = 'PRUEBA-A12'");
-CALL pr_verificar('L12', 'El cambio de rol queda en la auditoría con rol anterior y nuevo',
+SET @app_justificacion = NULL;
+SELECT id_usuario INTO @a12 FROM usuarios WHERE documento = 'PRUEBA-A12';
+CALL pr_esperar_exito('L11', 'Un administrador cambia el rol de un usuario con pr_cambiar_rol_usuario',
+  "CALL pr_cambiar_rol_usuario(@a12, 'Administrador', 'Nuevo integrante de Bienestar')");
+CALL pr_verificar('L12', 'El cambio de rol queda en la auditoría con rol anterior, nuevo y justificación',
   (SELECT a.id_usuario = 5 AND a.accion = 'CAMBIO_ROL'
           AND JSON_EXTRACT(a.detalle, '$.rol_anterior') = @rol_aprendiz
           AND JSON_EXTRACT(a.detalle, '$.rol_nuevo') = @rol_admin
+          AND JSON_UNQUOTE(JSON_EXTRACT(a.detalle, '$.justificacion')) = 'Nuevo integrante de Bienestar'
      FROM auditoria a JOIN usuarios u ON u.id_usuario = a.id_entidad
     WHERE a.entidad = 'usuarios' AND u.documento = 'PRUEBA-A12'
     ORDER BY a.id_auditoria DESC LIMIT 1),
@@ -1327,6 +1349,177 @@ CALL pr_verificar('L17', 'RI-4.3: terminar la migración queda en la auditoría 
      FROM auditoria WHERE entidad = 'migraciones' AND id_entidad = @mig7
      ORDER BY id_auditoria DESC LIMIT 1),
   (SELECT CONCAT('filas=', COUNT(*)) FROM auditoria WHERE entidad = 'migraciones' AND id_entidad = @mig7));
+
+-- Ronda 8 (M5, M6, I3): root sin sesión también justifica; origen de cada
+-- cambio; la justificación arrastrada y el procedimiento que lo evita.
+SET @app_id_usuario = NULL;
+SET @app_justificacion = NULL;
+CALL pr_esperar_error('L18', 'root sin @app_id_usuario y sin justificación no cambia un estado',
+  "UPDATE usuarios SET estado = 'Inactivo' WHERE id_usuario = @a9", 'exige una justificación');
+SET @app_justificacion = 'Depuración de cuentas de prueba';
+CALL pr_esperar_exito('L19', 'root sin @app_id_usuario y con justificación sí cambia un estado',
+  "UPDATE usuarios SET estado = 'Inactivo' WHERE id_usuario = @a9");
+CALL pr_verificar('L20', 'Ese cambio queda con id_usuario NULL y origen Mantenimiento (no Sistema)',
+  (SELECT id_usuario IS NULL
+          AND JSON_UNQUOTE(JSON_EXTRACT(detalle, '$.origen')) = 'Mantenimiento'
+          AND JSON_UNQUOTE(JSON_EXTRACT(detalle, '$.justificacion')) = 'Depuración de cuentas de prueba'
+     FROM auditoria WHERE entidad = 'usuarios' AND id_entidad = @a9 ORDER BY id_auditoria DESC LIMIT 1),
+  (SELECT CONCAT('id_usuario=', IFNULL(id_usuario, 'NULL'), ' detalle=', detalle)
+     FROM auditoria WHERE entidad = 'usuarios' AND id_entidad = @a9 ORDER BY id_auditoria DESC LIMIT 1));
+SET @app_id_usuario = 5;
+SET @app_justificacion = 'Reingreso';
+UPDATE usuarios SET estado = 'Activo' WHERE id_usuario = @a9;
+SET @app_justificacion = 'Suplantación detectada';
+CALL pr_esperar_exito('L21', 'Un administrador bloquea a otro usuario con justificación',
+  "UPDATE usuarios SET estado = 'Bloqueado' WHERE id_usuario = @a9");
+CALL pr_verificar('L22', 'Ese bloqueo queda con el administrador, origen Usuario y su justificación',
+  (SELECT id_usuario = 5
+          AND JSON_UNQUOTE(JSON_EXTRACT(detalle, '$.origen')) = 'Usuario'
+          AND JSON_UNQUOTE(JSON_EXTRACT(detalle, '$.estado_nuevo')) = 'Bloqueado'
+          AND JSON_UNQUOTE(JSON_EXTRACT(detalle, '$.justificacion')) = 'Suplantación detectada'
+     FROM auditoria WHERE entidad = 'usuarios' AND id_entidad = @a9 ORDER BY id_auditoria DESC LIMIT 1),
+  (SELECT CONCAT('id_usuario=', IFNULL(id_usuario, 'NULL'), ' detalle=', detalle)
+     FROM auditoria WHERE entidad = 'usuarios' AND id_entidad = @a9 ORDER BY id_auditoria DESC LIMIT 1));
+-- Arrastre por la vía directa: la variable sigue puesta y el segundo
+-- cambio reutiliza un motivo viejo (por eso se recomienda el procedimiento).
+SET @app_justificacion = 'Motivo A';
+UPDATE usuarios SET estado = 'Activo' WHERE id_usuario = @a9;
+UPDATE usuarios SET estado = 'Inactivo' WHERE id_usuario = @a9;
+CALL pr_verificar('L23', 'I3 (documenta el riesgo): por la vía directa el motivo se arrastra al siguiente cambio',
+  (SELECT COUNT(*) FROM (SELECT detalle FROM auditoria WHERE entidad = 'usuarios' AND id_entidad = @a9
+                          ORDER BY id_auditoria DESC LIMIT 2) x
+    WHERE JSON_UNQUOTE(JSON_EXTRACT(x.detalle, '$.justificacion')) = 'Motivo A') = 2,
+  'Las dos últimas filas de @a9 deberían tener «Motivo A»');
+CALL pr_esperar_exito('L24', 'I3: pr_cambiar_estado_usuario cambia el estado con su propia justificación',
+  "CALL pr_cambiar_estado_usuario(@a9, 'Activo', 'Motivo B')");
+CALL pr_verificar('L25', 'I3: después del procedimiento @app_justificacion queda en NULL y la auditoría tiene «Motivo B»',
+  @app_justificacion IS NULL
+  AND (SELECT JSON_UNQUOTE(JSON_EXTRACT(detalle, '$.justificacion')) FROM auditoria
+        WHERE entidad = 'usuarios' AND id_entidad = @a9 ORDER BY id_auditoria DESC LIMIT 1) = 'Motivo B',
+  CONCAT('@app_justificacion=', IFNULL(@app_justificacion, 'NULL')));
+CALL pr_esperar_error('L26', 'I3: por eso el siguiente cambio directo sin justificación se rechaza',
+  "UPDATE usuarios SET estado = 'Inactivo' WHERE id_usuario = @a9", 'exige una justificación');
+SET @app_justificacion = 'Motivo viejo';
+SET @app_id_usuario = @a8;
+CALL pr_esperar_error('L27', 'I3: el procedimiento respeta el control de administrador',
+  "CALL pr_cambiar_estado_usuario(@a9, 'Inactivo', 'Motivo C')", 'Solo un administrador activo puede');
+CALL pr_verificar('L28', 'I3: aunque el procedimiento falle, @app_justificacion queda en NULL',
+  @app_justificacion IS NULL, CONCAT('@app_justificacion=', IFNULL(@app_justificacion, 'NULL')));
+SET @app_id_usuario = 5;
+CALL pr_esperar_error('L29', 'I3: el procedimiento con justificación vacía se rechaza',
+  "CALL pr_cambiar_estado_usuario(@a9, 'Inactivo', '   ')", 'exige una justificación');
+CALL pr_esperar_error('L30', 'I3: el procedimiento con un usuario que no existe se rechaza',
+  "CALL pr_cambiar_estado_usuario(-1, 'Inactivo', 'x')", 'No existe el usuario');
+CALL pr_esperar_error('L31', 'I3: pr_cambiar_rol_usuario con un rol que no existe se rechaza',
+  "CALL pr_cambiar_rol_usuario(@a9, 'Superusuario', 'x')", 'No existe el rol');
+
+-- =====================================================================
+-- Bloque M. Hallazgos de la auditoría de las rondas 6 y 7 (ronda 8)
+-- =====================================================================
+-- B1: sin sesión, el bloqueo solo es automático con intentos_fallidos >= 3.
+SET @app_id_usuario = NULL;
+SET @app_justificacion = NULL;
+CALL pr_esperar_error('M04', 'B1: sin sesión, bloquear con intentos_fallidos < 3 no es automático',
+  "UPDATE usuarios SET estado = 'Bloqueado' WHERE id_usuario = @a8", 'exige una justificación');
+CALL pr_esperar_exito('M05', 'B1: sin sesión y con intentos_fallidos = 3 el bloqueo es automático',
+  "UPDATE usuarios SET estado = 'Bloqueado', intentos_fallidos = 3 WHERE id_usuario = @a8");
+CALL pr_verificar('M06', 'B1: el bloqueo automático queda con id_usuario NULL y origen Sistema',
+  (SELECT id_usuario IS NULL
+          AND JSON_UNQUOTE(JSON_EXTRACT(detalle, '$.origen')) = 'Sistema'
+          AND JSON_UNQUOTE(JSON_EXTRACT(detalle, '$.justificacion')) = 'Bloqueo automático por intentos fallidos'
+     FROM auditoria WHERE entidad = 'usuarios' AND id_entidad = @a8 ORDER BY id_auditoria DESC LIMIT 1),
+  (SELECT CONCAT('id_usuario=', IFNULL(id_usuario, 'NULL'), ' detalle=', detalle)
+     FROM auditoria WHERE entidad = 'usuarios' AND id_entidad = @a8 ORDER BY id_auditoria DESC LIMIT 1));
+
+-- I1 (rev1.sql): un administrador que se bloquea a sí mismo queda como
+-- origen Usuario y conserva su justificación.
+SET @app_id_usuario = 5;
+SET @app_justificacion = 'Alta de administrador';
+INSERT INTO usuarios (documento, nombre, apellido, correo, password_hash, id_rol)
+VALUES ('PRUEBA-ADM3', 'Tercer', 'Admin', 'adm3@benefitrack.test', 'hash', @rol_admin);
+SET @adm3 = LAST_INSERT_ID();
+SET @app_id_usuario = @adm3;
+SET @app_justificacion = 'Me voy de vacaciones';
+CALL pr_esperar_exito('M07', 'I1: un administrador se bloquea a sí mismo con justificación',
+  "UPDATE usuarios SET estado = 'Bloqueado' WHERE id_usuario = @adm3");
+CALL pr_verificar('M08', 'I1: queda como origen Usuario, con su id y su justificación',
+  (SELECT id_usuario = @adm3
+          AND JSON_UNQUOTE(JSON_EXTRACT(detalle, '$.origen')) = 'Usuario'
+          AND JSON_UNQUOTE(JSON_EXTRACT(detalle, '$.justificacion')) = 'Me voy de vacaciones'
+     FROM auditoria WHERE entidad = 'usuarios' AND id_entidad = @adm3 ORDER BY id_auditoria DESC LIMIT 1),
+  (SELECT CONCAT('id_usuario=', IFNULL(id_usuario, 'NULL'), ' detalle=', detalle)
+     FROM auditoria WHERE entidad = 'usuarios' AND id_entidad = @adm3 ORDER BY id_auditoria DESC LIMIT 1));
+-- UPDATE de varias filas que incluye al propio administrador.
+SELECT id_usuario INTO @adm2 FROM usuarios WHERE documento = 'PRUEBA-ADM2';
+SET @app_id_usuario = @adm2;
+SET @app_justificacion = NULL;
+CALL pr_esperar_error('M09', 'I1: varias filas (incluido el propio administrador) sin justificación se rechazan',
+  "UPDATE usuarios SET estado = 'Inactivo' WHERE id_usuario IN (@a9, @adm2)", 'exige una justificación');
+SET @app_justificacion = 'Cierre de fichas';
+CALL pr_esperar_exito('M10', 'I1: con justificación, varias filas con el administrador al final se aceptan',
+  "UPDATE usuarios SET estado = 'Inactivo' WHERE id_usuario IN (@a9, @adm2) ORDER BY id_usuario = @adm2");
+CALL pr_verificar('M11', 'I1: las dos filas quedan con origen Usuario, el administrador y la justificación',
+  (SELECT COUNT(*) FROM auditoria
+    WHERE entidad = 'usuarios' AND id_entidad IN (@a9, @adm2) AND id_usuario = @adm2
+      AND JSON_UNQUOTE(JSON_EXTRACT(detalle, '$.origen')) = 'Usuario'
+      AND JSON_UNQUOTE(JSON_EXTRACT(detalle, '$.justificacion')) = 'Cierre de fichas') = 2,
+  'Se esperaban 2 filas');
+SET @app_id_usuario = 5;
+SET @app_justificacion = 'Lote de prueba';
+CALL pr_esperar_error('M12', 'Límite: si el administrador se inactiva primero, las filas siguientes ya no son suyas (se rechaza todo)',
+  "UPDATE usuarios SET estado = 'Inactivo' WHERE id_usuario IN (5, @a1) ORDER BY id_usuario = 5 DESC",
+  'Solo un administrador activo puede');
+CALL pr_verificar('M13', 'Límite: como la sentencia se deshace, el administrador 5 y @a1 siguen Activos',
+  (SELECT COUNT(*) FROM usuarios WHERE id_usuario IN (5, @a1) AND estado = 'Activo') = 2,
+  (SELECT GROUP_CONCAT(CONCAT(id_usuario, '=', estado)) FROM usuarios WHERE id_usuario IN (5, @a1)));
+
+-- I2 (rev2.sql): SET timestamp no falsea las fechas de la auditoría ni de
+-- las migraciones.
+SET @app_id_usuario = 5;
+SET @app_justificacion = 'Reactivación';
+SELECT MAX(id_auditoria) INTO @aud_m14 FROM auditoria;
+SET timestamp = UNIX_TIMESTAMP('2001-02-03');
+UPDATE usuarios SET estado = 'Activo' WHERE id_usuario = @a9;
+INSERT INTO migraciones (id_usuario, nombre_archivo, entidad_destino, total_registros)
+VALUES (5, 'ronda8.xlsx', 'usuarios', 3);
+SET @mig8 = LAST_INSERT_ID();
+UPDATE migraciones SET registros_exitosos = 3, estado = 'Completada' WHERE id_migracion = @mig8;
+SET timestamp = DEFAULT;
+CALL pr_verificar('M14', 'I2: con SET timestamp en 2001 la auditoría guarda la hora real',
+  (SELECT COUNT(*) FROM auditoria WHERE id_auditoria > @aud_m14) >= 3
+  AND (SELECT MIN(fecha) FROM auditoria WHERE id_auditoria > @aud_m14) >= NOW() - INTERVAL 1 MINUTE,
+  (SELECT CONCAT('filas=', COUNT(*), ' fecha mínima=', IFNULL(MIN(fecha), 'NULL')) FROM auditoria WHERE id_auditoria > @aud_m14));
+CALL pr_verificar('M15', 'I2: fecha_inicio y fecha_fin de la migración guardan la hora real',
+  (SELECT fecha_inicio >= NOW() - INTERVAL 1 MINUTE AND fecha_fin >= NOW() - INTERVAL 1 MINUTE
+     FROM migraciones WHERE id_migracion = @mig8),
+  (SELECT CONCAT('inicio=', fecha_inicio, ' fin=', IFNULL(fecha_fin, 'NULL')) FROM migraciones WHERE id_migracion = @mig8));
+
+-- I4: una migración terminada no se puede reescribir.
+CALL pr_esperar_error('M16', 'I4: no se pueden cambiar los totales de una migración terminada',
+  "UPDATE migraciones SET registros_exitosos = 2 WHERE id_migracion = @mig8",
+  'Una migración terminada no se puede modificar');
+CALL pr_esperar_error('M17', 'I4: una migración terminada no puede volver a En proceso',
+  "UPDATE migraciones SET estado = 'En proceso' WHERE id_migracion = @mig7",
+  'Una migración terminada no se puede modificar');
+
+-- B1 (rev3.sql): un aprendiz con sesión no puede bloquear a otros, aunque
+-- ponga intentos_fallidos = 3. Va al final del bloque: si fallara,
+-- bloquearía también a los administradores de las pruebas.
+SET @app_id_usuario = @a1;
+SET @app_justificacion = NULL;
+SELECT COUNT(*) INTO @aud_a1 FROM auditoria WHERE entidad = 'usuarios' AND id_usuario = @a1;
+CALL pr_esperar_error('M01', 'B1: un aprendiz con sesión no puede bloquear a los demás',
+  "UPDATE usuarios SET estado = 'Bloqueado' WHERE estado = 'Activo' AND id_usuario <> @a1",
+  'Solo un administrador activo puede');
+CALL pr_esperar_error('M02', 'B1: tampoco poniendo intentos_fallidos = 3',
+  "UPDATE usuarios SET estado = 'Bloqueado', intentos_fallidos = 3 WHERE estado = 'Activo' AND id_usuario <> @a1",
+  'Solo un administrador activo puede');
+CALL pr_verificar('M03', 'B1: el administrador 5 sigue Activo y no hay filas de auditoría hechas por el aprendiz',
+  (SELECT estado = 'Activo' FROM usuarios WHERE id_usuario = 5)
+  AND (SELECT COUNT(*) FROM auditoria WHERE entidad = 'usuarios' AND id_usuario = @a1) = @aud_a1,
+  (SELECT CONCAT('estado admin 5=', estado) FROM usuarios WHERE id_usuario = 5));
+
+SET @app_id_usuario = 5;
 SET @app_justificacion = 'Cambio hecho por las pruebas automáticas';
 
 -- =====================================================================

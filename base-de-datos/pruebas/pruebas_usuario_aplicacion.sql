@@ -8,7 +8,9 @@
 --   * una cuenta bloqueada por intentos fallidos se desbloquea sola a los
 --     15 minutos, y no antes;
 --   * un cambio de estado del administrador exige @app_justificacion y
---     queda en auditoria; benefitrack_app no escribe en auditoria.
+--     queda en auditoria; benefitrack_app no escribe en auditoria;
+--   * pr_cambiar_estado_usuario se puede usar (EXECUTE) y limpia la
+--     justificación; un aprendiz con sesión no bloquea a otros.
 --
 -- Preparación (como root):
 --   1. benefitrack_v2.sql
@@ -97,6 +99,23 @@ SELECT COUNT(*) INTO @u9a FROM auditoria;
 INSERT INTO auditoria (id_usuario, accion, entidad, id_entidad) VALUES (5, 'FALSA', 'usuarios', 22);
 SELECT COUNT(*) INTO @u9b FROM auditoria;
 
+-- U10: benefitrack_app puede usar pr_cambiar_estado_usuario (EXECUTE); el
+-- procedimiento guarda su propia justificación y deja la variable en NULL.
+SET @app_id_usuario = 5;
+SET @app_justificacion = 'Motivo viejo';
+CALL pr_cambiar_estado_usuario(22, 'Inactivo', 'Fin de la etapa productiva');
+SELECT estado INTO @u10e FROM usuarios WHERE id_usuario = 22;
+SELECT JSON_UNQUOTE(JSON_EXTRACT(detalle, '$.justificacion')) INTO @u10j
+  FROM auditoria WHERE entidad = 'usuarios' AND id_entidad = 22 ORDER BY id_auditoria DESC LIMIT 1;
+SET @u10v = @app_justificacion;
+
+-- U11 (B1): el aprendiz 21 con sesión no puede bloquear a los demás, ni
+-- poniendo intentos_fallidos = 3 (debe fallar).
+SET @app_id_usuario = 21;
+SET @app_justificacion = NULL;
+UPDATE usuarios SET estado = 'Bloqueado', intentos_fallidos = 3 WHERE estado = 'Activo' AND id_usuario <> 21;
+SELECT COUNT(*) INTO @u11 FROM usuarios WHERE estado = 'Bloqueado';
+
 ROLLBACK;
 SET @app_id_usuario = NULL;
 
@@ -125,3 +144,9 @@ SELECT 'U8' AS caso, 'Sin justificación se rechaza; con ella el cambio queda en
 SELECT 'U9' AS caso, 'benefitrack_app no puede insertar en auditoria directamente' AS descripcion,
        IF(@u9a = @u9b, 'OK', 'FALLO') AS resultado,
        CONCAT('filas antes=', IFNULL(@u9a, 'NULL'), ' después=', IFNULL(@u9b, 'NULL')) AS detalle;
+SELECT 'U10' AS caso, 'pr_cambiar_estado_usuario funciona con benefitrack_app y no deja la justificación puesta' AS descripcion,
+       IF(@u10e = 'Inactivo' AND @u10j = 'Fin de la etapa productiva' AND @u10v IS NULL, 'OK', 'FALLO') AS resultado,
+       CONCAT('estado=', IFNULL(@u10e, 'NULL'), ' justificacion=', IFNULL(@u10j, 'NULL'),
+              ' variable después=', IFNULL(@u10v, 'NULL')) AS detalle;
+SELECT 'U11' AS caso, 'Un aprendiz con sesión no puede bloquear a los demás (ni con intentos = 3)' AS descripcion,
+       IF(@u11 = 0, 'OK', 'FALLO') AS resultado, CONCAT('bloqueados=', IFNULL(@u11, 'NULL')) AS detalle;
