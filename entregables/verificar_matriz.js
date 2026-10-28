@@ -22,7 +22,8 @@
  *   (i) todos los tipos de documento de la semilla del SQL aparecen en RF-3.1
  *       (esta sí lee el SQL);
  *   (j) los minutos del desbloqueo automático de RF-2.0 y RF-1.3 son los del
- *       trigger tr_usuario_validar (lee el SQL; compara el número completo,
+ *       SQL (todas las apariciones en el bloque de usuarios, que deben ser
+ *       iguales entre sí; compara el número completo,
  *       así "115 minutos" no cuenta como "15 minutos");
  *   (k) no quedan preguntas abiertas ni temas "por confirmar" en la hoja de
  *       la matriz ni en la sección 7 de entregables/CAMBIOS_MATRIZ.md (donde
@@ -352,12 +353,34 @@ function reglaTiposDocumento(filas, rutaSql) {
     .map((t) => `RF-3.1: no menciona el tipo de documento «${t}», que existe en el SQL`);
 }
 
-/** (j) RN-2.0 y RN-1.3 dicen los mismos minutos de desbloqueo que tr_usuario_validar. */
-function reglaMinutosDesbloqueo(filas, rutaSql) {
+/**
+ * Minutos de desbloqueo que usa el SQL: todas las apariciones de
+ * "INTERVAL n MINUTE" y de "n minutos" dentro del código (sin comentarios)
+ * del bloque de usuarios (desde "-- Usuarios" hasta "-- Documentos de la
+ * postulación"). Así no depende de en qué trigger o función esté el cálculo.
+ */
+function minutosDesbloqueoSql(rutaSql) {
   const sql = fs.readFileSync(rutaSql, 'utf8');
-  const trigger = sql.match(/CREATE\s+TRIGGER\s+tr_usuario_validar\b[\s\S]*?END\/\//i);
-  const m = trigger && trigger[0].match(/INTERVAL\s+(\d+)\s+MINUTE/i);
-  if (!m) return ['no se encontró el INTERVAL ... MINUTE de tr_usuario_validar en el SQL'];
+  const bloque = sql.match(/^-- Usuarios\s*$([\s\S]*?)^-- Documentos de la postulaci/m);
+  if (!bloque) return { error: 'no se encontró el bloque de usuarios («-- Usuarios» … «-- Documentos de la postulación») en el SQL' };
+  const codigo = bloque[1].split('\n').map((l) => l.replace(/--.*$/, '')).join('\n');
+  const valores = [
+    ...[...codigo.matchAll(/INTERVAL\s+(\d+)\s+MINUTE/gi)].map((x) => x[1]),
+    ...[...codigo.matchAll(/(?<![0-9])(\d+) minutos/gi)].map((x) => x[1]),
+  ];
+  if (valores.length === 0) return { error: 'no se encontró ningún INTERVAL ... MINUTE en el bloque de usuarios del SQL' };
+  return { valores };
+}
+
+/** (j) RF-2.0 y RF-1.3 dicen los mismos minutos de desbloqueo que el SQL, y el SQL es coherente. */
+function reglaMinutosDesbloqueo(filas, rutaSql) {
+  const leido = minutosDesbloqueoSql(rutaSql);
+  if (leido.error) return [leido.error];
+  const distintos = [...new Set(leido.valores)];
+  if (distintos.length > 1) {
+    return [`el SQL usa minutos distintos en el bloque de usuarios: ${distintos.join(', ')} (deberían ser iguales)`];
+  }
+  const m = [null, distintos[0]];
   const frase = `${m[1]} minutos`;
   const errores = [];
   for (const rf of ['RF-2.0', 'RF-1.3']) {
