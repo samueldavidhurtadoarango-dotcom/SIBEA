@@ -3,6 +3,12 @@ const ExcelJS = require('exceljs');
 const { modulos, cambios } = require('./datos_matriz');
 
 const SALIDA = process.argv[2];
+if (!SALIDA) {
+  console.error('Falta la ruta de salida del Excel.\n'
+    + 'Uso: node herramientas/generar_matriz.js <ruta_salida.xlsx>\n'
+    + 'Ejemplo: node herramientas/generar_matriz.js entregables/Matriz_Requisitos_v2.xlsx');
+  process.exit(1);
+}
 const FUENTE = 'Arial';
 const AZUL = 'FF1F4E79';
 const AZUL_CLARO = 'FFDDEBF7';
