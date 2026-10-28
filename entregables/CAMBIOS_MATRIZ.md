@@ -49,22 +49,23 @@ node entregables/verificar_matriz.js originales/Matriz_Requisitos.xlsx # revisa 
 
 | Regla | Qué revisa | Original | v2 |
 |---|---|---|---|
-| (c) | Cada `tabla: campo` del RI existe en `benefitrack_v2.sql` | FALLO (15 problemas) | OK |
+| (c) | Cada `tabla: campo` del RI existe en `benefitrack_v2.sql`, y cada procedimiento, función o trigger citado en la hoja (`pr_…`, `fn_…`, `tr_…`) también existe | FALLO (15 problemas) | OK |
 | (d) | No aparecen «OCR», «resultado_ocr», «datos_extraidos», «Estudiante», «Completado», «Borrador», «En revisión» ni «Enviada» | FALLO (5 problemas) | OK |
 | (e) | RF-x.y, RN-x.y y RI-x.y tienen el mismo número en cada fila | FALLO (4 problemas) | OK |
 | (g) | El estado del requisito es «Obligatorio» u «Opcional» | FALLO (2 problemas) | OK |
-| (h) | Frases acordadas de las reglas de la base de datos (rondas 2 a 7) presentes en el requisito que corresponde, y ausencia de algunas frases equivocadas conocidas | FALLO (29 problemas) | OK |
+| (h) | Frases acordadas de las reglas de la base de datos (rondas 2 a 8) presentes en el requisito que corresponde, y ausencia de algunas frases equivocadas conocidas | FALLO (29 problemas) | OK |
 | (i) | Los tipos de documento de la semilla del SQL (`tipos_documento`) aparecen en RF-3.1 | FALLO (4 problemas) | OK |
-| (j) | RF-2.0 y RF-1.3 dicen los mismos minutos de desbloqueo que el trigger `tr_usuario_validar` (15), comparando el número completo | FALLO (2 problemas) | OK |
+| (j) | RF-2.0 y RF-1.3 dicen los mismos minutos de desbloqueo que el SQL (15). Lee todas las apariciones en el bloque de usuarios del SQL (hoy, `fn_cambio_estado_sistema` y el texto de la auditoría), exige que sean iguales entre sí y compara el número completo | FALLO (2 problemas) | OK |
 | (k) | No quedan preguntas abiertas ni temas «por confirmar» en la hoja ni en la sección 7 de este documento | OK | OK |
 | (l) | Frases acordadas del bloqueo de la cuenta (quién bloquea y quién desbloquea) presentes | FALLO (8 problemas) | OK |
-| (m) | Frases acordadas de la auditoría de cuentas y migraciones (rondas 7 y 8) presentes | FALLO (16 problemas) | OK |
+| (m) | Frases acordadas de la auditoría de cuentas y migraciones (rondas 7 y 8) presentes | FALLO (25 problemas) | OK |
 
 La regla (d) revisa solo la hoja «Matriz de Requisitos». La hoja «Control de cambios» sí nombra esas
 palabras, porque explica qué se quitó.
 
 Las reglas (h) a (l) se agregaron el 27/10/2026 (sección 9) y la (m), el mismo día en la segunda tanda
-(sección 10).
+(sección 10). El 28/10/2026, con la octava ronda, (c) pasó a revisar también los nombres de las
+rutinas y (j) a leer los minutos de todo el bloque de usuarios (sección 11).
 
 **Qué lee del SQL y qué no (dicho con honestidad).** Hay dos tipos de reglas:
 
@@ -74,9 +75,9 @@ Las reglas (h) a (l) se agregaron el 27/10/2026 (sección 9) y la (m), el mismo 
   las frases se copiaron de `base-de-datos/CAMBIOS.md` y se revisaron contra `benefitrack_v2.sql`, pero
   el verificador **no lee el SQL** para estas reglas. Comprueban que esas frases estén y que no
   aparezcan algunas frases equivocadas que ya conocemos; no pueden garantizar que ninguna otra frase
-  de la matriz contradiga la base. Si la base de datos cambia, hay que actualizar la lista. Unas pocas
-  frases de (l) y (m) ya describen la octava ronda de la base de datos, que todavía no está en el SQL de
-  esta rama (sección 10.4).
+  de la matriz contradiga la base. Si la base de datos cambia, hay que actualizar la lista. Las frases de
+  (h), (l) y (m) ya incluyen la octava ronda, que desde el 28/10/2026 está en el SQL de esta rama
+  (sección 11).
 
 **Sobre la regla (k).** Nunca estuvo en rojo contra la original, porque la hoja original no tenía
 frases como «por confirmar»: las preguntas abiertas estaban escritas en la sección 7 de este documento.
@@ -308,9 +309,9 @@ Esta tabla sale de la columna «Requisitos de información» de la matriz. Las 2
 
 ## 9. Cambios del 27/10/2026: reglas de la base de datos y decisiones de Samuel
 
-La base de datos tuvo varias rondas más de correcciones (de la segunda a la séptima: secciones 6 a 11
+La base de datos tuvo varias rondas más de correcciones (de la segunda a la octava: secciones 6 a 12
 de `base-de-datos/CAMBIOS.md`). Esta sección cubre las rondas 2 a 6; la séptima (auditoría de cuentas y
-migraciones) está en la sección 10. La matriz las tiene que decir también; si no, quien programe la
+migraciones) está en la sección 10 y la octava, en la sección 11. La matriz las tiene que decir también; si no, quien programe la
 aplicación se encontraría con errores de la base de datos que ningún requisito explica. Es como un
 reglamento del colegio: si el portero no deja entrar sin carné, el reglamento escrito tiene que
 decirlo.
@@ -400,17 +401,55 @@ Igual que antes: primero se cambió el verificador y se ejecutó contra la matri
 Contra la matriz original da **1 de 10** (solo (k) pasa). Lo mismo se repitió para las reglas de la
 octava ronda.
 
-### 10.4 Advertencia honesta: la octava ronda todavía no está en este SQL
+### 10.4 La octava ronda: el SQL ya la cumple
 
-Algunas reglas ya están escritas en su forma final, pero el script `base-de-datos/benefitrack_v2.sql`
-de esta rama (séptima ronda) todavía no las hace cumplir del todo. La octava ronda se trabaja en otra
-rama. Mientras llega:
+Cuando se escribió esta tanda, algunas reglas se redactaron en su forma final antes de que la octava
+ronda llegara al SQL. Desde el 28/10/2026 esta rama está rebasada sobre esa ronda y
+`base-de-datos/benefitrack_v2.sql` **ya las cumple**:
 
-- hoy la base deja pasar una cuenta de Activo a Bloqueado sin administrador aunque no haya 3 intentos
-  fallidos (la cuenta de los 3 intentos la lleva la aplicación);
-- una migración terminada todavía se puede modificar;
-- la justificación de un cambio de estado (`@app_justificacion`) se queda en la sesión y podría servir
-  para el siguiente cambio si la aplicación no la limpia.
+- el bloqueo automático solo cuenta como tal si lo hace el inicio de sesión (sin usuario de sesión) y
+  la cuenta tiene 3 o más intentos fallidos; si no, hace falta un administrador activo con
+  justificación;
+- una migración terminada (que ya no está En proceso) no se puede modificar;
+- la fecha de la auditoría la pone la base con la hora real del servidor;
+- los procedimientos `pr_cambiar_estado_usuario` y `pr_cambiar_rol_usuario` usan la justificación
+  solo para ese cambio y la borran al terminar, aunque el cambio falle.
 
-La matriz no menciona procedimientos ni columnas que aún no existen en este SQL, para que la regla (c)
-siga siendo cierta.
+## 11. Cambios del 28/10/2026: octava ronda de la base de datos (decisiones D13 a D17)
+
+La octava ronda (sección 12 de `base-de-datos/CAMBIOS.md` y decisiones D13 a D17 de
+`specs/001-correccion-entregables.md`) cambió quién cuenta como autor de cada cambio. Es como el libro
+de visitas de un edificio: no basta con anotar «alguien entró»; hay que distinguir si fue el portero
+automático, el técnico de mantenimiento o una persona con nombre.
+
+### 11.1 Qué cambió en la matriz
+
+| Requisito | Qué dice ahora, en palabras sencillas | Decisión |
+|---|---|---|
+| RN-1.2 | El cambio de rol también exige una justificación, que queda en la auditoría. La vía recomendada es `pr_cambiar_rol_usuario`. | D15 |
+| RN-1.3 | Cada cambio de estado lleva su propia justificación. La vía recomendada es `pr_cambiar_estado_usuario`, que la borra al terminar. | D15 |
+| RN-2.3 | Fuera del mantenimiento de la base con `root` (que también debe justificar los cambios de cuentas), una acción de gestión sin usuario identificado se rechaza. | D17 |
+| RN-4.3 | Las fechas de inicio y de fin de una carga desde Excel las pone el sistema. | D16 |
+| RN-4.4 | La auditoría de las cuentas distingue tres orígenes: **Sistema** (cambio automático del inicio de sesión), **Mantenimiento** (`root` sin usuario de sesión) y **Usuario** (una persona con sesión). El usuario vacío solo significa «el sistema» cuando el origen es Sistema. | D15, D17 |
+
+La hoja «Control de cambios» tiene 1 fila nueva por esta ronda (65 en total).
+
+### 11.2 Qué cambió en el verificador
+
+- **(j) lee los minutos de donde estén.** La octava ronda movió el cálculo de los 15 minutos de
+  `tr_usuario_validar` a `fn_cambio_estado_sistema`, y el verificador dejó de encontrarlo (9 de 10).
+  Ahora (j) junta todas las apariciones de «INTERVAL n MINUTE» y «n minutos» en el código del bloque
+  de usuarios del SQL, exige que sean iguales entre sí y que coincidan con RF-2.0 y RF-1.3. Se probó
+  con una copia del SQL que decía 20 en un lugar: (j) falló como debía.
+- **(c) revisa también las rutinas.** Como la matriz ahora cita procedimientos, (c) comprueba que
+  cada `pr_…`, `fn_…` o `tr_…` de la hoja exista en el SQL. Se probó con una copia del SQL que
+  renombraba `pr_cambiar_rol_usuario`: (c) falló como debía.
+- **(h) y (m)** tienen frases nuevas para las decisiones de la tabla de arriba.
+
+### 11.3 Cómo se comprobó
+
+Primero se cambió el verificador y se ejecutó contra la matriz anterior (rojo: 8 de 10, fallaban (h)
+y (m)). Luego se cambiaron los datos, se regeneró el Excel y quedó en **10 de 10 reglas OK** (verde).
+Contra la matriz original da **1 de 10**: solo pasa (k); (m) tiene 25 problemas. Se revisaron los RN
+de cuentas, auditoría y migraciones contra el SQL de la octava ronda y no se encontraron
+contradicciones.

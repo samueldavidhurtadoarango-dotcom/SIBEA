@@ -16,7 +16,7 @@
  *   (d) no aparecen palabras prohibidas (OCR, Estudiante, estados eliminados);
  *   (e) en cada fila coinciden los números RF-x.y, RN-x.y y RI-x.y;
  *   (g) el estado del requisito es "Obligatorio" u "Opcional";
- *   (h) frases acordadas de las reglas de la base de datos (rondas 2 a 7 de
+ *   (h) frases acordadas de las reglas de la base de datos (rondas 2 a 8 de
  *       base-de-datos/CAMBIOS.md) presentes en el RF/RN que corresponde, y
  *       ausencia de algunas frases equivocadas conocidas. OJO: esta regla NO
  *       lee el SQL; las frases se copiaron a mano de CAMBIOS.md y se revisaron
@@ -302,7 +302,7 @@ function revisarFrases(filas, lista) {
   return errores;
 }
 
-// (h) Frases acordadas de las reglas de la base de datos (rondas 2 a 7 de
+// (h) Frases acordadas de las reglas de la base de datos (rondas 2 a 8 de
 // base-de-datos/CAMBIOS.md) y decisiones de Samuel del 27/10/2026. Son frases
 // copiadas a mano y revisadas contra el SQL; el verificador no lee el SQL aquí.
 const REGLAS_BD = [
@@ -448,8 +448,8 @@ function reglaSinPreguntasAbiertas(celdas, rutaMd) {
 }
 
 // (l) Frases acordadas de quién bloquea y quién desbloquea una cuenta
-// (copiadas a mano de las rondas 4 a 6 de CAMBIOS.md y de la ronda 8 que
-// anunció el coordinador el 27/10/2026; no leídas del SQL).
+// (copiadas a mano de las rondas 4 a 6 y de la octava ronda de CAMBIOS.md,
+// decisión D13 de la spec; no leídas del SQL).
 const FRASES_BLOQUEO_EQUIVOCADAS = ['hasta que el administrador lo reactive', 'hasta que un administrador la desbloquee',
   'bloqueo permanente', 'bloqueada de forma permanente'];
 const REGLAS_BLOQUEO = [
