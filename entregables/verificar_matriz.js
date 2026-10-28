@@ -404,7 +404,8 @@ function reglaSinPreguntasAbiertas(celdas, rutaMd) {
 }
 
 // (l) Frases acordadas de quién bloquea y quién desbloquea una cuenta
-// (copiadas a mano de las rondas 4 a 6 de CAMBIOS.md, no leídas del SQL).
+// (copiadas a mano de las rondas 4 a 6 de CAMBIOS.md y de la ronda 8 que
+// anunció el coordinador el 27/10/2026; no leídas del SQL).
 const FRASES_BLOQUEO_EQUIVOCADAS = ['hasta que el administrador lo reactive', 'hasta que un administrador la desbloquee',
   'bloqueo permanente', 'bloqueada de forma permanente'];
 const REGLAS_BLOQUEO = [
@@ -412,6 +413,10 @@ const REGLAS_BLOQUEO = [
     debe: ['solo una cuenta activa puede quedar bloqueada por intentos fallidos',
       'la fecha de bloqueo la pone el sistema en el momento del bloqueo'],
     noDebe: FRASES_BLOQUEO_EQUIVOCADAS },
+  { rf: 'RF-2.0', que: 'el bloqueo y el desbloqueo automáticos solo los hace el sistema (ronda 8)',
+    debe: ['el bloqueo automático solo lo hace el sistema durante el inicio de sesión (sin usuario de sesión) y solo tras 3 intentos fallidos',
+      'cualquier otro bloqueo lo hace un administrador activo con justificación',
+      'el desbloqueo automático solo lo hace el sistema, pasados 15 minutos'] },
   { rf: 'RF-1.3', que: 'una cuenta Inactiva solo la reactiva un administrador activo',
     debe: ['una cuenta inactiva solo la reactiva un administrador activo',
       'no se reactiva sola ni pasando por bloqueado'],
@@ -425,8 +430,8 @@ function reglaBloqueoCuenta(filas) {
   return revisarFrases(filas, REGLAS_BLOQUEO);
 }
 
-// (m) Frases acordadas de la auditoría de cuentas y migraciones (séptima ronda
-// de CAMBIOS.md: tr_usuario_auditar, @app_justificacion, tr_migracion_creada y
+// (m) Frases acordadas de la auditoría de cuentas y migraciones (séptima ronda y ronda 8 anunciada
+// por el coordinador; ver CAMBIOS.md: tr_usuario_auditar, @app_justificacion, tr_migracion_creada y
 // tr_migracion_actualizada). Copiadas a mano, no leídas del SQL.
 const REGLAS_AUDITORIA = [
   { rf: 'RF-1.2', que: 'la base audita el cambio de rol, no los demás datos del usuario',
@@ -436,18 +441,21 @@ const REGLAS_AUDITORIA = [
   { rf: 'RF-1.3', que: 'todo cambio de estado queda en auditoría; justificación obligatoria si lo hace una persona',
     debe: ['todo cambio de estado queda en la auditoría con quién lo hizo, cuándo, el estado anterior y el nuevo y la justificación',
       'si el cambio lo hace una persona, la justificación es obligatoria y sin ella el sistema rechaza el cambio',
-      'el bloqueo por intentos fallidos y el desbloqueo automático quedan registrados como hechos por el sistema'],
+      'el bloqueo por intentos fallidos y el desbloqueo automático quedan registrados como hechos por el sistema',
+      'cada cambio de estado lleva su propia justificación'],
     noDebe: ['el cambio exige una justificación que se guarda en auditoría'] },
-  { rf: 'RF-2.0', que: 'el bloqueo y el desbloqueo automáticos quedan en auditoría como hechos por el sistema',
-    debe: ['el bloqueo y el desbloqueo automáticos quedan en la auditoría como hechos por el sistema'] },
-  { rf: 'RF-4.3', que: 'las migraciones dejan huella al iniciar o registrar y en cada cambio de estado',
+  { rf: 'RF-2.0', que: 'el bloqueo y el desbloqueo automáticos quedan en auditoría como hechos por el sistema, sin autor',
+    debe: ['el bloqueo y el desbloqueo automáticos quedan en la auditoría como hechos por el sistema, sin autor'] },
+  { rf: 'RF-4.3', que: 'las migraciones dejan huella y, ya terminadas, no se modifican (ronda 8)',
     debe: ['cada carga queda en la auditoría al iniciarse o registrarse y en cada cambio de su estado (por ejemplo, al terminar)',
-      'actualizar solo los contadores mientras sigue en proceso no se anota'] },
+      'actualizar solo los contadores mientras sigue en proceso no se anota',
+      'una migración terminada (que ya no está en proceso) no se puede modificar'] },
   { rf: 'RF-4.4', que: 'qué anota la base en la auditoría y quién queda registrado',
     debe: ['los cambios de rol o de estado de los usuarios', 'las migraciones desde excel',
       'el propio aprendiz cuando crea o corrige su postulación',
       'el administrador cuando valida, aprueba o rechaza',
-      'en el bloqueo y el desbloqueo automáticos de una cuenta el campo queda vacío y significa que lo hizo el sistema'],
+      'en el bloqueo y el desbloqueo automáticos de una cuenta el campo queda vacío y significa que lo hizo el sistema',
+      'la fecha de la auditoría la pone el sistema y no se puede alterar'],
     noDebe: ['el aprendiz dueño de la postulación', 'cada cambio de estado, validación, aprobación, pago y novedad'] },
 ];
 
