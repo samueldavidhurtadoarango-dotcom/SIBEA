@@ -89,7 +89,7 @@ C:\xampp\mysql\bin\mysql.exe -u root --default-character-set=utf8mb4 --table < b
 La salida muestra la misma tabla de resumen. Resultado esperado:
 
 ```
-| TOTAL | OK | 312 casos: 312 OK, 0 FALLO | TODAS LAS PRUEBAS PASAN |
+| TOTAL | OK | 356 casos: 356 OK, 0 FALLO | TODAS LAS PRUEBAS PASAN |
 ```
 
 Si algún caso dice `FALLO`, la columna `detalle` explica qué pasó (por ejemplo, el
@@ -131,10 +131,19 @@ es de gestión y escribe en el historial o la auditoría, falla con el error 145
 
 **Control de rol.** Las acciones de gestión (validar, aprobar o rechazar postulaciones y
 documentos, pedir documentación, gestionar asignaciones, registrar o anular pagos, registrar
-novedades, y crear una convocatoria o cambiar sus cupos o su estado) solo se aceptan si `@app_id_usuario` es un
+novedades, crear o modificar una convocatoria (cualquier dato), escribir la observación de un
+documento, cerrar una solicitud de documentación y crear o modificar beneficios y catálogos:
+instituciones, tipos de cuenta, tipos de documento, entidades bancarias, EPS y programas) solo se
+aceptan si `@app_id_usuario` es un
 usuario con rol Administrador y estado Activo. Si no, la base responde, por ejemplo,
 `Solo un administrador activo puede aprobar una postulación`. Las rutinas que hacen esta revisión
 son `fn_es_administrador` y `pr_exigir_administrador`.
+
+**Acciones del aprendiz dueño.** Reemplazar el archivo de un documento Pendiente o Rechazado y
+marcar como atendida una solicitud de documentación las puede hacer el aprendiz dueño de la
+postulación (o un administrador); lo revisa `pr_exigir_dueno_o_administrador`. Un documento
+Validado no se reemplaza. Quién y cuándo (autor, fechas de carga, de atención y de cierre) los pone
+siempre la base: si la aplicación los manda, se ignoran o se rechazan.
 
 **Si la variable es `NULL`.** Solo el usuario de mantenimiento `root` puede hacer acciones de
 gestión con la variable en `NULL` (se guarda `NULL`, decisión D9). Con **cualquier otro usuario de
@@ -298,7 +307,7 @@ Para comprobar los controles con ese usuario (después de `benefitrack_v2.sql`,
 C:\xampp\mysql\bin\mysql.exe -u benefitrack_app -p --default-character-set=utf8mb4 --force --table < base-de-datos\pruebas\pruebas_usuario_aplicacion.sql
 ```
 
-Los `ERROR 1644` que aparecen son los rechazos esperados; las filas U1 a U12 deben decir `OK` (también aparecen un `ERROR 1142`, el rechazo esperado de U9, y un `ERROR 1644` «Un documento nuevo debe empezar en estado Pendiente», el rechazo esperado de U12).
+Los `ERROR 1644` que aparecen son los rechazos esperados; las filas U1 a U13 deben decir `OK` (también aparecen un `ERROR 1142`, el rechazo esperado de U9, y un `ERROR 1644` «Un documento nuevo debe empezar en estado Pendiente», el rechazo esperado de U12).
 
 ---
 

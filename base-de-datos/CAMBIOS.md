@@ -20,7 +20,7 @@ especificación no menciona, se indica como **Error del original**.
 | Al final había un bloque de "AJUSTES" que modificaba tablas ya creadas (`ALTER TABLE`) y reemplazaba triggers. | Cada tabla se crea una sola vez con su forma final. | Evita que la estructura dependa del orden de los parches. |
 | Tablas creadas en orden alfabético con las llaves foráneas desactivadas. | Tablas creadas en orden de dependencias (primero catálogos, luego usuarios, convocatorias, postulaciones, pagos...). | El script no necesita desactivar las llaves foráneas para funcionar. |
 | Nombres de índices y restricciones mezclados (`fk_...` usado también para índices simples). | Prefijos claros: `uk_` (único), `idx_` (índice), `fk_` (llave foránea), `chk_` (regla CHECK). | Se entiende de un vistazo qué es cada cosa. |
-| Las reglas de negocio vivían solo en la aplicación (o no existían). | Las reglas clave se fuerzan en la base con triggers que lanzan errores en español (`SQLSTATE '45000'`). | La aplicación no puede saltarse las reglas por error. **Ojo:** los triggers no protegen contra quien tiene permisos totales (por ejemplo `root`), que puede borrar triggers o escribir directamente en las tablas. Por eso la aplicación debe conectarse con un usuario de permisos limitados (`usuario_aplicacion.sql`, ver la sección 14). |
+| Las reglas de negocio vivían solo en la aplicación (o no existían). | Las reglas clave se fuerzan en la base con triggers que lanzan errores en español (`SQLSTATE '45000'`). | La aplicación no puede saltarse las reglas por error. **Ojo:** los triggers no protegen contra quien tiene permisos totales (por ejemplo `root`), que puede borrar triggers o escribir directamente en las tablas. Por eso la aplicación debe conectarse con un usuario de permisos limitados (`usuario_aplicacion.sql`, ver la sección 15). |
 | Los triggers guardaban un usuario fijo o el aprendiz dueño. | Todos usan la variable de sesión `@app_id_usuario`. | **D9** (ver la sección 4). |
 
 ---
@@ -130,7 +130,7 @@ especificación no menciona, se indica como **Error del original**.
 | `tr_postulacion_rechazada` | **Reemplazado** por `tr_postulacion_notificar`; el aviso incluye la justificación obligatoria. | **D1**, **D8** |
 | `tr_pago_completar_postulacion` | **Reemplazado** por `tr_pago_registrado`: ya no pasa la postulación a "Completado"; pasa la **asignación** a "Finalizado". | **D3** |
 
-### Triggers del script corregido (36)
+### Triggers del script corregido (51)
 
 **Postulaciones y convocatorias**
 
@@ -146,14 +146,15 @@ especificación no menciona, se indica como **Error del original**.
 | `tr_solicitud_documentacion_validar` | antes de insertar en `solicitudes_documentacion` | Solo un administrador pide documentos, y solo a postulaciones Pendiente. La solicitud nace Pendiente (otro estado se rechaza), sin fecha de atención, con fecha de la hora real y a nombre del usuario de sesión. | D1, D9 |
 | `tr_postulacion_no_eliminar` | antes de borrar | Impide borrar postulaciones (se rechazan con justificación). | D9 |
 | `tr_convocatoria_validar_insercion` | antes de insertar una convocatoria | Solo un administrador activo la crea; nace Activa o Inactiva (otro estado se rechaza) y sin datos de cierre (`usuario_cierre` y `fecha_cierre_real` en `NULL`). | D2, D9 |
-| `tr_convocatoria_validar` | antes de actualizar una convocatoria | Los cupos no pueden quedar por debajo de las postulaciones ya aprobadas. | D2 |
+| `tr_convocatoria_validar` | antes de actualizar una convocatoria | Todo cambio exige un administrador activo. Los cupos no pueden quedar por debajo de las postulaciones ya aprobadas. Al pasar a Cerrada o Cierre anticipado, la base anota quién (usuario de sesión) y cuándo (hora real); al reabrir, los vacía; fuera de eso no se escriben a mano. | D2, D9 |
+| `tr_solicitud_documentacion_actualizar` | antes de actualizar una solicitud de documentación | Lo pedido, a quién, quién lo pidió y cuándo no cambian. Solo Pendiente → Atendida (el aprendiz dueño o un administrador; fecha de atención = hora real) o Pendiente → Cerrada (solo un administrador; sin fecha de atención). | D1, D9 |
 
 **Asignaciones**
 
 | Trigger | Cuándo | Qué hace | Decisión |
 |---|---|---|---|
 | `tr_asignacion_validar_insercion` | antes de insertar | Solo si la postulación está Aprobada; solo una asignación por postulación (se revisa antes que la fecha); la fecha de inicio debe estar entre el inicio de la convocatoria y un año después de hoy; debe empezar En curso; con usuario de sesión, el registro queda a su nombre. | D3, D9 |
-| `tr_asignacion_validar_estado` | antes de actualizar | Transiciones válidas (En curso → Finalizado/Suspendido/Cancelado, Suspendido → En curso/Cancelado, Finalizado → En curso **solo** cuando lo pide `tr_pago_anulado`); Finalizado solo con todos los pagos vigentes (contados con `LOCK IN SHARE MODE`); motivo nuevo obligatorio al suspender, reactivar o cancelar; valor, número de pagos, duración y fecha de inicio solo se cambian si está En curso y aún no tiene pagos; la fecha de inicio nueva debe estar entre el inicio de la convocatoria y un año después de hoy. | D3, D4 |
+| `tr_asignacion_validar_estado` | antes de actualizar | Transiciones válidas (En curso → Finalizado/Suspendido/Cancelado, Suspendido → En curso/Cancelado, Finalizado → En curso **solo** cuando lo pide `tr_pago_anulado`); Finalizado solo con todos los pagos vigentes (contados con `LOCK IN SHARE MODE`); motivo nuevo obligatorio al suspender, reactivar o cancelar; valor, número de pagos, duración y fecha de inicio solo se cambian si está En curso y aún no tiene pagos; la fecha de inicio nueva debe estar entre el inicio de la convocatoria y un año después de hoy; quién la registró no cambia. | D3, D4, D9 |
 | `tr_asignacion_cambio_estado` | después de actualizar | Audita el cambio y crea automáticamente la novedad de Suspensión, Reactivación o Cancelación. | D5, D9 |
 | `tr_asignacion_no_eliminar` | antes de borrar | Impide borrar asignaciones (se cancelan con motivo). | D3 |
 
@@ -189,12 +190,24 @@ especificación no menciona, se indica como **Error del original**.
 | Trigger | Cuándo | Qué hace | Decisión |
 |---|---|---|---|
 | `tr_documento_validar_insercion` | antes de insertar un documento | Un documento nuevo debe estar Pendiente (otro estado se rechaza); deja en `NULL` quién lo validó, cuándo y la observación, y pone la fecha de carga con la hora real. | D6, D9 |
-| `tr_validacion_documento` | antes de actualizar un documento | Guarda fecha y usuario de la validación, y no deja escribirlos a mano. | D6, D9 |
+| `tr_validacion_documento` | antes de actualizar un documento | Guarda fecha y usuario de la validación y no deja escribirlos a mano, ni la fecha de carga, ni pasar el documento a otra postulación. La observación solo la cambia un administrador. Reemplazar el archivo: no si está Validado; si está Pendiente o Rechazado, solo el aprendiz dueño o un administrador, y vuelve a Pendiente sin datos de validación y con fecha de carga nueva. | D6, D9 |
 | `tr_novedad_preparar` | antes de insertar una novedad | Exige descripción y guarda quién la registró (con usuario de sesión, siempre ese usuario) y la hora real. | D5, D9 |
 | `tr_novedad_registrada` | después de insertar una novedad | Notifica al aprendiz y audita. | D8, D9 |
 | `tr_historial_no_modificar` / `tr_historial_no_eliminar` | antes de actualizar / borrar en `historial_estados` | El historial solo admite filas nuevas. | D9 |
 | `tr_auditoria_no_modificar` / `tr_auditoria_no_eliminar` | antes de actualizar / borrar en `auditoria` | La auditoría solo admite filas nuevas. | D9 |
 | `tr_auditoria_fecha` | antes de insertar en `auditoria` | La fecha de cada fila es la hora real del servidor (`SYSDATE()`). | D16 |
+
+**Catálogos y beneficios (14 triggers)**
+
+| Trigger | Cuándo | Qué hace | Decisión |
+|---|---|---|---|
+| `tr_institucion_crear` / `tr_institucion_modificar` | antes de insertar / actualizar en `instituciones` | Exigen un administrador activo (o `root` sin sesión, como la semilla). | D7, D18 |
+| `tr_tipo_cuenta_crear` / `tr_tipo_cuenta_modificar` | ídem en `tipos_cuenta` | Igual. | D7, D18 |
+| `tr_tipo_documento_crear` / `tr_tipo_documento_modificar` | ídem en `tipos_documento` | Igual. | D7, D18 |
+| `tr_banco_crear` / `tr_banco_modificar` | ídem en `entidades_bancarias` | Igual. | D7, D18 |
+| `tr_eps_crear` / `tr_eps_modificar` | ídem en `eps` | Igual. | D7, D18 |
+| `tr_programa_crear` / `tr_programa_modificar` | ídem en `programas` | Igual. | D7, D18 |
+| `tr_beneficio_crear` / `tr_beneficio_modificar` | ídem en `beneficios` | Igual. | D7, D18 |
 
 ---
 
@@ -330,7 +343,11 @@ Se revisa en estas acciones:
 | Registrar un pago | `tr_pago_validar` |
 | Anular un pago | `tr_pago_inmutable` |
 | Registrar una novedad | `tr_novedad_preparar` |
-| Cambiar los cupos o el estado de una convocatoria | `tr_convocatoria_validar` |
+| Crear una convocatoria | `tr_convocatoria_validar_insercion` |
+| Modificar una convocatoria (cualquier dato) | `tr_convocatoria_validar` |
+| Escribir la observación de un documento | `tr_validacion_documento` |
+| Cerrar una solicitud de documentación | `tr_solicitud_documentacion_actualizar` |
+| Crear o modificar instituciones, tipos de cuenta, tipos de documento, entidades bancarias, EPS, programas y beneficios | `tr_*_crear` / `tr_*_modificar` (sección 14) |
 
 Lo que el aprendiz sí puede seguir haciendo: crear su postulación y corregir su formulario mientras
 está Pendiente.
@@ -696,8 +713,14 @@ y cuándo» que se pudieran inventar al crear la fila:
 
 **La regla de autor, en una línea.** Si hay usuario de sesión (`@app_id_usuario`), la base pone a
 ese usuario como autor e ignora lo que mande la aplicación. Si no hay (solo `root`, en
-mantenimiento), respeta el valor recibido, porque un mantenimiento puede necesitar cargar datos
-históricos.
+mantenimiento), respeta **solo el autor** recibido. *(Corregido en la décima ronda, I1: antes decía
+que sin sesión se respetaba «el valor recibido» en general, y no es así.)* Aun con `root`:
+
+- las **fechas** (`fecha_carga`, `fecha_registro`, `fecha`, `fecha_solicitud`) las pone siempre la
+  base con la hora real: no se pueden cargar fechas históricas por esta vía;
+- los **estados iniciales** se validan igual (un documento o una solicitud deben nacer `Pendiente`;
+  una convocatoria, `Activa` o `Inactiva`);
+- los datos de validación, anulación, atención o cierre empiezan vacíos.
 
 **Pruebas nuevas.** Bloque O (O01 a O14) en `pruebas/pruebas_reglas.sql` y U12 en
 `pruebas/pruebas_usuario_aplicacion.sql` (como `benefitrack_app`, un aprendiz no puede subir un
@@ -708,7 +731,101 @@ No se cambiaron tablas ni columnas: se agregaron 2 triggers (ahora son 36) y se 
 
 ---
 
-## 14. Pendientes (solo documentados, no implementados todavía)
+## 14. Décima ronda: lo que ya existe solo lo cambia quien debe (explicado fácil)
+
+La auditoría de la novena ronda dijo «no se puede hacer merge» por tres huecos que **ya existían**
+en los cambios (`UPDATE`). La novena ronda cuidó las filas nuevas; esta cuida las que ya están.
+
+**B1. Convocatorias.** Antes solo se pedía administrador si cambiaban los cupos o el estado. Un
+aprendiz (o la aplicación con la variable en `NULL`) podía cambiar el valor del pago, el número de
+pagos, la duración o las fechas, y esos valores se copian a la asignación al aprobar. Es como si un
+estudiante pudiera cambiar el monto de la beca en el reglamento. Ahora:
+
+- **todo** cambio de una convocatoria exige un administrador activo;
+- al pasar a `Cerrada` o `Cierre anticipado`, la base anota quién la cerró (`usuario_cierre` = usuario
+  de sesión; sin sesión, solo `root`, se respeta el autor recibido) y cuándo (`fecha_cierre_real` =
+  hora real), aunque la aplicación mande otros valores;
+- al reabrirla (volver a `Activa` o `Inactiva`), esos dos datos se vacían;
+- fuera de esos dos momentos no se pueden escribir a mano: `Los datos del cierre de la convocatoria
+  los registra la base de datos; no se pueden modificar`.
+
+Con esto se cierra el pendiente «Quién cerró una convocatoria» de la ronda anterior.
+
+**B2. Documentos.** En un documento ya `Validado` se podía cambiar el archivo y seguía diciendo
+«validado por» el administrador, aunque él nunca vio el archivo nuevo. Ahora:
+
+- **Validado:** el archivo (tipo, nombre, ruta, extensión o tamaño) no se reemplaza: `Un documento
+  validado no se puede reemplazar`.
+- **Pendiente o Rechazado:** sí se puede reemplazar (así el aprendiz corrige un documento
+  rechazado), pero solo el **aprendiz dueño** de la postulación o un administrador. El documento
+  vuelve a `Pendiente`, se vacían quién lo validó, cuándo y la observación, y `fecha_carga` pasa a
+  ser la hora real. Si en el mismo cambio se intenta dejarlo `Validado`, se rechaza: se valida
+  después, por separado.
+- La **observación** es la nota del administrador: solo él la cambia.
+- `fecha_carga` no se cambia a mano.
+- **Decisión propia:** un documento **no se pasa a otra postulación** (`id_postulacion` fijo),
+  ni siquiera estando Pendiente. El pedido permitía cambiarlo en Pendiente o Rechazado, pero mover el
+  documento de una persona a la postulación de otra no tiene uso real y sí riesgo.
+
+**B3. Solicitudes de documentación.** No tenían control en los cambios: un aprendiz podía ponerse
+como autor, cambiar el texto pedido o inventar fechas. Nuevo trigger
+`tr_solicitud_documentacion_actualizar`:
+
+- no cambian lo pedido (`observacion`), la postulación, quién lo pidió ni cuándo;
+- solo se puede pasar de `Pendiente` a `Atendida` o a `Cerrada`. Nada vuelve atrás;
+- **Atendida** (decisión): la marca el **aprendiz dueño** de la postulación, que es quien sube lo
+  pedido, o un administrador. Otro aprendiz no puede. La fecha de atención es la hora real, aunque
+  se mande otra;
+- **Cerrada** (la solicitud ya no hace falta): solo un administrador, y queda sin fecha de atención
+  porque nadie la atendió.
+
+Para B2 y B3 hay una rutina nueva, `pr_exigir_dueno_o_administrador(postulación, acción)`, igual que
+`pr_exigir_administrador` pero que también acepta al dueño de la postulación. Con la variable en
+`NULL`, solo `root` pasa.
+
+**I1.** Se corrigió la sección 13.1: sin sesión (`root`) solo se respeta el autor. Las fechas las
+pone siempre la base y los estados iniciales se validan igual.
+
+**I2. Catálogos y beneficios.** `benefitrack_app` puede insertar y modificar instituciones, tipos de
+cuenta, tipos de documento, entidades bancarias, EPS, programas y beneficios. Antes lo podía hacer
+cualquiera, por ejemplo un aprendiz que creara un beneficio. Ahora cada tabla tiene dos triggers
+cortos (crear y modificar) que llaman a `pr_exigir_administrador`: son los 14 de la tabla
+«Catálogos y beneficios» de la sección 3. La semilla del script la carga `root` con la variable en
+`NULL`. Para que no falle si alguien ejecuta el script con la variable puesta, el script hace
+`SET @app_id_usuario = NULL` antes de la semilla. Comprobado: el script corre dos veces seguidas
+sin errores.
+
+**M1.** Los manejadores de errores de `pr_cambiar_estado_usuario`, `pr_cambiar_rol_usuario` y del
+arnés de pruebas tienen ahora un comentario. Ese comentario explica qué atrapan y por qué.
+
+**M2.** En las pruebas, `pr_esperar_exito` marca FALLO si la sentencia deja advertencias (antes solo
+miraba los errores). El caso P44 lo comprueba con una sentencia que deja una advertencia a
+propósito. Ninguna prueba anterior dejaba advertencias.
+
+**M3.** El usuario que registró una asignación (`id_usuario_registro`) no se cambia con un
+`UPDATE`, ni siquiera un administrador.
+
+**Pruebas nuevas.**
+
+- Bloque P (P01 a P44) en `pruebas/pruebas_reglas.sql`.
+- U13 en `pruebas/pruebas_usuario_aplicacion.sql`. Como `benefitrack_app`, ni un aprendiz ni la
+  variable en `NULL` cambian convocatorias, documentos validados, solicitudes ni catálogos.
+- A02 espera ahora **51 triggers**.
+
+Resultado: **356 casos, 356 OK**; con `benefitrack_app`, U1 a U13 en OK. El guion de
+reproducción del revisor ya no logra ningún cambio indebido.
+
+Una nota honesta sobre P34: la primera versión intentaba modificar entidades bancarias, pero la
+semilla no trae ninguna. Así el `UPDATE` no tocaba filas y la prueba no probaba nada. Se corrigió
+creando antes un banco como administrador. Con el código anterior, la prueba corregida sigue en
+FALLO.
+
+No se cambiaron tablas ni columnas. Se agregaron 15 triggers (ahora son 51) y 1 procedimiento, y
+se ajustaron 3 triggers.
+
+---
+
+## 15. Pendientes (solo documentados, no implementados todavía)
 
 - **Usuario de la aplicación.** Las protecciones de la sección 6 dependen de que la aplicación use
   el usuario limitado de `usuario_aplicacion.sql` y no `root`. Con `root` se pueden borrar
@@ -716,10 +833,12 @@ No se cambiaron tablas ni columnas: se agregaron 2 triggers (ahora son 36) y se 
 - **Número de cuenta en texto plano.** `informacion_bancaria.numero_cuenta` se guarda tal cual. Se
   cifrará en la aplicación; cuando exista ese código, la columna tendrá que crecer, porque el texto
   cifrado es más largo que `VARCHAR(100)`.
-- **Quién cerró una convocatoria.** Al cerrar una convocatoria con un `UPDATE` (estado `Cerrada` o
-  `Cierre anticipado`), la base todavía no llena sola `usuario_cierre` ni `fecha_cierre_real`, y no
-  impide que se escriban a mano. Al crearla ya quedan vacíos (sección 13.1). Queda para una ronda
-  siguiente, con su prueba.
+- **Reglas de reapertura de convocatorias.** La base no define todavía qué transiciones de estado
+  de una convocatoria son válidas (por ejemplo, si una `Cerrada` puede volver a `Activa`). Hoy un
+  administrador puede reabrirla; al hacerlo se vacían los datos del cierre (sección 14).
+- **Dueño de la postulación en otras acciones.** El aprendiz solo se comprueba como dueño al
+  reemplazar un archivo y al atender una solicitud. Al **subir** un documento nuevo
+  (`INSERT INTO documentos_postulacion`) todavía no se revisa que la postulación sea suya.
 - **Mejoras de nombres.** `convocatorias.usuario_cierre` debería llamarse `id_usuario_cierre`, y los
   estados mezclan género (`Activa` en convocatorias, `Activo` en catálogos). No se cambian ahora
   porque la matriz de requisitos ya usa los nombres actuales.
