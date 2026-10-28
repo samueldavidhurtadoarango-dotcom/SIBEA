@@ -18,7 +18,7 @@
  *       notificaciones.estado_correo;
  *   (e) en cada fila coinciden los números RF-x.y, RN-x.y y RI-x.y;
  *   (g) el estado del requisito es "Obligatorio" u "Opcional";
- *   (h) frases acordadas de las reglas de la base de datos (rondas 2 a 9 de
+ *   (h) frases acordadas de las reglas de la base de datos (rondas 2 a 10 de
  *       base-de-datos/CAMBIOS.md) presentes en el RF/RN que corresponde, y
  *       ausencia de algunas frases equivocadas conocidas. OJO: esta regla NO
  *       lee el SQL; las frases se copiaron a mano de CAMBIOS.md y se revisaron
@@ -311,7 +311,7 @@ function revisarFrases(filas, lista) {
   return errores;
 }
 
-// (h) Frases acordadas de las reglas de la base de datos (rondas 2 a 9 de
+// (h) Frases acordadas de las reglas de la base de datos (rondas 2 a 10 de
 // base-de-datos/CAMBIOS.md) y decisiones de Samuel del 27/10/2026. Son frases
 // copiadas a mano y revisadas contra el SQL; el verificador no lee el SQL aquí.
 const REGLAS_BD = [
@@ -329,7 +329,8 @@ const REGLAS_BD = [
   { rf: 'RF-2.3', que: 'solo un administrador activo hace acciones de gestión',
     debe: ['administrador en estado activo', 'cambiar el rol o el estado de un usuario',
       'crear un usuario administrador', 'crear un usuario que no nace activo', 'registrar y anular pagos',
-      'solo un administrador activo puede', 'crear convocatorias',
+      'solo un administrador activo puede', 'crear o modificar convocatorias',
+      'crear o modificar beneficios y catálogos (instituciones, programas, tipos de documento, entidades bancarias, eps y tipos de cuenta)',
       'fuera del mantenimiento de la base de datos con root, que igual debe justificar los cambios de cuentas',
       'las demás reglas y permisos de esta matriz los valida la aplicación'] },
   { rf: 'RF-1.0', que: 'crear un Administrador, o un usuario que no nace Activo, exige un administrador activo',
@@ -375,12 +376,29 @@ const REGLAS_BD = [
     debe: ['el número de documento no se puede modificar (lo valida la aplicación)'] },
   { rf: 'RF-3.1', que: 'formato del archivo y tipo Activo: lo valida la aplicación',
     debe: ['el formato (pdf, jpg o png) y que el tipo de documento esté en estado activo los valida la aplicación'] },
-  { rf: 'RF-3.3', que: 'atender la solicitud: lo valida la aplicación',
-    debe: ['(lo valida la aplicación)'] },
+  { rf: 'RF-3.3', que: 'el tipo Documento adicional: lo valida la aplicación',
+    debe: ['que el documento se cargue con el tipo documento adicional (lo valida la aplicación)'] },
   { rf: 'RF-7.0', que: 'beneficio Inactivo sin convocatorias nuevas: lo valida la aplicación',
     debe: ['un beneficio inactivo no admite convocatorias nuevas (lo valida la aplicación)'] },
-  { rf: 'RF-7.2', que: 'quién cerró y cuándo: lo valida la aplicación (CAMBIOS.md §14)',
-    debe: ['quién la cerró y la fecha real de cierre (lo valida la aplicación'] },
+  // Décima ronda (anunciada por el coordinador el 28/10/2026; se redacta ya en
+  // su forma final, sin nombres de triggers ni columnas nuevas).
+  { rf: 'RF-7.1', que: 'cualquier cambio de una convocatoria lo hace solo un administrador activo (décima ronda)',
+    debe: ['cualquier cambio de una convocatoria (valor, número de pagos, duración, fechas, cupos o estado) lo hace solo un administrador activo'] },
+  { rf: 'RF-7.2', que: 'quién cerró y cuándo lo anota el sistema al cerrar (décima ronda)',
+    debe: ['al cerrar, el sistema anota quién la cerró y la fecha real de cierre'],
+    noDebe: ['lo valida la aplicación'] },
+  { rf: 'RF-7.0', que: 'crear o modificar beneficios exige administrador activo (décima ronda)',
+    debe: ['solo un administrador activo puede crear o modificar beneficios'] },
+  { rf: 'RF-3.1', que: 'reemplazo de documentos (décima ronda)',
+    debe: ['un documento validado no se puede reemplazar',
+      'al reemplazarlo vuelve a pendiente y pierde los datos de validación'] },
+  { rf: 'RF-4.1', que: 'las observaciones del documento solo las escribe un administrador (décima ronda)',
+    debe: ['las observaciones del documento solo las escribe un administrador'] },
+  { rf: 'RF-3.3', que: 'cambios de una solicitud de documentación (décima ronda)',
+    debe: ['una solicitud solo pasa de pendiente a atendida o cerrada', 'sus datos de origen no se modifican',
+      'la fecha de atención la pone el sistema'] },
+  { rf: 'RF-4.5', que: 'cerrar una solicitud exige administrador activo (décima ronda)',
+    debe: ['solo un administrador activo puede cerrar la solicitud'] },
   { rf: 'RF-8.3', que: 'condiciones congeladas en cuanto hay pagos o deja de estar En curso',
     debe: ['solo mientras la asignación está en curso y no tiene ningún pago', 'ni siquiera uno anulado',
       'la duración y la fecha de inicio quedan congelados'],
