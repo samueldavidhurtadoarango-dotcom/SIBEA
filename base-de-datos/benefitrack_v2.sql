@@ -563,7 +563,7 @@ BEGIN
 
   -- La fecha de bloqueo la pone la base, nunca la aplicación.
   IF NEW.estado = 'Bloqueado' THEN
-    SET NEW.fecha_bloqueo = NOW();
+    SET NEW.fecha_bloqueo = SYSDATE();  -- hora real, ver tr_usuario_validar
   ELSE
     SET NEW.fecha_bloqueo = NULL;
   END IF;
@@ -577,10 +577,14 @@ END//
 --     Bloqueado;
 --   * desbloqueo automático: Bloqueado -> Activo cuando ya pasaron 15
 --     minutos desde fecha_bloqueo (si fecha_bloqueo es NULL, no).
--- Al pasar a Bloqueado la base guarda fecha_bloqueo = NOW() e ignora la
+-- Al pasar a Bloqueado la base guarda fecha_bloqueo = SYSDATE() e ignora la
 -- fecha recibida. En todo desbloqueo (automático o de un administrador)
 -- intentos_fallidos vuelve a 0 y fecha_bloqueo a NULL. Mientras la cuenta
 -- sigue Bloqueada, cambiar fecha_bloqueo exige administrador.
+-- Se usa SYSDATE() (hora real del servidor) y no NOW(): NOW() se puede
+-- cambiar en la sesión con SET timestamp, y eso permitiría bloquear con una
+-- fecha vieja o desbloquear "en el futuro". (Si el servidor se arranca con
+-- --sysdate-is-now, SYSDATE() vuelve a ser NOW(); no lo use.)
 CREATE TRIGGER tr_usuario_validar
 BEFORE UPDATE ON usuarios
 FOR EACH ROW
@@ -596,11 +600,11 @@ BEGIN
       IF NOT (OLD.estado <=> 'Activo') THEN
         CALL pr_exigir_administrador(v_accion);
       END IF;
-      SET NEW.fecha_bloqueo = NOW();
+      SET NEW.fecha_bloqueo = SYSDATE();
     ELSE
       IF NOT (OLD.estado = 'Bloqueado' AND NEW.estado = 'Activo'
               AND OLD.fecha_bloqueo IS NOT NULL
-              AND OLD.fecha_bloqueo + INTERVAL 15 MINUTE <= NOW()) THEN
+              AND OLD.fecha_bloqueo + INTERVAL 15 MINUTE <= SYSDATE()) THEN
         CALL pr_exigir_administrador(v_accion);
       END IF;
       IF OLD.estado = 'Bloqueado' THEN
