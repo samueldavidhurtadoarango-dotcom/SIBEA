@@ -59,6 +59,21 @@ Tabla `instituciones` (con el SENA – Centro Textil y de Gestión Industrial co
 ### D12. Compatibilidad técnica
 El script debe correr en MariaDB 10.4 (XAMPP, usado en el SENA) y en MariaDB 11.x: se usa la intercalación `utf8mb4_unicode_ci` en lugar de `utf8mb4_uca1400_ai_ci`.
 
+### D13. Bloqueo por intentos fallidos y desbloqueo automático (decisión de Samuel, 27/10/2026)
+Tras **3 intentos fallidos** de inicio de sesión la cuenta pasa de Activo a **Bloqueado** y se **desbloquea sola a los 15 minutos**, sin administrador. Esos dos cambios automáticos solo los hace el inicio de sesión, que no tiene usuario de sesión (`@app_id_usuario = NULL`); con cualquier usuario de sesión son cambios de esa persona y exigen administrador. Un administrador activo puede desbloquear en cualquier momento. Al desbloquear, `intentos_fallidos` vuelve a 0 y `fecha_bloqueo` a `NULL`. La fecha de bloqueo la pone la base. Un usuario Inactivo solo lo reactiva un administrador activo (ni solo ni pasando por Bloqueado); para impedir el acceso sin límite de tiempo se usa Inactivo.
+
+### D14. Tipo de documento «Certificado de EPS» (decisión de Samuel, 27/10/2026)
+La semilla de `tipos_documento` incluye el tipo 4 «Certificado de EPS» (certificado de afiliación a la EPS del aprendiz), sin cambiar los tipos 1 a 3. Es **obligatorio** en la postulación; esa obligatoriedad la valida la **aplicación** (la base solo ofrece el tipo).
+
+### D15. Auditoría de cuentas y migraciones con justificación (decisión de Samuel, 27/10/2026)
+Todo cambio de rol o de estado de un usuario queda en `auditoria` con quién lo hizo, el valor anterior y el nuevo, el origen (`Sistema`, `Mantenimiento` o `Usuario`) y la justificación. Los cambios que no son automáticos (D13) exigen una justificación no vacía en la variable de sesión `@app_justificacion`; la vía recomendada son los procedimientos `pr_cambiar_estado_usuario` y `pr_cambiar_rol_usuario`, que la fijan solo para ese cambio y la limpian. Crear una migración y cada cambio de su estado quedan en `auditoria` (RI-4.3); una migración terminada no se puede modificar. La aplicación no escribe en `auditoria`: solo lo hacen los triggers.
+
+### D16. Hora real del servidor frente a `SET timestamp`
+Las fechas que sirven de control o de evidencia (`fecha_bloqueo` y la regla de los 15 minutos, `auditoria.fecha`, `migraciones.fecha_inicio` y `fecha_fin`) usan `SYSDATE()`, la hora real del servidor, porque `NOW()` se puede cambiar en la sesión con `SET timestamp`. El servidor no debe arrancarse con `--sysdate-is-now`.
+
+### D17. Lista blanca de `root` para `@app_id_usuario = NULL`
+Solo el usuario de conexión `root` (instalación, mantenimiento y pruebas) puede hacer acciones de gestión con `@app_id_usuario` en `NULL`, y en los cambios de cuentas igual debe justificar (origen `Mantenimiento`). Con cualquier otro usuario de conexión, una acción de gestión con la variable en `NULL` se rechaza. El usuario se reconoce por el nombre con que se conectó (`USER()`), por eso el servidor no debe tener cuentas anónimas.
+
 ## Fuera de alcance
 Código de la aplicación, reportes/exportaciones, diagramas.
 
@@ -72,3 +87,15 @@ Código de la aplicación, reportes/exportaciones, diagramas.
 - Dado un cambio de estado hecho con `@app_id_usuario = 5`, entonces historial y auditoría guardan el usuario 5.
 - La matriz usa solo los estados de D1, tiene requisitos para todas las decisiones D2–D11 y ningún requisito menciona OCR ni "Estudiante".
 - Todo nombre de tabla y campo citado en la columna "Requisitos de información" de la matriz existe en el script.
+- (D13) Dada una cuenta Activa con 3 intentos fallidos, cuando el inicio de sesión (sin `@app_id_usuario`) la pasa a Bloqueado, entonces se acepta, `fecha_bloqueo` queda con la hora real y la auditoría guarda origen `Sistema` con `id_usuario` NULL.
+- (D13) Dada una cuenta Activa con menos de 3 intentos fallidos, cuando el inicio de sesión intenta bloquearla, entonces no cuenta como automático y se rechaza.
+- (D13) Dado un aprendiz con sesión, cuando intenta bloquear a otros usuarios (aunque ponga `intentos_fallidos = 3`), entonces se rechaza y nadie queda bloqueado.
+- (D13) Dada una cuenta Bloqueada hace menos de 15 minutos, cuando el inicio de sesión intenta pasarla a Activo, entonces se rechaza; pasados 15 minutos, entonces se acepta e `intentos_fallidos` vuelve a 0 y `fecha_bloqueo` a NULL.
+- (D13) Dada una cuenta Inactiva, cuando se intenta pasar a Bloqueado o a Activo sin un administrador activo, entonces se rechaza.
+- (D14) Dado el script recién ejecutado, entonces `tipos_documento` tiene los tipos 1 a 3 sin cambios y el tipo 4 «Certificado de EPS».
+- (D15) Dado un administrador activo con sesión, cuando cambia el estado de un usuario sin justificación, entonces se rechaza; con justificación, entonces se acepta y la auditoría guarda el administrador, el estado anterior y el nuevo, origen `Usuario` y la justificación.
+- (D15) Dado un cambio hecho con `pr_cambiar_estado_usuario`, cuando termina (bien o con error), entonces `@app_justificacion` queda en NULL.
+- (D15) Dada una migración Completada, cuando se intenta modificar, entonces se rechaza; al crearla y al terminarla, entonces queda una fila en `auditoria`.
+- (D15) Dado el usuario `benefitrack_app`, cuando intenta insertar directamente en `auditoria`, entonces MariaDB lo rechaza (error 1142).
+- (D16) Dada una sesión con `SET timestamp` en el pasado o en el futuro, cuando se bloquea o desbloquea una cuenta o se escribe en la auditoría o en migraciones, entonces las fechas guardadas son la hora real del servidor y el desbloqueo antes de 15 minutos reales se rechaza.
+- (D17) Dado un usuario de conexión que no es `root` (`benefitrack_app` u otro), cuando hace una acción de gestión con `@app_id_usuario` NULL, entonces se rechaza; dado `root` sin sesión, cuando cambia el estado de un usuario sin justificación, entonces se rechaza, y con justificación queda con origen `Mantenimiento`.

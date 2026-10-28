@@ -20,7 +20,7 @@ especificación no menciona, se indica como **Error del original**.
 | Al final había un bloque de "AJUSTES" que modificaba tablas ya creadas (`ALTER TABLE`) y reemplazaba triggers. | Cada tabla se crea una sola vez con su forma final. | Evita que la estructura dependa del orden de los parches. |
 | Tablas creadas en orden alfabético con las llaves foráneas desactivadas. | Tablas creadas en orden de dependencias (primero catálogos, luego usuarios, convocatorias, postulaciones, pagos...). | El script no necesita desactivar las llaves foráneas para funcionar. |
 | Nombres de índices y restricciones mezclados (`fk_...` usado también para índices simples). | Prefijos claros: `uk_` (único), `idx_` (índice), `fk_` (llave foránea), `chk_` (regla CHECK). | Se entiende de un vistazo qué es cada cosa. |
-| Las reglas de negocio vivían solo en la aplicación (o no existían). | Las reglas clave se fuerzan en la base con triggers que lanzan errores en español (`SQLSTATE '45000'`). | La aplicación no puede saltarse las reglas por error. **Ojo:** los triggers no protegen contra quien tiene permisos totales (por ejemplo `root`), que puede borrar triggers o escribir directamente en las tablas. Por eso la aplicación debe conectarse con un usuario de permisos limitados (`usuario_aplicacion.sql`, ver la sección 12). |
+| Las reglas de negocio vivían solo en la aplicación (o no existían). | Las reglas clave se fuerzan en la base con triggers que lanzan errores en español (`SQLSTATE '45000'`). | La aplicación no puede saltarse las reglas por error. **Ojo:** los triggers no protegen contra quien tiene permisos totales (por ejemplo `root`), que puede borrar triggers o escribir directamente en las tablas. Por eso la aplicación debe conectarse con un usuario de permisos limitados (`usuario_aplicacion.sql`, ver la sección 13). |
 | Los triggers guardaban un usuario fijo o el aprendiz dueño. | Todos usan la variable de sesión `@app_id_usuario`. | **D9** (ver la sección 4). |
 
 ---
@@ -130,7 +130,7 @@ especificación no menciona, se indica como **Error del original**.
 | `tr_postulacion_rechazada` | **Reemplazado** por `tr_postulacion_notificar`; el aviso incluye la justificación obligatoria. | **D1**, **D8** |
 | `tr_pago_completar_postulacion` | **Reemplazado** por `tr_pago_registrado`: ya no pasa la postulación a "Completado"; pasa la **asignación** a "Finalizado". | **D3** |
 
-### Triggers del script corregido (31)
+### Triggers del script corregido (34)
 
 **Postulaciones y convocatorias**
 
@@ -171,8 +171,8 @@ especificación no menciona, se indica como **Error del original**.
 | Trigger | Cuándo | Qué hace | Decisión |
 |---|---|---|---|
 | `tr_usuario_validar_insercion` | antes de insertar | Crear un usuario con rol Administrador, o con un estado distinto de Activo, exige un administrador activo. La base pone `fecha_bloqueo` (hora actual si nace Bloqueado, `NULL` si no). El registro de aprendices sigue libre. | D7, D9 |
-| `tr_usuario_validar` | antes de actualizar | Cambiar el rol (`id_rol`) o el estado exige un administrador activo. Sin administrador solo se permite Activo → Bloqueado y el desbloqueo automático Bloqueado → Activo cuando ya pasaron 15 minutos desde `fecha_bloqueo` (nunca si `fecha_bloqueo` es `NULL`). Al pasar a Bloqueado, la base guarda `fecha_bloqueo` = hora actual e ignora la fecha recibida. Todo desbloqueo deja `intentos_fallidos = 0` y `fecha_bloqueo = NULL`. Mientras sigue Bloqueado, cambiar `fecha_bloqueo` exige administrador. Un cambio de estado que no sea automático exige `@app_justificacion` (séptima ronda). | D7, D9 |
-| `tr_usuario_auditar` | después de actualizar | Cada cambio de rol o de estado queda en `auditoria` con quién, valor anterior y nuevo, origen (`Sistema` o `Usuario`) y justificación. Sumar `intentos_fallidos` solo no se audita. | D9 |
+| `tr_usuario_validar` | antes de actualizar | Todo cambio de rol (`id_rol`) o de estado exige un administrador activo (o `root`) y `@app_justificacion`, salvo los automáticos del inicio de sesión (sin usuario de sesión): Activo → Bloqueado con `intentos_fallidos` >= 3 y Bloqueado → Activo pasados 15 minutos desde `fecha_bloqueo` (nunca si es `NULL`). Al pasar a Bloqueado, la base guarda `fecha_bloqueo` = hora real e ignora la fecha recibida. Todo desbloqueo deja `intentos_fallidos = 0` y `fecha_bloqueo = NULL`. Mientras sigue Bloqueado, cambiar `fecha_bloqueo` exige administrador. | D7, D9, D13, D15 |
+| `tr_usuario_auditar` | después de actualizar | Cada cambio de rol o de estado queda en `auditoria` con quién, valor anterior y nuevo, origen (`Sistema`, `Mantenimiento` o `Usuario`) y justificación. Sumar `intentos_fallidos` solo no se audita. | D9, D15 |
 
 **Migraciones**
 
@@ -180,6 +180,8 @@ especificación no menciona, se indica como **Error del original**.
 |---|---|---|---|
 | `tr_migracion_creada` | después de insertar | Registrar o iniciar una carga queda en `auditoria` (`INICIAR_MIGRACION` / `REGISTRAR_MIGRACION`). | D11 (RI-4.3) |
 | `tr_migracion_actualizada` | después de actualizar | Cada cambio de estado de la carga queda en `auditoria` con los totales (`FINALIZAR_MIGRACION`). | D11 (RI-4.3) |
+| `tr_migracion_preparar` | antes de insertar | Pone `fecha_inicio` (y `fecha_fin` si ya nace terminada) con la hora real. | D15, D16 |
+| `tr_migracion_validar` | antes de actualizar | Una migración terminada no se puede modificar; al terminar, pone `fecha_fin` con la hora real; `fecha_inicio` no cambia. | D15, D16 |
 
 **Otros**
 
@@ -190,6 +192,7 @@ especificación no menciona, se indica como **Error del original**.
 | `tr_novedad_registrada` | después de insertar una novedad | Notifica al aprendiz y audita. | D8, D9 |
 | `tr_historial_no_modificar` / `tr_historial_no_eliminar` | antes de actualizar / borrar en `historial_estados` | El historial solo admite filas nuevas. | D9 |
 | `tr_auditoria_no_modificar` / `tr_auditoria_no_eliminar` | antes de actualizar / borrar en `auditoria` | La auditoría solo admite filas nuevas. | D9 |
+| `tr_auditoria_fecha` | antes de insertar en `auditoria` | La fecha de cada fila es la hora real del servidor (`SYSDATE()`). | D16 |
 
 ---
 
@@ -540,9 +543,84 @@ modificar ni borrar.
 No se cambiaron tablas ni columnas: se agregaron 3 triggers (ahora son 31) y la función
 `fn_cambio_estado_sistema`, y se ajustó `tr_usuario_validar`.
 
+**Corregido en la octava ronda (sección 12):** en esta ronda, un cambio se tomaba como
+«automático» solo por su forma y porque quien lo hacía no era administrador. Así, un aprendiz con
+sesión podía bloquear a los administradores y la auditoría lo anotaba como «Sistema».
+
 ---
 
-## 12. Pendientes (solo documentados, no implementados todavía)
+## 12. Octava ronda: quién hizo de verdad cada cambio (explicado fácil)
+
+Un revisor volvió a probar las reglas de la séptima ronda con sus propios guiones y encontró estos
+huecos. Las decisiones nuevas quedaron escritas en la especificación como **D13 a D17**.
+
+**B1. Un aprendiz podía bloquear a todos y la auditoría decía «Sistema».**
+La base decidía que un bloqueo era «automático» mirando solo la forma del cambio (Activo →
+Bloqueado) y que quien lo hacía no fuera administrador. Un aprendiz con sesión ejecutó
+`UPDATE usuarios SET estado = 'Bloqueado' WHERE estado = 'Activo' AND id_usuario <> 3` y bloqueó a
+los administradores; la auditoría anotó «Bloqueo automático por intentos fallidos». Ahora un cambio
+es automático **solo** si lo hace el inicio de sesión, que no tiene usuario de sesión
+(`@app_id_usuario` en `NULL`), y además:
+
+- para el bloqueo, la cuenta debe quedar con `intentos_fallidos` en 3 o más;
+- para el desbloqueo, deben haber pasado 15 minutos reales desde el bloqueo.
+
+En cualquier otro caso hace falta un administrador activo y una justificación.
+
+**I1. El administrador que se bloqueaba a sí mismo quedaba como «Sistema».**
+La auditoría volvía a preguntar «¿es administrador?» después del cambio, cuando ya estaba
+Bloqueado, y perdía su justificación. Con el criterio de B1 esa pregunta ya no se hace: el origen
+depende solo de si hay usuario de sesión. Queda un límite, documentado en el README: en un
+`UPDATE` de varias filas, si el administrador se inactiva primero, las filas siguientes ya no son
+suyas y la sentencia entera se rechaza.
+
+**I2. La fecha de la auditoría se podía falsear.** Con `SET timestamp` la fila quedaba con la fecha
+que uno quisiera. Ahora la pone el trigger `tr_auditoria_fecha` con la hora real (`SYSDATE()`). Lo
+mismo pasa con `fecha_inicio` y `fecha_fin` de las migraciones.
+
+**I3. El motivo se arrastraba al siguiente cambio.** `@app_justificacion` se quedaba puesta en la
+sesión, y un segundo cambio la reutilizaba sin que nadie escribiera un motivo nuevo. Ahora hay dos
+procedimientos, `pr_cambiar_estado_usuario` y `pr_cambiar_rol_usuario`, que fijan el motivo solo
+para ese cambio y lo borran al terminar, aunque falle. `benefitrack_app` tiene permiso `EXECUTE`
+sobre ellos y son la vía recomendada. Para que sea coherente, **los cambios de rol también exigen
+justificación**, así nunca se guarda un motivo que no se pidió.
+
+**I4. Una migración terminada se podía reescribir sin dejar huella.** Ahora, cuando una carga
+termina (Completada, Completada con errores o Fallida), ya no se puede modificar
+(`tr_migracion_validar`).
+
+**I5. La prueba con un tercer usuario era más débil de lo necesario.** `pruebas/otro_usuario`:
+
+- recibe por separado la ruta de `mysql.exe`, el host y el puerto, y ya no edita el argumento;
+- usa una contraseña aleatoria guardada en un archivo temporal que se borra al terminar;
+- crea el usuario para `localhost` y `127.0.0.1` con permisos mínimos por columna;
+- limpia empezando por `DROP USER`;
+- sale con código 0 o 1 según el veredicto.
+
+**Menores.**
+- **M5.** Con `root` y sin usuario de sesión, los cambios de cuentas que no son automáticos exigen
+  justificación y quedan con origen `Mantenimiento`. Solo con origen `Sistema` un `id_usuario` en
+  `NULL` significa «el sistema».
+- **M7.** El inicio de sesión debe ejecutarse con `@app_id_usuario = NULL`.
+- **M8.** Con un id que no existe, la base no lo reconoce como administrador.
+- **M10.** Nuevo límite conocido: `SYSDATE()` con `binlog_format=STATEMENT`.
+
+**Pruebas.** En `pruebas/pruebas_reglas.sql`:
+
+- se añadieron L18 a L31 y el bloque M (M01 a M17);
+- las pruebas de bloqueo y desbloqueo automáticos de los bloques J y K ahora usan el flujo real del
+  inicio de sesión;
+- A02 espera ahora 34 triggers.
+
+Resultado: **288 casos, 288 OK**. En `pruebas/pruebas_usuario_aplicacion.sql` se añadieron U10 (el
+procedimiento con `benefitrack_app`) y U11 (el caso del revisor con `benefitrack_app`).
+
+No se cambiaron tablas ni columnas. Se agregaron 3 triggers (ahora son 34) y 2 procedimientos, y
+se ajustaron `fn_cambio_estado_sistema`, `tr_usuario_validar` y `tr_usuario_auditar`.
+
+---
+
+## 13. Pendientes (solo documentados, no implementados todavía)
 
 - **Usuario de la aplicación.** Las protecciones de la sección 6 dependen de que la aplicación use
   el usuario limitado de `usuario_aplicacion.sql` y no `root`. Con `root` se pueden borrar

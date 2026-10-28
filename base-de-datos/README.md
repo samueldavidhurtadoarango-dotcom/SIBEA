@@ -89,7 +89,7 @@ C:\xampp\mysql\bin\mysql.exe -u root --default-character-set=utf8mb4 --table < b
 La salida muestra la misma tabla de resumen. Resultado esperado:
 
 ```
-| TOTAL | OK | 257 casos: 257 OK, 0 FALLO | TODAS LAS PRUEBAS PASAN |
+| TOTAL | OK | 288 casos: 288 OK, 0 FALLO | TODAS LAS PRUEBAS PASAN |
 ```
 
 Si algún caso dice `FALLO`, la columna `detalle` explica qué pasó (por ejemplo, el
@@ -108,14 +108,26 @@ SET @app_id_usuario = <id del usuario que inició sesión>;
 SET @app_ip = '<IP del cliente>';   -- opcional, para la auditoría
 ```
 
-Y, solo antes de cambiar el estado de un usuario, `SET @app_justificacion = '<motivo>';` (ver
-«Justificación de los cambios de estado» más abajo).
+Para cambiar el estado o el rol de un usuario, use los procedimientos `pr_cambiar_estado_usuario`
+y `pr_cambiar_rol_usuario` (ver «Justificación de los cambios de cuentas» más abajo).
 
 Si no se define, la base guarda `NULL` en lugar del usuario, **pero** las acciones de gestión con
 `@app_id_usuario` en `NULL` se **rechazan** salvo cuando la conexión es el usuario `root` (ver
 «Si la variable es `NULL`» más abajo). Si la aplicación reutiliza
 conexiones (pool), debe volver a fijar la variable cada vez que toma una conexión para otro
 usuario.
+
+**Inicio de sesión: `@app_id_usuario = NULL`.** Mientras alguien intenta entrar todavía no hay
+usuario de sesión. Por eso el flujo de inicio de sesión (contar intentos fallidos, bloquear tras 3
+y desbloquear a los 15 minutos) debe ejecutarse con `SET @app_id_usuario = NULL;` (y sin
+`@app_justificacion`). Solo así la base reconoce el bloqueo y el desbloqueo como **automáticos**.
+Si la aplicación deja puesto el id de otro usuario de una conexión reutilizada, el bloqueo se trata
+como un cambio de esa persona y se rechaza.
+
+**Si `@app_id_usuario` apunta a un id que no existe.** La base no lo reconoce como administrador:
+las acciones de gestión se rechazan con `Solo un administrador activo puede ...`. Si la acción no
+es de gestión y escribe en el historial o la auditoría, falla con el error 1452 de llave foránea
+(ver más abajo). En ningún caso se guarda un autor inventado.
 
 **Control de rol.** Las acciones de gestión (validar, aprobar o rechazar postulaciones y
 documentos, pedir documentación, gestionar asignaciones, registrar o anular pagos, registrar
@@ -127,51 +139,74 @@ son `fn_es_administrador` y `pr_exigir_administrador`.
 **Si la variable es `NULL`.** Solo el usuario de mantenimiento `root` puede hacer acciones de
 gestión con la variable en `NULL` (se guarda `NULL`, decisión D9). Con **cualquier otro usuario de
 conexión** (`benefitrack_app` o cualquiera que usted cree), las acciones de gestión **se
-rechazan**: la aplicación debe mandar **siempre** `@app_id_usuario` en cada acción de gestión.
+rechazan**: la aplicación debe mandar **siempre** `@app_id_usuario` en cada acción de gestión. La
+única excepción son el bloqueo y el desbloqueo automáticos del inicio de sesión (ver más abajo).
+Ojo: aun con `root`, cambiar el rol o el estado de un usuario exige justificación.
 
 **Usuarios y roles.** Cambiar el rol o el estado de un usuario, crear un usuario Administrador o
 crear un usuario que no esté Activo exige un administrador activo. El registro de aprendices
 nuevos (que nacen Activos) y la actualización de datos de contacto siguen libres.
 
-**Justificación de los cambios de estado: `@app_justificacion`.** Igual que `@app_id_usuario`,
-es una variable de sesión que fija la aplicación. Antes de cambiar el estado de un usuario
-(Activo, Inactivo o Bloqueado), la aplicación debe ejecutar:
+**Justificación de los cambios de cuentas: `@app_justificacion`.** Todo cambio de **rol** o de
+**estado** de un usuario que no sea automático exige un motivo (RF-1.3). La vía recomendada son
+los procedimientos, que fijan el motivo **solo para ese cambio** y lo borran al terminar, también
+si el cambio falla:
 
 ```sql
-SET @app_justificacion = 'Retiro voluntario del programa';   -- el motivo que escribió el administrador
-UPDATE usuarios SET estado = 'Inactivo' WHERE id_usuario = ...;
-SET @app_justificacion = NULL;   -- para no reutilizar un motivo viejo
+CALL pr_cambiar_estado_usuario(<id_usuario>, 'Inactivo', 'Retiro voluntario del programa');
+CALL pr_cambiar_rol_usuario(<id_usuario>, 'Administrador', 'Nuevo integrante de Bienestar');
 ```
 
-Si la variable está en `NULL` o vacía, la base responde
-`El cambio de estado de un usuario exige una justificación (@app_justificacion)`. No hace falta en
-el bloqueo y desbloqueo **automáticos** del inicio de sesión.
+`benefitrack_app` tiene permiso `EXECUTE` sobre los dos (ver `usuario_aplicacion.sql`). También se
+puede hacer a mano, pero entonces la aplicación debe limpiar la variable, porque si no el motivo se
+**arrastra** al siguiente cambio de la misma sesión (la prueba L23 lo muestra):
+
+```sql
+SET @app_justificacion = 'Retiro voluntario del programa';
+UPDATE usuarios SET estado = 'Inactivo' WHERE id_usuario = ...;
+SET @app_justificacion = NULL;
+```
+
+Si el motivo está en `NULL` o vacío, la base responde
+`El cambio de rol o de estado de un usuario exige una justificación (@app_justificacion)`. El
+motivo también se pide para los cambios de rol, por coherencia, así que nunca se guarda un motivo
+que no se haya pedido. No se pide en el bloqueo y desbloqueo **automáticos** del inicio de sesión.
 
 **Auditoría de cuentas.** Cada cambio de rol o de estado de un usuario queda en `auditoria`
 (`entidad = 'usuarios'`, acción `CAMBIO_ESTADO`, `CAMBIO_ROL` o `CAMBIO_ROL_ESTADO`) con quién lo
 hizo, el rol y el estado anterior y nuevo, la justificación y el origen:
 
-- `Usuario`: lo hizo una persona (normalmente un administrador).
-- `Sistema`: bloqueo automático por intentos fallidos o desbloqueo automático a los 15 minutos. En
-  ese caso `id_usuario` queda en `NULL`, que significa «el sistema», y la justificación la escribe
-  la base.
+- `Usuario`: lo hizo una persona con sesión (normalmente un administrador). `id_usuario` es esa
+  persona.
+- `Sistema`: bloqueo automático por intentos fallidos o desbloqueo automático a los 15 minutos.
+  `id_usuario` queda en `NULL`, que aquí significa «el sistema», y la justificación la escribe la
+  base.
+- `Mantenimiento`: `root` sin usuario de sesión (por ejemplo, un arreglo a mano). `id_usuario`
+  también queda en `NULL`, pero aquí significa «root»; la justificación es la que escribió root.
+
+O sea: `id_usuario` en `NULL` solo significa «el sistema» cuando el origen es `Sistema`.
 
 Sumar `intentos_fallidos` sin cambiar el estado **no** se audita, para no llenar la tabla en cada
-intento. La aplicación no puede escribir en `auditoria`: solo lo hacen los triggers.
+intento. La aplicación no puede escribir en `auditoria`: solo lo hacen los triggers. La fecha de
+cada fila es la hora real del servidor.
 
 **Migraciones (RI-4.3).** Registrar o iniciar una carga en `migraciones` y cada cambio de su estado
 (por ejemplo, al terminar) quedan en `auditoria` (`INICIAR_MIGRACION`, `REGISTRAR_MIGRACION`,
-`FINALIZAR_MIGRACION`) con los totales. Actualizar solo los contadores mientras sigue «En proceso»
-no se audita.
+`FINALIZAR_MIGRACION`) con los totales. Mientras sigue «En proceso» se pueden actualizar los
+contadores (eso no se audita). Cuando termina (Completada, Completada con errores o Fallida) **ya
+no se puede modificar**: la base responde `Una migración terminada no se puede modificar`.
+`fecha_inicio` y `fecha_fin` las pone la base con la hora real.
 
-**Bloqueo por intentos fallidos.** Tras 3 intentos fallidos, la aplicación pasa la cuenta de
-`Activo` a `Bloqueado` (no necesita administrador). La base guarda siempre `fecha_bloqueo` con la
-hora actual e **ignora** la fecha que mande la aplicación. Pasar a `Bloqueado` desde `Inactivo`
-exige administrador. La cuenta se **desbloquea sola a los 15 minutos**: la aplicación puede hacer
-`UPDATE usuarios SET estado = 'Activo' WHERE id_usuario = ...` sin administrador solo si
-`fecha_bloqueo` + 15 minutos ya llegó; antes, la base lo rechaza (y si `fecha_bloqueo` está vacía,
-también). Un administrador activo puede desbloquear en cualquier momento. Al desbloquear, la base
-deja `intentos_fallidos = 0` y `fecha_bloqueo = NULL`.
+**Bloqueo por intentos fallidos.** Tras 3 intentos fallidos, el inicio de sesión (con
+`@app_id_usuario = NULL`) pasa la cuenta de `Activo` a `Bloqueado` en la misma sentencia en que deja
+`intentos_fallidos` en 3 o más; no necesita administrador. Con menos de 3 intentos, o con un
+usuario de sesión, no es automático y exige administrador y justificación. La base guarda siempre
+`fecha_bloqueo` con la hora real e **ignora** la fecha que mande la aplicación. Pasar a `Bloqueado`
+desde `Inactivo` exige administrador. La cuenta se **desbloquea sola a los 15 minutos**: el inicio
+de sesión puede hacer `UPDATE usuarios SET estado = 'Activo' WHERE id_usuario = ...` sin
+administrador solo si `fecha_bloqueo` + 15 minutos ya llegó; antes, la base lo rechaza (y si
+`fecha_bloqueo` está vacía, también). Un administrador activo puede desbloquear en cualquier momento
+(con justificación). Al desbloquear, la base deja `intentos_fallidos = 0` y `fecha_bloqueo = NULL`.
 
 Mientras la cuenta está Bloqueada, **la aplicación no debe tocar `fecha_bloqueo`**: solo puede
 sumar `intentos_fallidos`. Cambiar `fecha_bloqueo` en ese estado exige administrador.
@@ -249,7 +284,7 @@ Para comprobar los controles con ese usuario (después de `benefitrack_v2.sql`,
 C:\xampp\mysql\bin\mysql.exe -u benefitrack_app -p --default-character-set=utf8mb4 --force --table < base-de-datos\pruebas\pruebas_usuario_aplicacion.sql
 ```
 
-Los `ERROR 1644` que aparecen son los rechazos esperados; las filas U1 a U9 deben decir `OK` (también aparece un `ERROR 1142`, el rechazo esperado de U9).
+Los `ERROR 1644` que aparecen son los rechazos esperados; las filas U1 a U11 deben decir `OK` (también aparece un `ERROR 1142`, el rechazo esperado de U9).
 
 ---
 
@@ -272,13 +307,22 @@ rechazado en las acciones de gestión (no solo `benefitrack_app`). Necesita la b
 borra. Desde la carpeta `base-de-datos` (con Git Bash o cualquier `sh`):
 
 ```sh
-sh pruebas/otro_usuario/ejecutar.sh "C:/xampp/mysql/bin/mysql.exe -u root -P 3306 -h 127.0.0.1"
+sh pruebas/otro_usuario/ejecutar.sh "C:/xampp/mysql/bin/mysql.exe" 127.0.0.1 3306
 ```
 
-El guion crea el usuario temporal `benefitrack_otro`@`localhost` y un aprendiz de prueba
-(`PRUEBA-OTRO`), intenta darle el rol de Administrador sin `@app_id_usuario` y, al terminar
-(aunque falle o se interrumpa), borra los dos. El `ERROR 1644` que aparece es el rechazo esperado;
-el veredicto debe decir `CORRECTO: con NULL y un usuario distinto de root se rechaza`.
+Los argumentos son, por separado: la ruta de `mysql.exe`, el host y el puerto (los dos últimos son
+opcionales; por defecto `127.0.0.1` y `3306`). El guion se conecta como `root`; si root tiene
+contraseña, póngala en la variable de entorno `BENEFITRACK_ROOT_PASSWORD` (no en la línea de
+comandos).
+
+El guion crea el usuario temporal `benefitrack_otro` para `localhost` y para `127.0.0.1` con una
+**contraseña aleatoria** (que solo se guarda en un archivo temporal que se borra al terminar) y
+permisos mínimos (leer `id_usuario`, `documento` e `id_rol` de `usuarios`, leer `roles` y
+cambiar solo `id_rol`). Crea también un aprendiz de prueba (`PRUEBA-OTRO`) e intenta darle el rol
+de Administrador sin `@app_id_usuario`. Al terminar, aunque falle o se interrumpa, borra el usuario,
+el aprendiz y los archivos temporales. El `ERROR 1644` que aparece es el rechazo esperado; el
+veredicto debe decir `CORRECTO: con NULL y un usuario distinto de root se rechaza`. El guion sale con
+código 0 si el veredicto es CORRECTO y con 1 si no.
 
 ---
 
@@ -297,10 +341,25 @@ el veredicto debe decir `CORRECTO: con NULL y un usuario distinto de root se rec
 - **`SET timestamp` cambia la hora de la sesión.** Cualquier conexión puede ejecutar
   `SET timestamp = ...` y con eso cambia lo que devuelven `NOW()` y `CURDATE()` en esa sesión
   (por ejemplo, la fecha de validación o la fecha "de hoy" que se usa para revisar pagos). El
-  bloqueo y el desbloqueo por intentos fallidos usan la hora real del servidor (`SYSDATE()`), así
-  que ahí el truco no sirve. En lo demás, el riesgo es bajo y del mismo nivel que poder fijar
-  `@app_id_usuario`: solo lo tiene quien ya controla la conexión de la aplicación. No arranque el
-  servidor con `--sysdate-is-now`, porque haría que `SYSDATE()` se comporte como `NOW()`.
+  bloqueo y el desbloqueo por intentos fallidos, la fecha de la auditoría y las fechas de las
+  migraciones usan la hora real del servidor (`SYSDATE()`), así que ahí el truco no sirve. En lo
+  demás, el riesgo es bajo y del mismo nivel que poder fijar `@app_id_usuario`: solo lo tiene quien
+  ya controla la conexión de la aplicación. No arranque el servidor con `--sysdate-is-now`, porque
+  haría que `SYSDATE()` se comporte como `NOW()`.
+- **`SYSDATE()` y la replicación con `binlog_format=STATEMENT`.** Si algún día la base se replica
+  a otro servidor con el registro binario en modo `STATEMENT`, `SYSDATE()` se volvería a calcular en
+  la réplica con otra hora, y las fechas no coincidirían. Use `binlog_format=ROW` o `MIXED` (en
+  XAMPP sin replicación no aplica).
+- **El inicio de sesión puede bloquear cualquier cuenta Activa.** Como el bloqueo automático se
+  reconoce por «sin usuario de sesión e `intentos_fallidos` >= 3», quien controle la conexión de la
+  aplicación en el flujo de inicio de sesión podría bloquear una cuenta poniendo los intentos en 3.
+  Es el mismo nivel de riesgo que poder fijar `@app_id_usuario`, y el bloqueo se levanta solo a los
+  15 minutos y queda en la auditoría.
+- **Un administrador que se inactiva o se bloquea dentro de un `UPDATE` de varias filas.** El
+  control de administrador se revisa fila por fila. Si en una sentencia de varias filas la fila del
+  propio administrador se cambia antes que las demás, en las siguientes ya no cuenta como
+  administrador activo y la sentencia **entera** se rechaza (no queda nada a medias). Haga ese
+  cambio aparte, o déjelo para el final.
 - **Convocatorias movidas a más de un año en el futuro.** La asignación empieza el día de inicio
   de la convocatoria cuando esa fecha es posterior a hoy, y la fecha de inicio de una asignación no
   puede pasar de un año después de hoy. Por eso, si se mueve el inicio de una convocatoria a más de

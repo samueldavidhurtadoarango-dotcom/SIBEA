@@ -3,21 +3,27 @@
 -- Proyecto formativo SENA (ADSO) - Gestión de beneficios para aprendices
 -- =====================================================================
 -- Compatible con MariaDB 10.4 (XAMPP) y MariaDB 11.x.
--- Fuente de verdad: specs/001-correccion-entregables.md (decisiones D1-D12).
+-- Fuente de verdad: specs/001-correccion-entregables.md (decisiones D1-D17).
 --
 -- Variables de sesión que usa la base de datos (las fija la aplicación
 -- al abrir cada conexión):
 --   SET @app_id_usuario = <id del usuario que inició sesión>;   -- D9
 --   SET @app_ip         = '<ip del cliente>';                    -- opcional
---   SET @app_justificacion = '<motivo>';  -- antes de cambiar el estado de
---                                         -- un usuario (RF-1.3)
--- @app_justificacion es obligatoria cuando un administrador (o root) cambia
--- el estado de un usuario; se guarda en auditoria. No hace falta en el
--- bloqueo y desbloqueo automáticos del inicio de sesión.
--- Si no están definidas, los triggers guardan NULL. Pero, salvo cuando la
--- conexión es el usuario root (mantenimiento, instalación y pruebas), las
--- acciones de gestión con @app_id_usuario NULL se RECHAZAN: la aplicación
--- debe fijar siempre la variable (ver pr_exigir_administrador).
+--   SET @app_justificacion = '<motivo>';  -- antes de cambiar el rol o el
+--                                         -- estado de un usuario (D15)
+-- El flujo de inicio de sesión (intentos fallidos, bloqueo y desbloqueo
+-- automáticos) se ejecuta con @app_id_usuario = NULL: todavía no hay
+-- usuario de sesión (D13).
+-- @app_justificacion es obligatoria en todo cambio de rol o estado de un
+-- usuario que no sea automático, también con root; se guarda en auditoria.
+-- Vía recomendada: pr_cambiar_estado_usuario / pr_cambiar_rol_usuario, que
+-- la fijan solo para ese cambio y la limpian.
+-- Si @app_id_usuario no está definida, los triggers guardan NULL. Pero,
+-- salvo con el usuario de conexión root (mantenimiento, instalación y
+-- pruebas, D17), las acciones de gestión con @app_id_usuario NULL se
+-- RECHAZAN: la aplicación debe fijar siempre la variable. En la auditoría
+-- de cuentas, id_usuario NULL significa «el sistema» solo cuando el origen
+-- es Sistema; con origen Mantenimiento significa «root sin sesión».
 -- =====================================================================
 
 -- !!! ATENCIÓN !!!

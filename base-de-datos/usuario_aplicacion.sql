@@ -29,13 +29,21 @@
 -- Si la variable está en NULL, la base rechaza la acción. Solo root (el
 -- usuario de mantenimiento) puede actuar con la variable en NULL.
 --
--- @app_justificacion: antes de cambiar el estado de un usuario (Activo,
--- Inactivo, Bloqueado), la aplicación debe fijar
--- SET @app_justificacion = '<motivo>'; si está en NULL o vacía, la base
--- rechaza el cambio. El motivo queda en auditoria, que escriben solo los
--- triggers: este usuario NO tiene INSERT sobre auditoria. Después del
--- cambio, vuelva a poner la variable en NULL para no reutilizar un motivo
--- viejo. No hace falta en el bloqueo y desbloqueo automáticos.
+-- La única excepción es el flujo de inicio de sesión: debe ejecutarse con
+-- SET @app_id_usuario = NULL (todavía no hay usuario de sesión); solo así
+-- el bloqueo tras 3 intentos y el desbloqueo a los 15 minutos son
+-- automáticos.
+--
+-- @app_justificacion: todo cambio de rol o de estado de un usuario que no
+-- sea automático exige un motivo. Vía recomendada (este usuario tiene
+-- EXECUTE sobre ellos, ver más abajo):
+--   CALL pr_cambiar_estado_usuario(<id>, 'Inactivo', '<motivo>');
+--   CALL pr_cambiar_rol_usuario(<id>, 'Administrador', '<motivo>');
+-- Fijan el motivo solo para ese cambio y lo limpian aunque falle. Si se
+-- hace a mano (SET @app_justificacion = '<motivo>'; UPDATE ...), vuelva a
+-- poner la variable en NULL después, para no arrastrar un motivo viejo.
+-- El motivo queda en auditoria, que escriben solo los triggers: este
+-- usuario NO tiene INSERT sobre auditoria.
 -- =====================================================================
 
 CREATE USER IF NOT EXISTS 'benefitrack_app'@'localhost' IDENTIFIED BY 'CAMBIE_ESTA_CLAVE';
