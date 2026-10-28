@@ -1,4 +1,11 @@
 const fs = require('fs');
+const SALIDA = process.argv[2];
+if (!SALIDA) {
+  console.error('Falta la ruta de salida de la ficha.\n'
+    + 'Uso: node herramientas/generar_ficha.js <ruta_salida.docx>\n'
+    + 'Ejemplo: node herramientas/generar_ficha.js entregables/Ficha_Proyecto_BenefitRack_v2.docx');
+  process.exit(1);
+}
 const {
   Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
   WidthType, ShadingType, AlignmentType, LevelFormat, BorderStyle,
@@ -236,7 +243,7 @@ const doc = new Document({
 });
 
 Packer.toBuffer(doc).then((buf) => {
-  const out = process.argv[2];
+  const out = SALIDA;
   fs.writeFileSync(out, buf);
   console.log('ok', out, buf.length);
 });
