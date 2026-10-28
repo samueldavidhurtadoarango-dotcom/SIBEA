@@ -95,7 +95,7 @@ CALL pr_verificar('A01', 'CA1: existen las 23 tablas esperadas',
                          'novedades','notificaciones','auditoria','migraciones')) = 23,
   CONCAT('Tablas encontradas: ', (SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE())));
 
-CALL pr_verificar('A02', 'CA1: existen los 28 triggers esperados',
+CALL pr_verificar('A02', 'CA1: existen los 31 triggers esperados',
   (SELECT COUNT(*) FROM information_schema.triggers
     WHERE trigger_schema = DATABASE()
       AND trigger_name IN ('tr_validacion_documento','tr_postulacion_inicial','tr_postulacion_creada',
@@ -108,7 +108,8 @@ CALL pr_verificar('A02', 'CA1: existen los 28 triggers esperados',
                            'tr_convocatoria_validar','tr_postulacion_no_eliminar','tr_asignacion_no_eliminar',
                            'tr_historial_no_modificar','tr_historial_no_eliminar',
                            'tr_auditoria_no_modificar','tr_auditoria_no_eliminar',
-                           'tr_usuario_validar','tr_usuario_validar_insercion')) = 28,
+                           'tr_usuario_validar','tr_usuario_validar_insercion','tr_usuario_auditar',
+                           'tr_migracion_creada','tr_migracion_actualizada')) = 31,
   CONCAT('Triggers encontrados: ', (SELECT COUNT(*) FROM information_schema.triggers WHERE trigger_schema = DATABASE())));
 
 CALL pr_verificar('A03', 'D7: roles semilla son exactamente Administrador y Aprendiz',
@@ -190,6 +191,10 @@ CALL pr_verificar('A13', 'Semilla: tipos de documento 1-3 sin cambios y 4 = Cert
 -- =====================================================================
 START TRANSACTION;
 
+-- Ronda 7: los cambios de estado de usuarios que hace un administrador
+-- exigen @app_justificacion. Las pruebas anteriores la traen fijada; el
+-- bloque L prueba qué pasa sin ella.
+SET @app_justificacion = 'Cambio hecho por las pruebas automáticas';
 SET @app_id_usuario = NULL;
 
 -- Fechas relativas a hoy: las pruebas siguen siendo válidas cualquier día
@@ -1203,6 +1208,126 @@ CALL pr_esperar_error('K18', 'Trampa SET timestamp un día en el futuro: el desb
 SET timestamp = DEFAULT;
 SET @app_id_usuario = 5;
 UPDATE usuarios SET estado = 'Activo' WHERE id_usuario = @a1;
+
+-- =====================================================================
+-- Bloque L. Auditoría de cuentas y migraciones (ronda 7)
+-- =====================================================================
+-- Cambio de estado hecho por un administrador: exige justificación.
+SET @app_id_usuario = 5;
+SET @app_justificacion = NULL;
+CALL pr_esperar_error('L01', 'RF-1.3: un administrador no puede cambiar el estado sin justificación',
+  "UPDATE usuarios SET estado = 'Inactivo' WHERE id_usuario = @a1",
+  'El cambio de estado de un usuario exige una justificación');
+SET @app_justificacion = '   ';
+CALL pr_esperar_error('L02', 'RF-1.3: una justificación vacía (solo espacios) también se rechaza',
+  "UPDATE usuarios SET estado = 'Inactivo' WHERE id_usuario = @a1",
+  'El cambio de estado de un usuario exige una justificación');
+SET @app_justificacion = NULL;
+CALL pr_esperar_error('L03', 'RF-1.3: un administrador que bloquea a mano también debe justificar',
+  "UPDATE usuarios SET estado = 'Bloqueado' WHERE id_usuario = @a1",
+  'El cambio de estado de un usuario exige una justificación');
+SET @app_justificacion = 'Retiro voluntario del programa';
+CALL pr_esperar_exito('L04', 'RF-1.3: con justificación, el administrador cambia el estado',
+  "UPDATE usuarios SET estado = 'Inactivo' WHERE id_usuario = @a1");
+CALL pr_verificar('L05', 'RF-1.3: la auditoría guarda quién, qué estado y la justificación',
+  (SELECT id_usuario = 5 AND accion = 'CAMBIO_ESTADO'
+          AND JSON_UNQUOTE(JSON_EXTRACT(detalle, '$.estado_anterior')) = 'Activo'
+          AND JSON_UNQUOTE(JSON_EXTRACT(detalle, '$.estado_nuevo')) = 'Inactivo'
+          AND JSON_UNQUOTE(JSON_EXTRACT(detalle, '$.justificacion')) = 'Retiro voluntario del programa'
+          AND JSON_UNQUOTE(JSON_EXTRACT(detalle, '$.origen')) = 'Usuario'
+     FROM auditoria WHERE entidad = 'usuarios' AND id_entidad = @a1
+     ORDER BY id_auditoria DESC LIMIT 1),
+  (SELECT CONCAT('id_usuario=', IFNULL(id_usuario, 'NULL'), ' accion=', accion, ' detalle=', detalle)
+     FROM auditoria WHERE entidad = 'usuarios' AND id_entidad = @a1 ORDER BY id_auditoria DESC LIMIT 1));
+SET @app_justificacion = 'Reingreso aprobado por Bienestar';
+UPDATE usuarios SET estado = 'Activo' WHERE id_usuario = @a1;
+
+-- Bloqueo y desbloqueo automáticos (el sistema): no piden justificación y
+-- quedan con autor NULL.
+SET @app_justificacion = NULL;
+SET @app_id_usuario = NULL;
+CALL pr_esperar_exito('L06', 'El bloqueo automático por intentos no pide justificación',
+  "UPDATE usuarios SET estado = 'Bloqueado', intentos_fallidos = 3 WHERE id_usuario = @a1");
+CALL pr_verificar('L07', 'El bloqueo automático queda en la auditoría con autor NULL y origen Sistema',
+  (SELECT id_usuario IS NULL AND accion = 'CAMBIO_ESTADO'
+          AND JSON_UNQUOTE(JSON_EXTRACT(detalle, '$.estado_nuevo')) = 'Bloqueado'
+          AND JSON_UNQUOTE(JSON_EXTRACT(detalle, '$.origen')) = 'Sistema'
+     FROM auditoria WHERE entidad = 'usuarios' AND id_entidad = @a1
+     ORDER BY id_auditoria DESC LIMIT 1),
+  (SELECT CONCAT('id_usuario=', IFNULL(id_usuario, 'NULL'), ' detalle=', detalle)
+     FROM auditoria WHERE entidad = 'usuarios' AND id_entidad = @a1 ORDER BY id_auditoria DESC LIMIT 1));
+SELECT COUNT(*) INTO @aud_antes FROM auditoria WHERE entidad = 'usuarios';
+UPDATE usuarios SET intentos_fallidos = 4 WHERE id_usuario = @a1;
+CALL pr_verificar('L08', 'Sumar intentos_fallidos solo no llena la auditoría',
+  (SELECT COUNT(*) FROM auditoria WHERE entidad = 'usuarios') = @aud_antes,
+  (SELECT CONCAT('antes=', @aud_antes, ' después=', COUNT(*)) FROM auditoria WHERE entidad = 'usuarios'));
+SET @app_id_usuario = 5;
+UPDATE usuarios SET fecha_bloqueo = NOW() - INTERVAL 16 MINUTE WHERE id_usuario = @a1;
+SET @app_id_usuario = NULL;
+CALL pr_esperar_exito('L09', 'El desbloqueo automático a los 15 minutos no pide justificación',
+  "UPDATE usuarios SET estado = 'Activo' WHERE id_usuario = @a1");
+CALL pr_verificar('L10', 'El desbloqueo automático queda en la auditoría con autor NULL y origen Sistema',
+  (SELECT id_usuario IS NULL
+          AND JSON_UNQUOTE(JSON_EXTRACT(detalle, '$.estado_anterior')) = 'Bloqueado'
+          AND JSON_UNQUOTE(JSON_EXTRACT(detalle, '$.estado_nuevo')) = 'Activo'
+          AND JSON_UNQUOTE(JSON_EXTRACT(detalle, '$.origen')) = 'Sistema'
+     FROM auditoria WHERE entidad = 'usuarios' AND id_entidad = @a1
+     ORDER BY id_auditoria DESC LIMIT 1),
+  (SELECT CONCAT('id_usuario=', IFNULL(id_usuario, 'NULL'), ' detalle=', detalle)
+     FROM auditoria WHERE entidad = 'usuarios' AND id_entidad = @a1 ORDER BY id_auditoria DESC LIMIT 1));
+
+-- Cambio de rol: también queda en la auditoría.
+SET @app_id_usuario = 5;
+SET @app_justificacion = 'Nuevo integrante de Bienestar';
+CALL pr_esperar_exito('L11', 'Un administrador cambia el rol de un usuario',
+  "UPDATE usuarios SET id_rol = @rol_admin WHERE documento = 'PRUEBA-A12'");
+CALL pr_verificar('L12', 'El cambio de rol queda en la auditoría con rol anterior y nuevo',
+  (SELECT a.id_usuario = 5 AND a.accion = 'CAMBIO_ROL'
+          AND JSON_EXTRACT(a.detalle, '$.rol_anterior') = @rol_aprendiz
+          AND JSON_EXTRACT(a.detalle, '$.rol_nuevo') = @rol_admin
+     FROM auditoria a JOIN usuarios u ON u.id_usuario = a.id_entidad
+    WHERE a.entidad = 'usuarios' AND u.documento = 'PRUEBA-A12'
+    ORDER BY a.id_auditoria DESC LIMIT 1),
+  (SELECT CONCAT('accion=', a.accion, ' detalle=', a.detalle)
+     FROM auditoria a JOIN usuarios u ON u.id_usuario = a.id_entidad
+    WHERE a.entidad = 'usuarios' AND u.documento = 'PRUEBA-A12' ORDER BY a.id_auditoria DESC LIMIT 1));
+SELECT id_auditoria INTO @aud_usuario FROM auditoria WHERE entidad = 'usuarios' ORDER BY id_auditoria DESC LIMIT 1;
+CALL pr_esperar_error('L13', 'I4: la fila de auditoría de un usuario no se puede modificar',
+  "UPDATE auditoria SET detalle = NULL WHERE id_auditoria = @aud_usuario",
+  'La auditoría no se puede modificar ni eliminar');
+CALL pr_esperar_error('L14', 'I4: la fila de auditoría de un usuario no se puede borrar',
+  "DELETE FROM auditoria WHERE id_auditoria = @aud_usuario",
+  'La auditoría no se puede modificar ni eliminar');
+
+-- Migraciones (RI-4.3): crear y cambiar de estado deja huella.
+SET @app_id_usuario = 5;
+INSERT INTO migraciones (id_usuario, nombre_archivo, entidad_destino, total_registros)
+VALUES (5, 'aprendices_ronda7.xlsx', 'usuarios', 10);
+SET @mig7 = LAST_INSERT_ID();
+CALL pr_verificar('L15', 'RI-4.3: iniciar una migración queda en la auditoría',
+  (SELECT id_usuario = 5 AND accion = 'INICIAR_MIGRACION'
+          AND JSON_UNQUOTE(JSON_EXTRACT(detalle, '$.nombre_archivo')) = 'aprendices_ronda7.xlsx'
+          AND JSON_UNQUOTE(JSON_EXTRACT(detalle, '$.estado')) = 'En proceso'
+     FROM auditoria WHERE entidad = 'migraciones' AND id_entidad = @mig7
+     ORDER BY id_auditoria DESC LIMIT 1),
+  (SELECT CONCAT('filas=', COUNT(*)) FROM auditoria WHERE entidad = 'migraciones' AND id_entidad = @mig7));
+UPDATE migraciones SET registros_exitosos = 5 WHERE id_migracion = @mig7;
+CALL pr_verificar('L16', 'RI-4.3: actualizar contadores sin cambiar el estado no llena la auditoría',
+  (SELECT COUNT(*) FROM auditoria WHERE entidad = 'migraciones' AND id_entidad = @mig7) = 1,
+  (SELECT CONCAT('filas=', COUNT(*)) FROM auditoria WHERE entidad = 'migraciones' AND id_entidad = @mig7));
+UPDATE migraciones SET registros_exitosos = 9, registros_fallidos = 1, estado = 'Completada con errores',
+                       fecha_fin = NOW()
+ WHERE id_migracion = @mig7;
+CALL pr_verificar('L17', 'RI-4.3: terminar la migración queda en la auditoría con estado y totales',
+  (SELECT id_usuario = 5 AND accion = 'FINALIZAR_MIGRACION'
+          AND JSON_UNQUOTE(JSON_EXTRACT(detalle, '$.estado_anterior')) = 'En proceso'
+          AND JSON_UNQUOTE(JSON_EXTRACT(detalle, '$.estado_nuevo')) = 'Completada con errores'
+          AND JSON_EXTRACT(detalle, '$.registros_exitosos') = 9
+          AND JSON_EXTRACT(detalle, '$.registros_fallidos') = 1
+     FROM auditoria WHERE entidad = 'migraciones' AND id_entidad = @mig7
+     ORDER BY id_auditoria DESC LIMIT 1),
+  (SELECT CONCAT('filas=', COUNT(*)) FROM auditoria WHERE entidad = 'migraciones' AND id_entidad = @mig7));
+SET @app_justificacion = 'Cambio hecho por las pruebas automáticas';
 
 -- =====================================================================
 -- Fin: deshacer los datos de prueba e imprimir el resumen

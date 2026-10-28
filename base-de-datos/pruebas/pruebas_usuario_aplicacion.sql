@@ -6,7 +6,9 @@
 --   * un aprendiz no puede darse el rol de Administrador;
 --   * el administrador 5 sí puede gestionar;
 --   * una cuenta bloqueada por intentos fallidos se desbloquea sola a los
---     15 minutos, y no antes.
+--     15 minutos, y no antes;
+--   * un cambio de estado del administrador exige @app_justificacion y
+--     queda en auditoria; benefitrack_app no escribe en auditoria.
 --
 -- Preparación (como root):
 --   1. benefitrack_v2.sql
@@ -66,11 +68,34 @@ SELECT estado, intentos_fallidos, fecha_bloqueo INTO @u6, @u6i, @u6f FROM usuari
 -- U7: un usuario Inactivo no se reactiva solo pasando por Bloqueado con una
 -- fecha vieja (deben fallar los dos pasos).
 SET @app_id_usuario = 5;
+SET @app_justificacion = 'Retiro temporal del aprendiz';
 UPDATE usuarios SET estado = 'Inactivo' WHERE id_usuario = 22;
+SET @app_justificacion = NULL;
 SET @app_id_usuario = NULL;
 UPDATE usuarios SET estado = 'Bloqueado', fecha_bloqueo = '2000-01-01' WHERE id_usuario = 22;
 UPDATE usuarios SET estado = 'Activo' WHERE id_usuario = 22;
 SELECT estado INTO @u7 FROM usuarios WHERE id_usuario = 22;
+
+-- U8: el administrador 5 sin justificación no puede reactivar al aprendiz
+-- 22 (debe fallar); con justificación sí, y queda la fila en auditoría.
+SET @app_id_usuario = 5;
+SET @app_justificacion = NULL;
+UPDATE usuarios SET estado = 'Activo' WHERE id_usuario = 22;
+SELECT estado INTO @u8a FROM usuarios WHERE id_usuario = 22;
+SET @app_justificacion = 'Reingreso aprobado por Bienestar';
+UPDATE usuarios SET estado = 'Activo' WHERE id_usuario = 22;
+SELECT estado INTO @u8b FROM usuarios WHERE id_usuario = 22;
+SELECT id_usuario, JSON_UNQUOTE(JSON_EXTRACT(detalle, '$.justificacion'))
+  INTO @u8u, @u8j
+  FROM auditoria WHERE entidad = 'usuarios' AND id_entidad = 22
+ ORDER BY id_auditoria DESC LIMIT 1;
+SET @app_justificacion = NULL;
+
+-- U9: benefitrack_app no puede escribir en auditoria directamente (debe
+-- fallar con el error 1142); solo escriben los triggers.
+SELECT COUNT(*) INTO @u9a FROM auditoria;
+INSERT INTO auditoria (id_usuario, accion, entidad, id_entidad) VALUES (5, 'FALSA', 'usuarios', 22);
+SELECT COUNT(*) INTO @u9b FROM auditoria;
 
 ROLLBACK;
 SET @app_id_usuario = NULL;
@@ -92,3 +117,11 @@ SELECT 'U6' AS caso, 'Pasados 15 minutos se desbloquea solo (intentos 0, fecha_b
               ' fecha_bloqueo=', IFNULL(@u6f, 'NULL')) AS detalle;
 SELECT 'U7' AS caso, 'Un Inactivo no se reactiva solo pasando por Bloqueado' AS descripcion,
        IF(@u7 = 'Inactivo', 'OK', 'FALLO') AS resultado, CONCAT('estado=', IFNULL(@u7, 'NULL')) AS detalle;
+SELECT 'U8' AS caso, 'Sin justificación se rechaza; con ella el cambio queda en auditoría (admin 5)' AS descripcion,
+       IF(@u8a = 'Inactivo' AND @u8b = 'Activo' AND @u8u = 5 AND @u8j = 'Reingreso aprobado por Bienestar',
+          'OK', 'FALLO') AS resultado,
+       CONCAT('sin_justificacion=', IFNULL(@u8a, 'NULL'), ' con_justificacion=', IFNULL(@u8b, 'NULL'),
+              ' auditoria.id_usuario=', IFNULL(@u8u, 'NULL'), ' justificacion=', IFNULL(@u8j, 'NULL')) AS detalle;
+SELECT 'U9' AS caso, 'benefitrack_app no puede insertar en auditoria directamente' AS descripcion,
+       IF(@u9a = @u9b, 'OK', 'FALLO') AS resultado,
+       CONCAT('filas antes=', IFNULL(@u9a, 'NULL'), ' después=', IFNULL(@u9b, 'NULL')) AS detalle;
