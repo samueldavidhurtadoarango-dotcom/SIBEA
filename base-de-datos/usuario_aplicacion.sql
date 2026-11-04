@@ -32,7 +32,15 @@
 -- La única excepción es el flujo de inicio de sesión: debe ejecutarse con
 -- SET @app_id_usuario = NULL (todavía no hay usuario de sesión); solo así
 -- el bloqueo tras 3 intentos y el desbloqueo a los 15 minutos son
--- automáticos.
+-- automáticos. Con la variable en NULL no se cambian contraseñas ni otros
+-- datos de una cuenta (ronda 11): en la recuperación de contraseña, después
+-- de comprobar el token, fije SET @app_id_usuario = <dueño del token>.
+--
+-- Datos de cada persona (ronda 11): un aprendiz solo cambia su contraseña,
+-- su cuenta bancaria, sus postulaciones, los documentos de sus
+-- postulaciones y el «leída» de sus notificaciones. El estado del correo
+-- de una notificación lo anota la aplicación en la sesión del
+-- administrador que causó el aviso.
 --
 -- @app_justificacion: todo cambio de rol o de estado de un usuario que no
 -- sea automático exige un motivo. Vía recomendada (este usuario tiene
@@ -77,7 +85,8 @@ GRANT UPDATE         ON benefitrack_v2.asignaciones_beneficio TO 'benefitrack_ap
 GRANT INSERT, UPDATE ON benefitrack_v2.pagos                  TO 'benefitrack_app'@'localhost';
 GRANT INSERT         ON benefitrack_v2.novedades              TO 'benefitrack_app'@'localhost';
 
--- Notificaciones: marcar como leída y actualizar el estado del correo.
+-- Notificaciones: marcar como leída (el titular) y actualizar el estado del
+-- correo (un administrador).
 GRANT UPDATE ON benefitrack_v2.notificaciones TO 'benefitrack_app'@'localhost';
 
 -- Migraciones desde Excel.

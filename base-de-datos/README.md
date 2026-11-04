@@ -89,7 +89,7 @@ C:\xampp\mysql\bin\mysql.exe -u root --default-character-set=utf8mb4 --table < b
 La salida muestra la misma tabla de resumen. Resultado esperado:
 
 ```
-| TOTAL | OK | 356 casos: 356 OK, 0 FALLO | TODAS LAS PRUEBAS PASAN |
+| TOTAL | OK | 400 casos: 400 OK, 0 FALLO | TODAS LAS PRUEBAS PASAN |
 ```
 
 Si algún caso dice `FALLO`, la columna `detalle` explica qué pasó (por ejemplo, el
@@ -132,9 +132,10 @@ es de gestión y escribe en el historial o la auditoría, falla con el error 145
 **Control de rol.** Las acciones de gestión (validar, aprobar o rechazar postulaciones y
 documentos, pedir documentación, gestionar asignaciones, registrar o anular pagos, registrar
 novedades, crear o modificar una convocatoria (cualquier dato), escribir la observación de un
-documento, cerrar una solicitud de documentación y crear o modificar beneficios y catálogos:
-instituciones, tipos de cuenta, tipos de documento, entidades bancarias, EPS y programas) solo se
-aceptan si `@app_id_usuario` es un
+documento, cerrar una solicitud de documentación, crear o modificar beneficios y catálogos:
+instituciones, tipos de cuenta, tipos de documento, entidades bancarias, EPS y programas,
+registrar o modificar migraciones y crear notificaciones o cambiar su texto o el estado del correo)
+solo se aceptan si `@app_id_usuario` es un
 usuario con rol Administrador y estado Activo. Si no, la base responde, por ejemplo,
 `Solo un administrador activo puede aprobar una postulación`. Las rutinas que hacen esta revisión
 son `fn_es_administrador` y `pr_exigir_administrador`.
@@ -145,6 +146,25 @@ postulación (o un administrador); lo revisa `pr_exigir_dueno_o_administrador`. 
 Validado no se reemplaza. Quién y cuándo (autor, fechas de carga, de atención y de cierre) los pone
 siempre la base: si la aplicación los manda, se ignoran o se rechazan.
 
+**Los datos de cada persona (ronda 11, D19).** Un aprendiz solo toca lo suyo; un administrador
+activo puede gestionar lo de los demás. Lo revisa `pr_exigir_titular_o_administrador` (o
+`pr_exigir_dueno_o_administrador` para los documentos):
+
+- **cuenta bancaria** (`informacion_bancaria`): la registra y la cambia su titular o un
+  administrador; una cuenta no se pasa a otro usuario;
+- **postulaciones**: el aprendiz las crea solo a su nombre y solo cambia las suyas (el formulario,
+  mientras estén Pendiente); un administrador puede registrar una a nombre de un aprendiz;
+- **documentos**: solo se suben a una postulación propia (o los sube un administrador);
+- **notificaciones**: las crea el sistema (los triggers) o un administrador; el aprendiz solo marca
+  como leídas las suyas (`leida`, `fecha_lectura`). El texto y el estado del correo
+  (`estado_correo`, `fecha_envio`) solo los cambia un administrador: la aplicación debe anotar el
+  envío del correo en la sesión del administrador que causó el aviso;
+- **migraciones**: solo un administrador; la carga queda a nombre del usuario de sesión y ese
+  autor no cambia.
+
+Si no se cumple, la base responde, por ejemplo, `Solo el titular o un administrador activo puede
+modificar esta cuenta bancaria`.
+
 **Si la variable es `NULL`.** Solo el usuario de mantenimiento `root` puede hacer acciones de
 gestión con la variable en `NULL` (se guarda `NULL`, decisión D9). Con **cualquier otro usuario de
 conexión** (`benefitrack_app` o cualquiera que usted cree), las acciones de gestión **se
@@ -154,7 +174,17 @@ Ojo: aun con `root`, cambiar el rol o el estado de un usuario exige justificaci�
 
 **Usuarios y roles.** Cambiar el rol o el estado de un usuario, crear un usuario Administrador o
 crear un usuario que no esté Activo exige un administrador activo. El registro de aprendices
-nuevos (que nacen Activos) y la actualización de datos de contacto siguen libres.
+nuevos (que nacen Activos) sigue libre.
+
+**Contraseña y datos de la cuenta (ronda 11, D19).** Cada usuario cambia su propia contraseña y
+sus propios datos (correo, documento, nombre, contacto, programa, EPS, ficha). Los de **otro**
+usuario solo los cambia un administrador activo (por ejemplo, para restablecer la contraseña de un
+aprendiz), **pero nunca la contraseña ni el correo de otro administrador**: con eso se quedaría
+con su cuenta. Ese administrador cambia los suyos o usa la recuperación de contraseña. Sin usuario
+de sesión (`NULL`) la aplicación solo puede tocar lo del inicio de sesión (intentos, bloqueo y
+desbloqueo); los datos de una cuenta, solo `root`. Por eso, en la **recuperación de contraseña**,
+después de comprobar el token, la aplicación fija `SET @app_id_usuario = <dueño del token>` y
+cambia la contraseña como un cambio propio.
 
 **Justificación de los cambios de cuentas: `@app_justificacion`.** Todo cambio de **rol** o de
 **estado** de un usuario que no sea automático exige un motivo (RF-1.3). La vía recomendada son
@@ -307,7 +337,7 @@ Para comprobar los controles con ese usuario (después de `benefitrack_v2.sql`,
 C:\xampp\mysql\bin\mysql.exe -u benefitrack_app -p --default-character-set=utf8mb4 --force --table < base-de-datos\pruebas\pruebas_usuario_aplicacion.sql
 ```
 
-Los `ERROR 1644` que aparecen son los rechazos esperados; las filas U1 a U13 deben decir `OK` (también aparecen un `ERROR 1142`, el rechazo esperado de U9, y un `ERROR 1644` «Un documento nuevo debe empezar en estado Pendiente», el rechazo esperado de U12).
+Los `ERROR 1644` que aparecen son los rechazos esperados; las filas U1 a U14 deben decir `OK` (también aparecen un `ERROR 1142`, el rechazo esperado de U9, y un `ERROR 1644` «Un documento nuevo debe empezar en estado Pendiente», el rechazo esperado de U12).
 
 ---
 

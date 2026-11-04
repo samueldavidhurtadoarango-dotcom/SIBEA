@@ -20,7 +20,7 @@ especificación no menciona, se indica como **Error del original**.
 | Al final había un bloque de "AJUSTES" que modificaba tablas ya creadas (`ALTER TABLE`) y reemplazaba triggers. | Cada tabla se crea una sola vez con su forma final. | Evita que la estructura dependa del orden de los parches. |
 | Tablas creadas en orden alfabético con las llaves foráneas desactivadas. | Tablas creadas en orden de dependencias (primero catálogos, luego usuarios, convocatorias, postulaciones, pagos...). | El script no necesita desactivar las llaves foráneas para funcionar. |
 | Nombres de índices y restricciones mezclados (`fk_...` usado también para índices simples). | Prefijos claros: `uk_` (único), `idx_` (índice), `fk_` (llave foránea), `chk_` (regla CHECK). | Se entiende de un vistazo qué es cada cosa. |
-| Las reglas de negocio vivían solo en la aplicación (o no existían). | Las reglas clave se fuerzan en la base con triggers que lanzan errores en español (`SQLSTATE '45000'`). | La aplicación no puede saltarse las reglas por error. **Ojo:** los triggers no protegen contra quien tiene permisos totales (por ejemplo `root`), que puede borrar triggers o escribir directamente en las tablas. Por eso la aplicación debe conectarse con un usuario de permisos limitados (`usuario_aplicacion.sql`, ver la sección 15). |
+| Las reglas de negocio vivían solo en la aplicación (o no existían). | Las reglas clave se fuerzan en la base con triggers que lanzan errores en español (`SQLSTATE '45000'`). | La aplicación no puede saltarse las reglas por error. **Ojo:** los triggers no protegen contra quien tiene permisos totales (por ejemplo `root`), que puede borrar triggers o escribir directamente en las tablas. Por eso la aplicación debe conectarse con un usuario de permisos limitados (`usuario_aplicacion.sql`, ver la sección 16). |
 | Los triggers guardaban un usuario fijo o el aprendiz dueño. | Todos usan la variable de sesión `@app_id_usuario`. | **D9** (ver la sección 4). |
 
 ---
@@ -130,15 +130,15 @@ especificación no menciona, se indica como **Error del original**.
 | `tr_postulacion_rechazada` | **Reemplazado** por `tr_postulacion_notificar`; el aviso incluye la justificación obligatoria. | **D1**, **D8** |
 | `tr_pago_completar_postulacion` | **Reemplazado** por `tr_pago_registrado`: ya no pasa la postulación a "Completado"; pasa la **asignación** a "Finalizado". | **D3** |
 
-### Triggers del script corregido (51)
+### Triggers del script corregido (55)
 
 **Postulaciones y convocatorias**
 
 | Trigger | Cuándo | Qué hace | Decisión |
 |---|---|---|---|
-| `tr_postulacion_inicial` | antes de insertar | Exige que toda postulación nueva empiece en Pendiente, la cree un usuario con rol Aprendiz, en una convocatoria Activa y dentro de sus fechas, y sin datos de validación, aprobación o rechazo ya llenos. | D1, D7 |
+| `tr_postulacion_inicial` | antes de insertar | Exige que toda postulación nueva empiece en Pendiente, la cree un usuario con rol Aprendiz, en una convocatoria Activa y dentro de sus fechas, y sin datos de validación, aprobación o rechazo ya llenos. La crea el propio aprendiz a su nombre o un administrador activo. | D1, D7, D19 |
 | `tr_postulacion_creada` | después de insertar | Anota la creación en el historial (sin estado → Pendiente) y en la auditoría. | D9 |
-| `tr_postulacion_validar` | antes de actualizar | Solo deja pasar las transiciones Pendiente → Validada/Rechazada y Validada → Aprobada/Rechazada; exige justificación al rechazar; al aprobar revisa que queden **cupos** en la convocatoria: bloquea la convocatoria con `FOR UPDATE` y cuenta las aprobadas con `LOCK IN SHARE MODE`, para que dos aprobaciones al mismo tiempo no superen los cupos (en la primera versión faltaba este segundo candado y sí se superaban: ver `pruebas/concurrencia.md`); guarda quién validó o aprobó y cuándo, y no deja reescribir esos datos, ni la justificación del rechazo, ni el formulario si ya no está Pendiente; impide cambiar el aprendiz o la convocatoria. | D1, D2, D9 |
+| `tr_postulacion_validar` | antes de actualizar | Solo deja pasar las transiciones Pendiente → Validada/Rechazada y Validada → Aprobada/Rechazada; exige justificación al rechazar; al aprobar revisa que queden **cupos** en la convocatoria: bloquea la convocatoria con `FOR UPDATE` y cuenta las aprobadas con `LOCK IN SHARE MODE`, para que dos aprobaciones al mismo tiempo no superen los cupos (en la primera versión faltaba este segundo candado y sí se superaban: ver `pruebas/concurrencia.md`); guarda quién validó o aprobó y cuándo, y no deja reescribir esos datos, ni la justificación del rechazo, ni el formulario si ya no está Pendiente; impide cambiar el aprendiz o la convocatoria. Un cambio que no es de estado (formulario, observaciones) lo hace solo el aprendiz dueño o un administrador. | D1, D2, D9, D19 |
 | `tr_postulacion_estado` | después de actualizar | Guarda cada cambio en `historial_estados` con `@app_id_usuario`. | D9 |
 | `tr_auditoria_postulacion` | después de actualizar | Guarda cada modificación en `auditoria` con `@app_id_usuario`. | D9 |
 | `tr_postulacion_notificar` | después de actualizar | Crea la notificación al pasar a Validada, Aprobada o Rechazada (esta última con la justificación). | D8 |
@@ -173,7 +173,7 @@ especificación no menciona, se indica como **Error del original**.
 | Trigger | Cuándo | Qué hace | Decisión |
 |---|---|---|---|
 | `tr_usuario_validar_insercion` | antes de insertar | Crear un usuario con rol Administrador, o con un estado distinto de Activo, exige un administrador activo. La base pone `fecha_bloqueo` (hora actual si nace Bloqueado, `NULL` si no). El registro de aprendices sigue libre. | D7, D9 |
-| `tr_usuario_validar` | antes de actualizar | Todo cambio de rol (`id_rol`) o de estado exige un administrador activo (o `root`) y `@app_justificacion`, salvo los automáticos del inicio de sesión (sin usuario de sesión): Activo → Bloqueado con `intentos_fallidos` >= 3 y Bloqueado → Activo pasados 15 minutos desde `fecha_bloqueo` (nunca si es `NULL`). Al pasar a Bloqueado, la base guarda `fecha_bloqueo` = hora real e ignora la fecha recibida. Todo desbloqueo deja `intentos_fallidos = 0` y `fecha_bloqueo = NULL`. Mientras sigue Bloqueado, cambiar `fecha_bloqueo` exige administrador. | D7, D9, D13, D15 |
+| `tr_usuario_validar` | antes de actualizar | Todo cambio de rol (`id_rol`) o de estado exige un administrador activo (o `root`) y `@app_justificacion`, salvo los automáticos del inicio de sesión (sin usuario de sesión): Activo → Bloqueado con `intentos_fallidos` >= 3 y Bloqueado → Activo pasados 15 minutos desde `fecha_bloqueo` (nunca si es `NULL`). Al pasar a Bloqueado, la base guarda `fecha_bloqueo` = hora real e ignora la fecha recibida. Todo desbloqueo deja `intentos_fallidos = 0` y `fecha_bloqueo = NULL`. Mientras sigue Bloqueado, cambiar `fecha_bloqueo` exige administrador. Los datos de la cuenta (contraseña, correo, documento, contacto...) los cambia su dueño; los de otro usuario, solo un administrador activo, y nunca la contraseña ni el correo de otro administrador; sin sesión, solo `root`. | D7, D9, D13, D15, D19 |
 | `tr_usuario_auditar` | después de actualizar | Cada cambio de rol o de estado queda en `auditoria` con quién, valor anterior y nuevo, origen (`Sistema`, `Mantenimiento` o `Usuario`) y justificación. Sumar `intentos_fallidos` solo no se audita. | D9, D15 |
 
 **Migraciones**
@@ -182,14 +182,14 @@ especificación no menciona, se indica como **Error del original**.
 |---|---|---|---|
 | `tr_migracion_creada` | después de insertar | Registrar o iniciar una carga queda en `auditoria` (`INICIAR_MIGRACION` / `REGISTRAR_MIGRACION`). | D11 (RI-4.3) |
 | `tr_migracion_actualizada` | después de actualizar | Cada cambio de estado de la carga queda en `auditoria` con los totales (`FINALIZAR_MIGRACION`). | D11 (RI-4.3) |
-| `tr_migracion_preparar` | antes de insertar | Pone `fecha_inicio` (y `fecha_fin` si ya nace terminada) con la hora real. | D15, D16 |
-| `tr_migracion_validar` | antes de actualizar | Una migración terminada no se puede modificar; al terminar, pone `fecha_fin` con la hora real; `fecha_inicio` no cambia. | D15, D16 |
+| `tr_migracion_preparar` | antes de insertar | Pone `fecha_inicio` (y `fecha_fin` si ya nace terminada) con la hora real. Solo un administrador activo (o `root` sin sesión) la registra, y con sesión queda a su nombre. | D15, D16, D19 |
+| `tr_migracion_validar` | antes de actualizar | Una migración terminada no se puede modificar; al terminar, pone `fecha_fin` con la hora real; `fecha_inicio` no cambia. Solo la modifica un administrador activo; quién hizo la carga no cambia. | D15, D16, D19 |
 
 **Otros**
 
 | Trigger | Cuándo | Qué hace | Decisión |
 |---|---|---|---|
-| `tr_documento_validar_insercion` | antes de insertar un documento | Un documento nuevo debe estar Pendiente (otro estado se rechaza); deja en `NULL` quién lo validó, cuándo y la observación, y pone la fecha de carga con la hora real. | D6, D9 |
+| `tr_documento_validar_insercion` | antes de insertar un documento | Un documento nuevo debe estar Pendiente (otro estado se rechaza); deja en `NULL` quién lo validó, cuándo y la observación, y pone la fecha de carga con la hora real. Solo sube documentos el aprendiz dueño de la postulación o un administrador activo. | D6, D9, D19 |
 | `tr_validacion_documento` | antes de actualizar un documento | Guarda fecha y usuario de la validación y no deja escribirlos a mano, ni la fecha de carga, ni pasar el documento a otra postulación. La observación solo la cambia un administrador. Reemplazar el archivo: no si está Validado; si está Pendiente o Rechazado, solo el aprendiz dueño o un administrador, y vuelve a Pendiente sin datos de validación y con fecha de carga nueva. | D6, D9 |
 | `tr_novedad_preparar` | antes de insertar una novedad | Exige descripción y guarda quién la registró (con usuario de sesión, siempre ese usuario) y la hora real. | D5, D9 |
 | `tr_novedad_registrada` | después de insertar una novedad | Notifica al aprendiz y audita. | D8, D9 |
@@ -208,6 +208,15 @@ especificación no menciona, se indica como **Error del original**.
 | `tr_eps_crear` / `tr_eps_modificar` | ídem en `eps` | Igual. | D7, D18 |
 | `tr_programa_crear` / `tr_programa_modificar` | ídem en `programas` | Igual. | D7, D18 |
 | `tr_beneficio_crear` / `tr_beneficio_modificar` | ídem en `beneficios` | Igual. | D7, D18 |
+
+**Datos de cada persona (4 triggers, ronda 11)**
+
+| Trigger | Cuándo | Qué hace | Decisión |
+|---|---|---|---|
+| `tr_bancaria_crear` | antes de insertar en `informacion_bancaria` | Solo el titular de la cuenta o un administrador activo la registra. | D19 |
+| `tr_bancaria_modificar` | antes de actualizar en `informacion_bancaria` | Solo el titular o un administrador activo la cambia; la cuenta no se pasa a otro usuario. | D19 |
+| `tr_notificacion_crear` | antes de insertar en `notificaciones` | Solo el sistema (los triggers, que corren con un administrador o con `root`) o un administrador activo crea notificaciones. | D8, D19 |
+| `tr_notificacion_modificar` | antes de actualizar en `notificaciones` | Marcarla como leída: su titular o un administrador. El texto y el envío del correo: solo un administrador. | D8, D19 |
 
 ---
 
@@ -825,7 +834,98 @@ se ajustaron 3 triggers.
 
 ---
 
-## 15. Pendientes (solo documentados, no implementados todavía)
+## 15. Undécima ronda: nadie toca los datos de otra persona (explicado fácil)
+
+La revisión de la décima ronda encontró que un aprendiz con sesión podía tocar datos que **no son
+suyos**. Es como si en un colegio cualquier estudiante pudiera abrir el casillero de otro: la
+cerradura revisaba que fuera «un estudiante», pero no que fuera **el dueño**. Esta ronda cierra
+seis huecos (D19).
+
+Para casi todos se agregó una rutina nueva, `pr_exigir_titular_o_administrador(titular, acción)`.
+Es igual que `pr_exigir_administrador`, pero también deja pasar al **titular** del dato (el usuario
+de sesión es el mismo `id_usuario` de la fila). Con la variable en `NULL`, como siempre, solo pasa
+`root`. Responde, por ejemplo: `Solo el titular o un administrador activo puede modificar esta
+cuenta bancaria`.
+
+**1. Cuenta bancaria (`informacion_bancaria`).** Antes un aprendiz podía registrar o cambiar la
+cuenta de otro aprendiz, y así desviar sus pagos. Ahora dos triggers nuevos, `tr_bancaria_crear` y
+`tr_bancaria_modificar`, exigen que lo haga el titular o un administrador activo. Además, una
+cuenta **no se pasa a otro usuario** (`La cuenta bancaria no se puede pasar a otro usuario`).
+
+**2. Contraseña y datos de la cuenta (`usuarios`).** Antes cualquiera con sesión podía cambiar la
+contraseña o el correo de cualquier usuario, incluido un administrador. Ahora `tr_usuario_validar`
+revisa los **datos de la cuenta** (contraseña, correo, documento, nombre, apellido, fecha de
+nacimiento, teléfono, dirección, programa, EPS, ficha y fecha de registro):
+
+- cada quien cambia **los suyos**;
+- los de **otro** usuario (y también sus intentos fallidos) solo un administrador activo:
+  `Solo un administrador activo puede modificar los datos de la cuenta de otro usuario`;
+- **decisión:** un administrador **no** cambia la contraseña ni el correo de **otro
+  administrador** (`Un administrador no puede cambiar la contraseña ni el correo de otro
+  administrador`). Con la contraseña entraría a su nombre, y con el correo pediría una
+  recuperación de contraseña que le llegaría a él. Ese administrador cambia los suyos o usa la
+  recuperación. Sí puede corregir los demás datos de otro administrador (por ejemplo el
+  teléfono) y sí puede restablecer la contraseña de un **aprendiz**;
+- sin usuario de sesión (`NULL`), la aplicación solo puede tocar lo del inicio de sesión
+  (intentos, bloqueo, desbloqueo). Los datos de una cuenta, solo `root` (mantenimiento).
+  **Consecuencia para la aplicación:** en la recuperación de contraseña, después de comprobar el
+  token, debe fijar `SET @app_id_usuario = <dueño del token>`; así es un cambio de la propia
+  contraseña.
+
+**3. Postulaciones.** Antes un aprendiz podía crear una postulación a nombre de otro y cambiar el
+formulario o las observaciones de postulaciones ajenas. Ahora:
+
+- `tr_postulacion_inicial`: la postulación la crea el propio aprendiz a su nombre o un
+  administrador activo (**decisión:** el administrador puede registrarla a nombre de un aprendiz,
+  por ejemplo si el aprendiz la entregó en papel);
+- `tr_postulacion_validar`: un cambio que no es de estado (formulario, observaciones) lo hace el
+  aprendiz dueño o un administrador. El formulario, como antes, solo mientras esté Pendiente; los
+  cambios de estado siguen exigiendo administrador.
+
+**4. Subir documentos a una postulación ajena.** Era el pendiente «Dueño de la postulación en otras
+acciones». Ahora `tr_documento_validar_insercion` llama a `pr_exigir_dueno_o_administrador`: solo
+sube documentos el aprendiz dueño de la postulación o un administrador.
+
+**5. Notificaciones.** Antes un aprendiz podía marcar como leídas (o cambiar) las notificaciones de
+otro, e inventarse avisos. Dos triggers nuevos:
+
+- `tr_notificacion_crear`: las crea el **sistema** o un administrador activo. El «sistema» son los
+  triggers de postulaciones, pagos y novedades; esas acciones ya las hace un administrador (o
+  `root`), así que sus avisos siguen creándose solos;
+- `tr_notificacion_modificar`: marcarla como leída (`leida`, `fecha_lectura`) solo su titular o un
+  administrador. El texto (a quién, correo de destino, evento, asunto, cuerpo, postulación, fecha)
+  y el envío del correo (`estado_correo`, `fecha_envio`) solo un administrador. **Decisión:** el
+  estado del correo es dato del sistema, no del aprendiz; la aplicación lo anota en la sesión del
+  administrador que causó el aviso.
+
+**6. Migraciones.** Antes cualquier sesión podía registrar o cambiar una carga desde Excel. Ahora
+`tr_migracion_preparar` y `tr_migracion_validar` exigen un administrador activo (o `root` sin
+sesión). Además, siguiendo la regla de autor de la novena ronda: con usuario de sesión la carga
+queda **a su nombre** aunque la aplicación mande otro, y quién hizo la carga **no cambia** después
+(`El usuario que hizo la migración no se puede modificar`).
+
+**Pruebas nuevas.**
+
+- Bloque Q (Q01 a Q44) en `pruebas/pruebas_reglas.sql`: un caso que debe fallar y otro que debe
+  funcionar para cada hueco.
+- U14 en `pruebas/pruebas_usuario_aplicacion.sql`: como `benefitrack_app`, el aprendiz 21 intenta
+  cambiar la contraseña del administrador 5, registrar la cuenta bancaria del aprendiz 22,
+  postularlo, subir un documento a su postulación, marcar sus notificaciones como leídas y
+  registrar una migración; y sin sesión, cambiar la contraseña del administrador. Todo se rechaza.
+- A02 espera ahora **55 triggers**.
+
+Primero se escribieron las pruebas y se comprobó que fallaban (26 casos en FALLO con el script de la
+décima ronda, y U14 en FALLO), y después se cambió el script. Resultado: **400 casos, 400 OK**; con
+`benefitrack_app`, U1 a U14 en OK; las pruebas de concurrencia B1 e I1 y la de `otro_usuario` dicen
+CORRECTO; el script corre dos veces seguidas sin errores.
+
+No se cambiaron tablas ni columnas. Se agregaron 4 triggers (ahora son 55) y 1 procedimiento, y se
+ajustaron 6 triggers (`tr_usuario_validar`, `tr_postulacion_inicial`, `tr_postulacion_validar`,
+`tr_documento_validar_insercion`, `tr_migracion_preparar` y `tr_migracion_validar`).
+
+---
+
+## 16. Pendientes (solo documentados, no implementados todavía)
 
 - **Usuario de la aplicación.** Las protecciones de la sección 6 dependen de que la aplicación use
   el usuario limitado de `usuario_aplicacion.sql` y no `root`. Con `root` se pueden borrar
@@ -836,9 +936,13 @@ se ajustaron 3 triggers.
 - **Reglas de reapertura de convocatorias.** La base no define todavía qué transiciones de estado
   de una convocatoria son válidas (por ejemplo, si una `Cerrada` puede volver a `Activa`). Hoy un
   administrador puede reabrirla; al hacerlo se vacían los datos del cierre (sección 14).
-- **Dueño de la postulación en otras acciones.** El aprendiz solo se comprueba como dueño al
-  reemplazar un archivo y al atender una solicitud. Al **subir** un documento nuevo
-  (`INSERT INTO documentos_postulacion`) todavía no se revisa que la postulación sea suya.
+- **Sesiones y tokens de recuperación.** `sesiones` y `recuperacion_contrasena` no revisan quién es
+  el titular: se escriben durante el inicio de sesión y la recuperación, cuando todavía no hay
+  usuario de sesión, así que la base no tiene con qué compararlo. Ese control queda en la
+  aplicación (ronda 11).
+- **Correos enviados por un proceso aparte.** Si en el futuro los correos los envía una cola o un
+  proceso sin sesión de administrador, no podrá anotar `estado_correo` (ronda 11, D19). Habría que
+  decidir una forma segura de identificar ese proceso.
 - **Mejoras de nombres.** `convocatorias.usuario_cierre` debería llamarse `id_usuario_cierre`, y los
   estados mezclan género (`Activa` en convocatorias, `Activo` en catálogos). No se cambian ahora
   porque la matriz de requisitos ya usa los nombres actuales.
