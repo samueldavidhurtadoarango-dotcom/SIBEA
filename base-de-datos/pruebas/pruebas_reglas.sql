@@ -106,7 +106,7 @@ CALL pr_verificar('A01', 'CA1: existen las 23 tablas esperadas',
                          'novedades','notificaciones','auditoria','migraciones')) = 23,
   CONCAT('Tablas encontradas: ', (SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE())));
 
-CALL pr_verificar('A02', 'CA1: existen los 51 triggers esperados',
+CALL pr_verificar('A02', 'CA1: existen los 55 triggers esperados',
   (SELECT COUNT(*) FROM information_schema.triggers
     WHERE trigger_schema = DATABASE()
       AND trigger_name IN ('tr_validacion_documento','tr_postulacion_inicial','tr_postulacion_creada',
@@ -127,7 +127,8 @@ CALL pr_verificar('A02', 'CA1: existen los 51 triggers esperados',
                            'tr_tipo_cuenta_modificar','tr_tipo_documento_crear','tr_tipo_documento_modificar',
                            'tr_banco_crear','tr_banco_modificar','tr_eps_crear','tr_eps_modificar',
                            'tr_programa_crear','tr_programa_modificar','tr_beneficio_crear',
-                           'tr_beneficio_modificar')) = 51,
+                           'tr_beneficio_modificar','tr_bancaria_crear','tr_bancaria_modificar',
+                           'tr_notificacion_crear','tr_notificacion_modificar')) = 55,
   CONCAT('Triggers encontrados: ', (SELECT COUNT(*) FROM information_schema.triggers WHERE trigger_schema = DATABASE())));
 
 CALL pr_verificar('A03', 'D7: roles semilla son exactamente Administrador y Aprendiz',
@@ -1821,6 +1822,195 @@ UPDATE resultados_pruebas
    SET resultado = IF(resultado = 'FALLO' AND detalle LIKE 'Advertencia%', 'OK', 'FALLO'),
        descripcion = 'M2: pr_esperar_exito marca FALLO cuando la sentencia deja advertencias'
  WHERE caso = 'P44';
+
+SET @app_id_usuario = 5;
+SET @app_justificacion = 'Cambio hecho por las pruebas automáticas';
+
+-- =====================================================================
+-- Bloque Q. Nadie toca los datos de otra persona (ronda 11)
+-- =====================================================================
+-- Datos propios del bloque, creados por root sin sesión (como la semilla):
+-- dos aprendices nuevos, un segundo administrador y una convocatoria abierta.
+SET @app_id_usuario = NULL;
+INSERT INTO usuarios (documento, nombre, apellido, correo, password_hash, id_rol)
+VALUES ('PRUEBA-R11-A1', 'Aprendiz', 'Once Uno', 'r11a1@benefitrack.test', 'hash-a1', @rol_aprendiz);
+SET @r11a1 = LAST_INSERT_ID();
+INSERT INTO usuarios (documento, nombre, apellido, correo, password_hash, id_rol)
+VALUES ('PRUEBA-R11-A2', 'Aprendiz', 'Once Dos', 'r11a2@benefitrack.test', 'hash-a2', @rol_aprendiz);
+SET @r11a2 = LAST_INSERT_ID();
+INSERT INTO usuarios (documento, nombre, apellido, correo, password_hash, id_rol)
+VALUES ('PRUEBA-R11-ADM', 'Admin', 'Segundo', 'r11adm@benefitrack.test', 'hash-adm', @rol_admin);
+SET @r11adm = LAST_INSERT_ID();
+SET @app_id_usuario = 5;
+INSERT INTO convocatorias (id_beneficio, nombre, fecha_inicio, fecha_cierre, cupos, requisitos,
+                           valor_pago, numero_pagos, duracion_meses, estado)
+VALUES (@ben, 'R11 abierta', CURDATE() - INTERVAL 5 DAY, CURDATE() + INTERVAL 30 DAY, 5, 'r', 100000, 2, 2, 'Activa');
+SET @r11conv = LAST_INSERT_ID();
+SELECT id_banco INTO @r11banco FROM entidades_bancarias WHERE nombre = 'Banco de pruebas';
+
+-- Hueco 1. Cuenta bancaria: cada aprendiz solo la suya; el administrador gestiona.
+SET @app_id_usuario = @r11a1;
+CALL pr_esperar_error('Q01', 'Un aprendiz no crea la cuenta bancaria de otro aprendiz',
+  "INSERT INTO informacion_bancaria (id_usuario, id_banco, id_tipo_cuenta, numero_cuenta, titular) VALUES (@r11a2, @r11banco, 1, '999', 'Otro')",
+  'Solo el titular o un administrador activo puede');
+CALL pr_esperar_exito('Q02', 'Un aprendiz crea su propia cuenta bancaria',
+  "INSERT INTO informacion_bancaria (id_usuario, id_banco, id_tipo_cuenta, numero_cuenta, titular) VALUES (@r11a1, @r11banco, 1, '111', 'Aprendiz Once Uno')");
+SET @app_id_usuario = @r11a2;
+CALL pr_esperar_error('Q03', 'Un aprendiz no cambia la cuenta bancaria de otro (p. ej. el número)',
+  "UPDATE informacion_bancaria SET numero_cuenta = '666' WHERE id_usuario = @r11a1",
+  'Solo el titular o un administrador activo puede');
+SET @app_id_usuario = @r11a1;
+CALL pr_esperar_exito('Q04', 'Un aprendiz cambia su propia cuenta bancaria',
+  "UPDATE informacion_bancaria SET numero_cuenta = '112' WHERE id_usuario = @r11a1");
+CALL pr_esperar_error('Q05', 'Una cuenta bancaria no se pasa a otro usuario',
+  "UPDATE informacion_bancaria SET id_usuario = @r11a2 WHERE id_usuario = @r11a1",
+  'La cuenta bancaria no se puede pasar a otro usuario');
+SET @app_id_usuario = 5;
+CALL pr_esperar_exito('Q06', 'Un administrador registra la cuenta bancaria de un aprendiz',
+  "INSERT INTO informacion_bancaria (id_usuario, id_banco, id_tipo_cuenta, numero_cuenta, titular) VALUES (@r11a2, @r11banco, 2, '222', 'Aprendiz Once Dos')");
+CALL pr_esperar_exito('Q07', 'Un administrador corrige la cuenta bancaria de un aprendiz',
+  "UPDATE informacion_bancaria SET id_tipo_cuenta = 2 WHERE id_usuario = @r11a1");
+CALL pr_verificar('Q08', 'La cuenta del aprendiz 1 solo la cambiaron él y el administrador',
+  (SELECT numero_cuenta = '112' AND id_tipo_cuenta = 2 FROM informacion_bancaria WHERE id_usuario = @r11a1),
+  (SELECT CONCAT('numero=', numero_cuenta, ' tipo=', id_tipo_cuenta) FROM informacion_bancaria WHERE id_usuario = @r11a1));
+
+-- Hueco 2. Contraseña y datos de la cuenta: cada quien los suyos; el
+-- administrador gestiona los de otros, salvo contraseña y correo de otro
+-- administrador.
+SET @app_id_usuario = @r11a1;
+CALL pr_esperar_error('Q09', 'Un aprendiz no cambia la contraseña de un administrador',
+  "UPDATE usuarios SET password_hash = 'hash-robado' WHERE id_usuario = 5",
+  'Solo un administrador activo puede modificar los datos de la cuenta de otro usuario');
+CALL pr_esperar_error('Q10', 'Un aprendiz no cambia el correo ni el teléfono de otro aprendiz',
+  "UPDATE usuarios SET correo = 'robado@benefitrack.test', telefono = '1' WHERE id_usuario = @r11a2",
+  'Solo un administrador activo puede modificar los datos de la cuenta de otro usuario');
+CALL pr_esperar_error('Q11', 'Un aprendiz no suma intentos fallidos a otro usuario',
+  "UPDATE usuarios SET intentos_fallidos = intentos_fallidos + 1 WHERE id_usuario = @r11a2",
+  'Solo un administrador activo puede modificar los datos de la cuenta de otro usuario');
+CALL pr_esperar_exito('Q12', 'Un aprendiz cambia su propia contraseña',
+  "UPDATE usuarios SET password_hash = 'hash-a1-nuevo' WHERE id_usuario = @r11a1");
+SET @app_id_usuario = 5;
+CALL pr_esperar_error('Q13', 'Un administrador no cambia la contraseña de otro administrador',
+  "UPDATE usuarios SET password_hash = 'hash-impuesto' WHERE id_usuario = @r11adm",
+  'Un administrador no puede cambiar la contraseña ni el correo de otro administrador');
+CALL pr_esperar_error('Q14', 'Un administrador no cambia el correo de otro administrador',
+  "UPDATE usuarios SET correo = 'otro@benefitrack.test' WHERE id_usuario = @r11adm",
+  'Un administrador no puede cambiar la contraseña ni el correo de otro administrador');
+CALL pr_esperar_exito('Q15', 'Un administrador sí corrige el teléfono de otro administrador',
+  "UPDATE usuarios SET telefono = '3009990000' WHERE id_usuario = @r11adm");
+CALL pr_esperar_exito('Q16', 'Un administrador restablece la contraseña de un aprendiz',
+  "UPDATE usuarios SET password_hash = 'hash-a2-temporal' WHERE id_usuario = @r11a2");
+SET @app_id_usuario = @r11adm;
+CALL pr_esperar_exito('Q17', 'Un administrador cambia su propia contraseña',
+  "UPDATE usuarios SET password_hash = 'hash-adm-nuevo' WHERE id_usuario = @r11adm");
+SET @app_id_usuario = NULL;
+CALL pr_esperar_exito('Q18', 'root sin sesión (mantenimiento) sí cambia una contraseña',
+  "UPDATE usuarios SET password_hash = 'hash-mantenimiento' WHERE id_usuario = @r11a2");
+CALL pr_verificar('Q19', 'Las contraseñas quedaron como deben',
+  (SELECT password_hash FROM usuarios WHERE id_usuario = 5) = 'hash'
+  AND (SELECT password_hash FROM usuarios WHERE id_usuario = @r11a1) = 'hash-a1-nuevo'
+  AND (SELECT password_hash FROM usuarios WHERE id_usuario = @r11adm) = 'hash-adm-nuevo'
+  AND (SELECT correo FROM usuarios WHERE id_usuario = @r11a2) = 'r11a2@benefitrack.test',
+  (SELECT GROUP_CONCAT(id_usuario, '=', password_hash ORDER BY id_usuario) FROM usuarios
+    WHERE id_usuario IN (5, @r11a1, @r11a2, @r11adm)));
+
+-- Hueco 3. Postulaciones: el aprendiz solo crea y modifica las suyas.
+SET @app_id_usuario = @r11a1;
+CALL pr_esperar_error('Q20', 'Un aprendiz no crea una postulación a nombre de otro',
+  "INSERT INTO postulaciones (id_usuario, id_convocatoria) VALUES (@r11a2, @r11conv)",
+  'Solo el titular o un administrador activo puede');
+CALL pr_esperar_exito('Q21', 'Un aprendiz crea su propia postulación',
+  "INSERT INTO postulaciones (id_usuario, id_convocatoria, datos_formulario) VALUES (@r11a1, @r11conv, '{\"estrato\": 1}')");
+SELECT id_postulacion INTO @r11p1 FROM postulaciones WHERE id_usuario = @r11a1 AND id_convocatoria = @r11conv;
+SET @app_id_usuario = @r11a2;
+CALL pr_esperar_error('Q22', 'Un aprendiz no cambia el formulario de la postulación de otro',
+  "UPDATE postulaciones SET datos_formulario = '{\"estrato\": 6}' WHERE id_postulacion = @r11p1",
+  'Solo el titular o un administrador activo puede');
+CALL pr_esperar_error('Q23', 'Un aprendiz no cambia las observaciones de la postulación de otro',
+  "UPDATE postulaciones SET observaciones = 'Retiro mi postulación' WHERE id_postulacion = @r11p1",
+  'Solo el titular o un administrador activo puede');
+SET @app_id_usuario = @r11a1;
+CALL pr_esperar_exito('Q24', 'El aprendiz corrige el formulario de su postulación Pendiente',
+  "UPDATE postulaciones SET datos_formulario = '{\"estrato\": 2}' WHERE id_postulacion = @r11p1");
+SET @app_id_usuario = 5;
+CALL pr_esperar_exito('Q25', 'Un administrador registra una postulación a nombre de un aprendiz',
+  "INSERT INTO postulaciones (id_usuario, id_convocatoria) VALUES (@r11a2, @r11conv)");
+CALL pr_verificar('Q26', 'El formulario solo lo cambió su dueño',
+  (SELECT JSON_EXTRACT(datos_formulario, '$.estrato') = 2 AND observaciones IS NULL
+     FROM postulaciones WHERE id_postulacion = @r11p1),
+  (SELECT CONCAT('formulario=', IFNULL(datos_formulario, 'NULL'), ' obs=', IFNULL(observaciones, 'NULL'))
+     FROM postulaciones WHERE id_postulacion = @r11p1));
+
+-- Hueco 4. Documentos: solo se suben a una postulación propia (o lo hace
+-- un administrador).
+SET @app_id_usuario = @r11a2;
+CALL pr_esperar_error('Q27', 'Un aprendiz no sube un documento a la postulación de otro',
+  "INSERT INTO documentos_postulacion (id_postulacion, id_tipo_documento, nombre_archivo, ruta_archivo, extension, tamano_mb) VALUES (@r11p1, 1, 'q27.pdf', 'docs/q27.pdf', 'pdf', 1.00)",
+  'Solo el aprendiz dueño de la postulación o un administrador activo puede');
+SET @app_id_usuario = @r11a1;
+CALL pr_esperar_exito('Q28', 'El aprendiz sube un documento a su propia postulación',
+  "INSERT INTO documentos_postulacion (id_postulacion, id_tipo_documento, nombre_archivo, ruta_archivo, extension, tamano_mb) VALUES (@r11p1, 1, 'q28.pdf', 'docs/q28.pdf', 'pdf', 1.00)");
+SET @app_id_usuario = 5;
+CALL pr_esperar_exito('Q29', 'Un administrador sube un documento a la postulación de un aprendiz',
+  "INSERT INTO documentos_postulacion (id_postulacion, id_tipo_documento, nombre_archivo, ruta_archivo, extension, tamano_mb) VALUES (@r11p1, 3, 'q29.pdf', 'docs/q29.pdf', 'pdf', 1.00)");
+
+-- Hueco 5. Notificaciones: las crea el sistema (triggers) o un
+-- administrador; el aprendiz solo marca como leídas las suyas.
+SET @app_id_usuario = @r11a1;
+CALL pr_esperar_error('Q30', 'Un aprendiz no crea notificaciones',
+  "INSERT INTO notificaciones (id_usuario, destinatario, evento, asunto, cuerpo) VALUES (@r11a2, 'r11a2@benefitrack.test', 'Pago', 'Pago falso', 'x')",
+  'Solo un administrador activo puede');
+SET @app_id_usuario = 5;
+CALL pr_esperar_exito('Q31', 'Al validar la postulación, el sistema crea la notificación del aprendiz',
+  "UPDATE postulaciones SET estado = 'Validada' WHERE id_postulacion = @r11p1");
+SELECT MAX(id_notificacion) INTO @r11n FROM notificaciones WHERE id_usuario = @r11a1;
+CALL pr_esperar_exito('Q32', 'Un administrador crea una notificación a mano',
+  "INSERT INTO notificaciones (id_usuario, destinatario, evento, asunto, cuerpo) VALUES (@r11a2, 'r11a2@benefitrack.test', 'Novedad', 'Aviso', 'Aviso del administrador')");
+SET @app_id_usuario = @r11a2;
+CALL pr_esperar_error('Q33', 'Un aprendiz no marca como leída la notificación de otro',
+  "UPDATE notificaciones SET leida = 1, fecha_lectura = NOW() WHERE id_notificacion = @r11n",
+  'Solo el titular o un administrador activo puede');
+SET @app_id_usuario = @r11a1;
+CALL pr_esperar_error('Q34', 'El aprendiz no cambia el texto de su notificación',
+  "UPDATE notificaciones SET asunto = 'Postulación aprobada' WHERE id_notificacion = @r11n",
+  'Solo un administrador activo puede');
+CALL pr_esperar_error('Q35', 'El aprendiz no cambia el estado del correo de su notificación',
+  "UPDATE notificaciones SET estado_correo = 'Error' WHERE id_notificacion = @r11n",
+  'Solo un administrador activo puede');
+CALL pr_esperar_exito('Q36', 'El aprendiz marca como leída su propia notificación',
+  "UPDATE notificaciones SET leida = 1, fecha_lectura = NOW() WHERE id_notificacion = @r11n");
+SET @app_id_usuario = 5;
+CALL pr_esperar_exito('Q37', 'Un administrador anota el envío del correo',
+  "UPDATE notificaciones SET estado_correo = 'Enviada', fecha_envio = NOW() WHERE id_notificacion = @r11n");
+CALL pr_verificar('Q38', 'La notificación quedó leída, enviada y con su texto original',
+  (SELECT leida = 1 AND estado_correo = 'Enviada' AND asunto = 'Postulación validada'
+     FROM notificaciones WHERE id_notificacion = @r11n),
+  (SELECT CONCAT('leida=', leida, ' correo=', estado_correo, ' asunto=', asunto)
+     FROM notificaciones WHERE id_notificacion = @r11n));
+
+-- Hueco 6. Migraciones: solo un administrador (o root sin sesión); el
+-- autor es el usuario de sesión y no cambia.
+SET @app_id_usuario = @r11a1;
+CALL pr_esperar_error('Q39', 'Un aprendiz no registra una migración',
+  "INSERT INTO migraciones (id_usuario, nombre_archivo, entidad_destino, total_registros) VALUES (5, 'q39.xlsx', 'usuarios', 3)",
+  'Solo un administrador activo puede');
+SET @app_id_usuario = 5;
+CALL pr_esperar_exito('Q40', 'Un administrador inicia una migración (indicando a otro como autor)',
+  "INSERT INTO migraciones (id_usuario, nombre_archivo, entidad_destino, total_registros) VALUES (@r11adm, 'q40.xlsx', 'usuarios', 3)");
+SELECT id_migracion INTO @r11mig FROM migraciones WHERE nombre_archivo = 'q40.xlsx';
+CALL pr_verificar('Q41', 'El autor de la migración es el administrador de la sesión',
+  (SELECT id_usuario = 5 FROM migraciones WHERE id_migracion = @r11mig),
+  (SELECT CONCAT('id_usuario=', IFNULL(id_usuario, 'NULL')) FROM migraciones WHERE id_migracion = @r11mig));
+SET @app_id_usuario = @r11a1;
+CALL pr_esperar_error('Q42', 'Un aprendiz no modifica una migración En proceso',
+  "UPDATE migraciones SET registros_exitosos = 3 WHERE id_migracion = @r11mig",
+  'Solo un administrador activo puede');
+SET @app_id_usuario = 5;
+CALL pr_esperar_error('Q43', 'Nadie cambia quién hizo la migración',
+  "UPDATE migraciones SET id_usuario = @r11adm WHERE id_migracion = @r11mig",
+  'El usuario que hizo la migración no se puede modificar');
+CALL pr_esperar_exito('Q44', 'Un administrador actualiza los contadores de la migración',
+  "UPDATE migraciones SET registros_exitosos = 2 WHERE id_migracion = @r11mig");
 
 SET @app_id_usuario = 5;
 SET @app_justificacion = 'Cambio hecho por las pruebas automáticas';

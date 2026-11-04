@@ -13,7 +13,9 @@
 --     justificación; un aprendiz con sesión no bloquea a otros;
 --   * un aprendiz no sube documentos ya validados;
 --   * ni un aprendiz ni una sesión NULL cambian convocatorias, documentos
---     validados, solicitudes de documentación o catálogos (U13).
+--     validados, solicitudes de documentación o catálogos (U13);
+--   * un aprendiz no toca los datos de otra persona ni registra
+--     migraciones, y sin sesión no se cambia ninguna contraseña (U14).
 --
 -- Preparación (como root):
 --   1. benefitrack_v2.sql
@@ -163,6 +165,33 @@ SELECT id_usuario, estado, fecha_solicitud > '2001-01-01', fecha_atencion >= NOW
 SELECT (SELECT COUNT(*) FROM programas WHERE nombre = 'U13 programa falso')
      + (SELECT COUNT(*) FROM eps WHERE nombre = 'U13 EPS falsa') INTO @u13c;
 
+-- U14 (ronda 11): con benefitrack_app, el aprendiz 21 no toca datos de otra
+-- persona (contraseña del administrador 5, cuenta bancaria, postulación,
+-- documentos y notificaciones del aprendiz 22) ni registra migraciones; y
+-- sin sesión (inicio de sesión) no se cambia ninguna contraseña. Deben
+-- fallar todas.
+SET @app_id_usuario = 5;
+INSERT INTO entidades_bancarias (nombre) VALUES ('U14 banco');
+SET @u14b = LAST_INSERT_ID();
+SET @app_id_usuario = 21;
+UPDATE usuarios SET password_hash = 'u14-robada' WHERE id_usuario = 5;
+INSERT INTO informacion_bancaria (id_usuario, id_banco, id_tipo_cuenta, numero_cuenta, titular)
+VALUES (22, @u14b, 1, 'U14-999', 'Aprendiz Dos');
+INSERT INTO postulaciones (id_usuario, id_convocatoria) VALUES (22, 2);
+INSERT INTO documentos_postulacion (id_postulacion, id_tipo_documento, nombre_archivo, ruta_archivo, extension, tamano_mb)
+VALUES (2, 1, 'u14_ajeno.pdf', 'docs/u14_ajeno.pdf', 'pdf', 1.00);
+UPDATE notificaciones SET leida = 1, fecha_lectura = NOW() WHERE id_usuario = 22;
+INSERT INTO migraciones (id_usuario, nombre_archivo, entidad_destino, total_registros)
+VALUES (21, 'u14.xlsx', 'usuarios', 1);
+SET @app_id_usuario = NULL;
+UPDATE usuarios SET password_hash = 'u14-sin-sesion' WHERE id_usuario = 5;
+SELECT password_hash INTO @u14p FROM usuarios WHERE id_usuario = 5;
+SELECT (SELECT COUNT(*) FROM informacion_bancaria WHERE numero_cuenta = 'U14-999')
+     + (SELECT COUNT(*) FROM postulaciones WHERE id_usuario = 22 AND id_convocatoria = 2)
+     + (SELECT COUNT(*) FROM documentos_postulacion WHERE nombre_archivo = 'u14_ajeno.pdf')
+     + (SELECT COUNT(*) FROM notificaciones WHERE id_usuario = 22 AND leida = 1)
+     + (SELECT COUNT(*) FROM migraciones WHERE nombre_archivo = 'u14.xlsx') INTO @u14c;
+
 ROLLBACK;
 SET @app_id_usuario = NULL;
 
@@ -211,3 +240,6 @@ SELECT 'U13' AS caso, 'Ni un aprendiz ni una sesión NULL cambian convocatorias,
               ' doc=', IFNULL(@u13e, 'NULL'), '/', IFNULL(@u13r, 'NULL'), '/', IFNULL(@u13o, 'NULL'),
               ' solicitud=', IFNULL(@u13su, 'NULL'), '/', IFNULL(@u13se, 'NULL'), '/', IFNULL(@u13sf, 'NULL'),
               '/', IFNULL(@u13sa, 'NULL'), ' catalogos_falsos=', IFNULL(@u13c, 'NULL')) AS detalle;
+SELECT 'U14' AS caso, 'Un aprendiz no toca contraseña, cuenta, postulación, documentos ni notificaciones ajenas, ni migraciones; sin sesión no cambia contraseñas' AS descripcion,
+       IF(@u14p = 'hash' AND @u14c = 0, 'OK', 'FALLO') AS resultado,
+       CONCAT('clave_admin=', IFNULL(@u14p, 'NULL'), ' cambios_ajenos=', IFNULL(@u14c, 'NULL')) AS detalle;
