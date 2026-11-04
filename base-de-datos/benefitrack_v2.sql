@@ -3,7 +3,7 @@
 -- Proyecto formativo SENA (ADSO) - Gestión de beneficios para aprendices
 -- =====================================================================
 -- Compatible con MariaDB 10.4 (XAMPP) y MariaDB 11.x.
--- Fuente de verdad: specs/001-correccion-entregables.md (decisiones D1-D17).
+-- Fuente de verdad: specs/001-correccion-entregables.md (decisiones D1-D19).
 --
 -- Variables de sesión que usa la base de datos (las fija la aplicación
 -- al abrir cada conexión):
@@ -576,6 +576,22 @@ BEGIN
   END IF;
 END//
 
+-- Igual que pr_exigir_administrador, pero también acepta al titular del dato
+-- (el usuario p_id_titular): su cuenta bancaria, su postulación, sus
+-- notificaciones (ronda 11, D19). Con @app_id_usuario NULL solo vale root.
+CREATE PROCEDURE pr_exigir_titular_o_administrador(IN p_id_titular INT, IN p_accion VARCHAR(50))
+READS SQL DATA
+BEGIN
+  DECLARE v_mensaje VARCHAR(128);
+
+  IF NOT ((@app_id_usuario IS NULL AND SUBSTRING_INDEX(USER(), '@', 1) <=> 'root')
+          OR (@app_id_usuario IS NOT NULL
+              AND (@app_id_usuario <=> p_id_titular OR fn_es_administrador(@app_id_usuario)))) THEN
+    SET v_mensaje = CONCAT('Solo el titular o un administrador activo puede ', p_accion);
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = v_mensaje;
+  END IF;
+END//
+
 -- ---------------------------------------------------------------------
 -- Usuarios
 -- ---------------------------------------------------------------------
@@ -650,6 +666,18 @@ END//
 -- cambiar en la sesión con SET timestamp, y eso permitiría bloquear con una
 -- fecha vieja o desbloquear "en el futuro". (Si el servidor se arranca con
 -- --sysdate-is-now, SYSDATE() vuelve a ser NOW(); no lo use.)
+--
+-- Datos de la cuenta (ronda 11, D19): contraseña, correo, documento,
+-- nombre, contacto, programa, EPS, ficha, etc.
+--   * cada quien cambia los suyos (@app_id_usuario = la fila);
+--   * los de otro usuario (también sus intentos_fallidos) solo un
+--     administrador activo, y nunca la contraseña ni el correo de otro
+--     administrador: ese administrador cambia los suyos o usa la
+--     recuperación de contraseña (con el correo se tomaría su cuenta);
+--   * sin usuario de sesión (inicio de sesión) solo se tocan intentos,
+--     estado y bloqueo; los datos de la cuenta, solo root (mantenimiento).
+--     La recuperación de contraseña se hace con @app_id_usuario = dueño
+--     del token, después de que la aplicación lo comprueba.
 CREATE TRIGGER tr_usuario_validar
 BEFORE UPDATE ON usuarios
 FOR EACH ROW
@@ -657,6 +685,36 @@ BEGIN
   DECLARE v_cambia_rol    TINYINT(1) DEFAULT 0;
   DECLARE v_cambia_estado TINYINT(1) DEFAULT 0;
   DECLARE v_automatico    TINYINT(1) DEFAULT 0;
+  DECLARE v_cambia_clave  TINYINT(1) DEFAULT 0;
+  DECLARE v_cambia_cuenta TINYINT(1) DEFAULT 0;
+
+  SET v_cambia_clave  = NOT (OLD.password_hash <=> NEW.password_hash)
+                        OR NOT (OLD.correo <=> NEW.correo);
+  SET v_cambia_cuenta = v_cambia_clave
+                        OR NOT (OLD.id_usuario       <=> NEW.id_usuario)
+                        OR NOT (OLD.documento        <=> NEW.documento)
+                        OR NOT (OLD.nombre           <=> NEW.nombre)
+                        OR NOT (OLD.apellido         <=> NEW.apellido)
+                        OR NOT (OLD.fecha_nacimiento <=> NEW.fecha_nacimiento)
+                        OR NOT (OLD.telefono         <=> NEW.telefono)
+                        OR NOT (OLD.direccion        <=> NEW.direccion)
+                        OR NOT (OLD.id_programa      <=> NEW.id_programa)
+                        OR NOT (OLD.id_eps           <=> NEW.id_eps)
+                        OR NOT (OLD.ficha            <=> NEW.ficha)
+                        OR NOT (OLD.fecha_registro   <=> NEW.fecha_registro);
+
+  IF @app_id_usuario IS NULL THEN
+    IF v_cambia_cuenta THEN
+      CALL pr_exigir_administrador('modificar los datos de una cuenta sin usuario de sesión');
+    END IF;
+  ELSEIF NOT (@app_id_usuario <=> OLD.id_usuario)
+         AND (v_cambia_cuenta OR NOT (OLD.intentos_fallidos <=> NEW.intentos_fallidos)) THEN
+    CALL pr_exigir_administrador('modificar los datos de la cuenta de otro usuario');
+    IF v_cambia_clave AND OLD.id_rol = (SELECT id_rol FROM roles WHERE nombre = 'Administrador') THEN
+      SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Un administrador no puede cambiar la contraseña ni el correo de otro administrador';
+    END IF;
+  END IF;
 
   SET v_cambia_rol    = NOT (OLD.id_rol <=> NEW.id_rol);
   SET v_cambia_estado = NOT (OLD.estado <=> NEW.estado);
@@ -812,6 +870,27 @@ BEGIN
 END//
 
 -- ---------------------------------------------------------------------
+-- Información bancaria (ronda 11, D19)
+-- ---------------------------------------------------------------------
+-- La cuenta donde se pagan los beneficios la registra y la cambia su
+-- titular o un administrador activo; nadie más. Una cuenta no se pasa a
+-- otro usuario.
+
+CREATE TRIGGER tr_bancaria_crear BEFORE INSERT ON informacion_bancaria FOR EACH ROW
+  CALL pr_exigir_titular_o_administrador(NEW.id_usuario, 'registrar esta cuenta bancaria')//
+
+CREATE TRIGGER tr_bancaria_modificar
+BEFORE UPDATE ON informacion_bancaria
+FOR EACH ROW
+BEGIN
+  IF NOT (OLD.id_usuario <=> NEW.id_usuario) THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'La cuenta bancaria no se puede pasar a otro usuario';
+  END IF;
+  CALL pr_exigir_titular_o_administrador(OLD.id_usuario, 'modificar esta cuenta bancaria');
+END//
+
+-- ---------------------------------------------------------------------
 -- Catálogos y beneficios (ronda 10)
 -- ---------------------------------------------------------------------
 -- Crear o modificar instituciones, tipos de cuenta, tipos de documento,
@@ -855,10 +934,13 @@ CREATE TRIGGER tr_beneficio_modificar BEFORE UPDATE ON beneficios FOR EACH ROW
 -- estado se rechaza, y los datos de la validación (quién, cuándo y la
 -- observación del administrador) se descartan, porque solo los escribe
 -- tr_validacion_documento al validar. La fecha de carga es la hora real.
+-- Solo sube documentos el aprendiz dueño de la postulación o un
+-- administrador activo (ronda 11, D19).
 CREATE TRIGGER tr_documento_validar_insercion
 BEFORE INSERT ON documentos_postulacion
 FOR EACH ROW
 BEGIN
+  CALL pr_exigir_dueno_o_administrador(NEW.id_postulacion, 'subir un documento a esta postulación');
   IF NOT (NEW.estado_validacion <=> 'Pendiente') THEN
     SIGNAL SQLSTATE '45000'
       SET MESSAGE_TEXT = 'Un documento nuevo debe empezar en estado Pendiente';
@@ -1007,6 +1089,8 @@ END//
 -- Toda postulación nueva empieza en Pendiente (D1), la crea un usuario con
 -- rol Aprendiz y solo en una convocatoria Activa y dentro de sus fechas.
 -- Los datos de validación y aprobación no se pueden traer ya llenos (I3).
+-- La crea el propio aprendiz a su nombre o un administrador activo (ronda
+-- 11, D19): un aprendiz no postula a otro.
 CREATE TRIGGER tr_postulacion_inicial
 BEFORE INSERT ON postulaciones
 FOR EACH ROW
@@ -1019,6 +1103,8 @@ BEGIN
     SIGNAL SQLSTATE '45000'
       SET MESSAGE_TEXT = 'Una postulación nueva debe iniciar en estado Pendiente';
   END IF;
+
+  CALL pr_exigir_titular_o_administrador(NEW.id_usuario, 'crear esta postulación');
 
   SELECT r.nombre INTO v_rol
     FROM usuarios u
@@ -1067,7 +1153,10 @@ END//
 --   * solo transiciones permitidas (D1);
 --   * justificación obligatoria al rechazar (D1);
 --   * no aprobar más postulaciones que los cupos de la convocatoria (D2);
---   * guarda quién validó / aprobó y cuándo (D2, D9).
+--   * guarda quién validó / aprobó y cuándo (D2, D9);
+--   * un cambio que no es de estado (formulario, observaciones) lo hace
+--     el aprendiz dueño o un administrador activo (ronda 11, D19); el de
+--     estado exige administrador más abajo.
 CREATE TRIGGER tr_postulacion_validar
 BEFORE UPDATE ON postulaciones
 FOR EACH ROW
@@ -1079,6 +1168,10 @@ BEGIN
   IF NOT (OLD.id_usuario <=> NEW.id_usuario) OR NOT (OLD.id_convocatoria <=> NEW.id_convocatoria) THEN
     SIGNAL SQLSTATE '45000'
       SET MESSAGE_TEXT = 'No se puede cambiar el aprendiz ni la convocatoria de una postulación';
+  END IF;
+
+  IF OLD.estado <=> NEW.estado THEN
+    CALL pr_exigir_titular_o_administrador(OLD.id_usuario, 'modificar esta postulación');
   END IF;
 
   -- I3: quién validó / aprobó y cuándo lo escribe solo este trigger.
@@ -1800,6 +1893,42 @@ BEGIN
 END//
 
 -- ---------------------------------------------------------------------
+-- Notificaciones (ronda 11, D19)
+-- ---------------------------------------------------------------------
+
+-- Las notificaciones las crea el sistema (los triggers de postulaciones,
+-- pagos y novedades, que ya corren con un administrador o con root sin
+-- sesión) o un administrador activo. Un aprendiz no se inventa avisos.
+CREATE TRIGGER tr_notificacion_crear BEFORE INSERT ON notificaciones FOR EACH ROW
+  CALL pr_exigir_administrador('crear una notificación')//
+
+-- Cambios de una notificación:
+--   * marcarla como leída (leida, fecha_lectura): su titular o un
+--     administrador activo; nunca otro aprendiz;
+--   * el contenido (a quién, correo, evento, asunto, cuerpo, postulación,
+--     fecha) y el envío del correo (estado_correo, fecha_envio): solo un
+--     administrador activo (o root sin sesión).
+CREATE TRIGGER tr_notificacion_modificar
+BEFORE UPDATE ON notificaciones
+FOR EACH ROW
+BEGIN
+  CALL pr_exigir_titular_o_administrador(OLD.id_usuario, 'modificar esta notificación');
+
+  IF NOT (OLD.id_notificacion <=> NEW.id_notificacion)
+     OR NOT (OLD.id_usuario     <=> NEW.id_usuario)
+     OR NOT (OLD.destinatario   <=> NEW.destinatario)
+     OR NOT (OLD.evento         <=> NEW.evento)
+     OR NOT (OLD.asunto         <=> NEW.asunto)
+     OR NOT (OLD.cuerpo         <=> NEW.cuerpo)
+     OR NOT (OLD.id_postulacion <=> NEW.id_postulacion)
+     OR NOT (OLD.fecha_creacion <=> NEW.fecha_creacion)
+     OR NOT (OLD.estado_correo  <=> NEW.estado_correo)
+     OR NOT (OLD.fecha_envio    <=> NEW.fecha_envio) THEN
+    CALL pr_exigir_administrador('cambiar el contenido o el envío de una notificación');
+  END IF;
+END//
+
+-- ---------------------------------------------------------------------
 -- Protección contra borrados y cambios directos (I4)
 -- ---------------------------------------------------------------------
 
@@ -1832,10 +1961,16 @@ END//
 -- Las fechas de una migración las pone la base con la hora real
 -- (SYSDATE(), no se altera con SET timestamp): fecha_inicio al crearla y
 -- fecha_fin si ya nace terminada.
+-- Solo un administrador activo (o root sin sesión) registra una migración,
+-- y con usuario de sesión la carga queda a su nombre (ronda 11, D19).
 CREATE TRIGGER tr_migracion_preparar
 BEFORE INSERT ON migraciones
 FOR EACH ROW
 BEGIN
+  CALL pr_exigir_administrador('registrar una migración');
+  IF @app_id_usuario IS NOT NULL THEN
+    SET NEW.id_usuario = @app_id_usuario;
+  END IF;
   SET NEW.fecha_inicio = SYSDATE();
   SET NEW.fecha_fin = IF(NEW.estado = 'En proceso', NULL, SYSDATE());
 END//
@@ -1844,10 +1979,17 @@ END//
 -- ya no se puede modificar: sus totales son el resultado oficial de la
 -- carga. Mientras está En proceso se pueden actualizar los contadores; al
 -- terminar, la base pone fecha_fin con la hora real. fecha_inicio no cambia.
+-- Solo la modifica un administrador activo (o root sin sesión), y quién
+-- hizo la carga no cambia (ronda 11, D19).
 CREATE TRIGGER tr_migracion_validar
 BEFORE UPDATE ON migraciones
 FOR EACH ROW
 BEGIN
+  CALL pr_exigir_administrador('modificar una migración');
+  IF NOT (OLD.id_usuario <=> NEW.id_usuario) THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'El usuario que hizo la migración no se puede modificar';
+  END IF;
   IF NOT (OLD.estado <=> 'En proceso') THEN
     SIGNAL SQLSTATE '45000'
       SET MESSAGE_TEXT = 'Una migración terminada no se puede modificar';
