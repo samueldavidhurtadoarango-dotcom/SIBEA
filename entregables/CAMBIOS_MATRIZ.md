@@ -4,7 +4,7 @@ Este documento explica, en palabras sencillas, qué cambió entre la matriz orig
 (`originales/Matriz_Requisitos.xlsx`) y la nueva (`entregables/Matriz_Requisitos_v2.xlsx`), y por qué.
 
 Cada cambio cita la decisión de la especificación `specs/001-correccion-entregables.md`
-que lo justifica (D1 a D17). Cuando no hay una decisión detrás, se indica con «—».
+que lo justifica (D1 a D19). Cuando no hay una decisión detrás, se indica con «—».
 
 ---
 
@@ -29,18 +29,18 @@ base de datos, la matriz deja de servir como guía para programar. Eso es justo 
 | Módulos | 6 | 9 (3 nuevos) |
 | Requisitos (filas RF/RN/RI) | 21 | 46 (25 nuevos) |
 | Requisitos eliminados | — | 0 (se corrigió su contenido, no se borró ninguno) |
-| Reglas del verificador que pasan | 1 de 10 | 10 de 10 |
+| Reglas del verificador que pasan | 1 de 11 | 11 de 11 |
 
 Los números de los módulos originales (1 a 6) **se conservaron** para que nadie del equipo pierda la
 referencia: RF-4.1 sigue siendo «comparar datos» y RF-6.0 sigue siendo «registrar pago». Los módulos
 nuevos son el 7, el 8 y el 9. En el Excel, el número de cada requisito nuevo tiene fondo verde, y la
-hoja «Control de cambios» tiene una fila por cada cambio (fechas 26/10/2026, 27/10/2026 y 28/10/2026, responsable
+hoja «Control de cambios» tiene una fila por cada cambio (fechas 26/10/2026, 27/10/2026, 28/10/2026 y 04/11/2026, responsable
 Samuel David Hurtado Arango).
 
 ## 2. ¿Cómo se comprobó? (el verificador)
 
 `entregables/verificar_matriz.js` es un pequeño programa que lee el Excel y la base de datos y revisa
-diez reglas. No necesita instalar nada: solo Node. Se ejecuta así:
+once reglas. No necesita instalar nada: solo Node. Se ejecuta así:
 
 ```bash
 node entregables/verificar_matriz.js                                   # revisa la v2
@@ -59,25 +59,28 @@ node entregables/verificar_matriz.js originales/Matriz_Requisitos.xlsx # revisa 
 | (k) | No quedan preguntas abiertas ni temas «por confirmar» en la hoja ni en la sección 7 de este documento | OK | OK |
 | (l) | Frases acordadas del bloqueo de la cuenta (quién bloquea y quién desbloquea) presentes | FALLO (8 problemas) | OK |
 | (m) | Frases acordadas de la auditoría de cuentas y migraciones (rondas 7 y 8) presentes | FALLO (24 problemas) | OK |
+| (n) | Frases acordadas de la ronda 11 (nadie toca los datos de otra persona) presentes | FALLO (16 problemas) | OK |
 
 La regla (d) revisa solo la hoja «Matriz de Requisitos». La hoja «Control de cambios» sí nombra esas
 palabras, porque explica qué se quitó.
 
 Las reglas (h) a (l) se agregaron el 27/10/2026 (sección 9) y la (m), el mismo día en la segunda tanda
 (sección 10). El 27/10/2026 por la noche, con la octava ronda, (c) pasó a revisar también los nombres de las
-rutinas y (j) a leer los minutos de todo el bloque de usuarios (sección 11).
+rutinas y (j) a leer los minutos de todo el bloque de usuarios (sección 11). La (n) se agregó el
+04/11/2026 con la undécima ronda (sección 13).
 
 **Qué lee del SQL y qué no (dicho con honestidad).** Hay dos tipos de reglas:
 
 - **Las que leen el SQL:** (c), (i) y (j). Si mañana la base de datos agrega otro tipo de documento o
   cambia los 15 minutos, el verificador avisa que la matriz quedó desactualizada.
-- **Las que comparan frases acordadas:** (h), (l) y (m). Son como una lista de chequeo escrita a mano:
+- **Las que comparan frases acordadas:** (h), (l), (m) y (n). Son como una lista de chequeo escrita a mano:
   las frases se copiaron de `base-de-datos/CAMBIOS.md` y se revisaron contra `benefitrack_v2.sql`, pero
   el verificador **no lee el SQL** para estas reglas. Comprueban que esas frases estén y que no
   aparezcan algunas frases equivocadas que ya conocemos; no pueden garantizar que ninguna otra frase
   de la matriz contradiga la base. Si la base de datos cambia, hay que actualizar la lista. Las frases de
   (h), (l) y (m) ya incluyen la octava ronda, que desde el 27/10/2026 está en el SQL de esta rama
-  (sección 11), y (h) incluye la novena y la décima (sección 12).
+  (sección 11); (h) incluye la novena y la décima (sección 12), y (n), la undécima (sección 13). Las
+  rondas 2 a 11 ya están todas en el SQL de esta rama.
 
 **Sobre la regla (k).** Nunca estuvo en rojo contra la original, porque la hoja original no tenía
 frases como «por confirmar»: las preguntas abiertas estaban escritas en la sección 7 de este documento.
@@ -240,6 +243,8 @@ Ninguno se borró. Lo que se quitó fue **contenido equivocado** dentro de requi
 | D15 Auditoría de cuentas y migraciones con justificación | RF-1.2, RF-1.3, RF-2.0, RF-4.3, RF-4.4 |
 | D16 Hora real del servidor | RF-2.0, RF-4.3, RF-4.4 |
 | D17 Lista blanca de `root` (mantenimiento) | RF-1.3, RF-2.0, RF-2.3, RF-4.4 |
+| D18 Los cambios solo los hace quien debe (ronda 10) | RF-2.3, RF-3.1, RF-3.3, RF-4.1, RF-4.5, RF-7.0, RF-7.1, RF-7.2 |
+| D19 Nadie toca los datos de otra persona (ronda 11) | RF-1.2, RF-2.2, RF-2.3, RF-3.0, RF-3.1, RF-3.2, RF-4.2, RF-4.3, RF-5.6, RF-5.7 |
 
 ## 7. Decisiones que tomé y que las fuentes no cubrían
 
@@ -487,7 +492,7 @@ marcaron con «lo valida la aplicación» las reglas que la base **no** comprueb
 - RN-3.3: que el documento pedido se cargue con el tipo Documento adicional;
 - RN-7.0: que un beneficio Inactivo no admita convocatorias nuevas.
 
-RN-7.2 (quién cerró la convocatoria y cuándo) **no** se marca: lo anotará el sistema al cerrar
+RN-7.2 (quién cerró la convocatoria y cuándo) **no** se marca: lo anota el sistema al cerrar
 (décima ronda, sección 12.5).
 
 ### 12.3 Otros arreglos
@@ -516,13 +521,14 @@ de la décima ronda.
 
 Primero se cambió el verificador (rojo: 9 de 10, con 24 problemas en (h)). Luego se cambiaron los
 datos, se regeneró el Excel y quedó en **10 de 10 reglas OK** (verde). Lo mismo se repitió para la
-décima ronda (rojo: 9 de 10, con 14 problemas en (h); después, verde). Contra la matriz original da
-**1 de 10** (solo pasa (k)).
+décima ronda (rojo: 9 de 10, con 14 problemas en (h); después, verde). Contra la matriz original daba,
+en ese momento, **1 de 10** (solo pasa (k)).
 
-### 12.5 Décima ronda: escrita ya en su forma final
+### 12.5 Décima ronda (D18)
 
-El coordinador anunció una décima ronda de la base de datos, que se trabaja en otra rama. Para no
-reescribir la matriz otra vez, sus reglas ya quedan escritas (sin nombrar triggers ni columnas nuevas):
+La décima ronda de la base de datos (sección 14 de `base-de-datos/CAMBIOS.md`, decisión D18) se
+trabajó en otra rama. Para no reescribir la matriz otra vez, sus reglas se escribieron aquí en su
+forma final, sin nombrar triggers ni columnas nuevas:
 
 | Requisito | Qué dice |
 |---|---|
@@ -533,7 +539,62 @@ reescribir la matriz otra vez, sus reglas ya quedan escritas (sin nombrar trigge
 | RN-3.3, RN-4.5 | Una solicitud solo pasa de Pendiente a Atendida o Cerrada y sus datos de origen no se modifican; la fecha de atención la pone el sistema; cerrarla exige un administrador activo. |
 | RN-7.0, RN-2.3 | Crear o modificar beneficios y catálogos (instituciones, programas, tipos de documento, entidades bancarias, EPS y tipos de cuenta) exige un administrador activo. |
 
-**Advertencia honesta.** El SQL de esta rama (novena ronda) **todavía no** hace cumplir estas reglas.
-Por ejemplo, hoy no llena solo quién cerró una convocatoria (pendiente de la sección 14 de
-`base-de-datos/CAMBIOS.md`) ni impide reemplazar un documento ya Validado. Cuando esta rama se rebase
-sobre la décima ronda, esta advertencia se debe quitar.
+Desde el 04/11/2026 esta rama está rebasada sobre la base de datos final, y el SQL **ya hace
+cumplir** estas reglas: por ejemplo, anota solo quién cerró una convocatoria y rechaza reemplazar un
+documento Validado («Un documento validado no se puede reemplazar»). La advertencia que había aquí se
+quitó.
+
+## 13. Cambios del 04/11/2026: undécima ronda, nadie toca los datos de otra persona (D19)
+
+La undécima ronda de la base de datos (sección 15 de `base-de-datos/CAMBIOS.md` y decisión D19 de
+`specs/001-correccion-entregables.md`) cerró un hueco: un aprendiz con sesión podía tocar datos que
+**no eran suyos**. Es como un colegio donde la cerradura de los casilleros revisaba que fueras
+«un estudiante», pero no que fueras **el dueño** del casillero. Ahora cada quien abre solo el suyo, y
+el administrador tiene la llave maestra (con una excepción: no cambia la contraseña ni el correo de
+otro administrador).
+
+Esta ronda ya está en el SQL de esta rama (55 triggers; 400 de 400 pruebas OK según
+`base-de-datos/CAMBIOS.md` §15).
+
+### 13.1 Qué cambió en la matriz
+
+| Requisito | Qué dice ahora, en palabras sencillas |
+|---|---|
+| RN-3.0 | La cuenta bancaria solo la registra o la cambia su titular o un administrador activo, y no se pasa a otro usuario. |
+| RN-1.2, RI-1.2 | Cada usuario cambia sus propios datos de cuenta (contraseña, correo, nombre, contacto, programa, EPS, ficha); los de otro usuario, y sus intentos fallidos, solo un administrador activo. Un administrador no puede cambiar la contraseña ni el correo de otro administrador (sí sus demás datos, y sí puede restablecer la contraseña de un aprendiz). El RI agrega `id_usuario`, `password_hash` e `intentos_fallidos`. |
+| RN-2.2 | Sin usuario de sesión, la aplicación solo puede cambiar los intentos fallidos, el bloqueo y el desbloqueo de una cuenta. Por eso, en la recuperación de contraseña, después de comprobar el token, la aplicación fija como usuario de sesión al dueño del token (`@app_id_usuario`), y el cambio cuenta como de su propia contraseña. |
+| RN-3.2 | El aprendiz solo crea postulaciones a su nombre; un administrador activo puede registrarla a nombre de un aprendiz (por ejemplo, si la entregó en papel). |
+| RN-4.2 | El formulario y las observaciones de una postulación solo los cambia el aprendiz dueño o un administrador activo (el formulario, como antes, solo mientras está Pendiente). |
+| RN-3.1, RI-3.1 | Solo el aprendiz dueño de la postulación o un administrador activo puede subirle documentos. El RI agrega `postulaciones: id_postulacion, id_usuario` (para saber quién es el dueño). |
+| RN-5.6 | Las notificaciones las crea solo el sistema o un administrador activo; solo su titular o un administrador activo puede marcarla como leída; el texto solo lo cambia un administrador activo. |
+| RN-5.7 | El estado del correo y la fecha de envío solo los cambia un administrador activo: la aplicación los anota con la sesión del administrador que causó el aviso. |
+| RN-4.3 | Solo un administrador activo puede registrar o modificar una carga desde Excel (salvo mantenimiento); la carga queda a nombre del usuario de sesión, aunque la aplicación indique otro, y quién hizo la carga no se puede cambiar después. |
+| RN-2.3 | Se agrega «registrar o modificar migraciones desde Excel» a la lista de acciones de administrador, y un resumen: nadie toca los datos de otra persona. Se quita la frase «El aprendiz sí puede crear su postulación y corregir su formulario…», que ya no era precisa (ahora dice que solo las suyas). |
+
+La hoja «Control de cambios» tiene 1 fila nueva con fecha 04/11/2026 y decisión D19 (70 en total).
+
+### 13.2 Qué cambió en el verificador
+
+- **Regla nueva (n).** Revisa las frases acordadas de la ronda 11 en RF-1.2, RF-2.2, RF-2.3, RF-3.0,
+  RF-3.1, RF-3.2, RF-4.2, RF-4.3, RF-5.6 y RF-5.7. Igual que (h), (l) y (m), **solo busca frases**
+  (lo dice en su nombre: «no lee el SQL»): las frases se copiaron de `base-de-datos/CAMBIOS.md` §15 y
+  se revisaron contra los triggers de la ronda 11. También comprueba que RN-2.3 ya no diga la frase
+  vieja sobre lo que el aprendiz «sí puede» hacer.
+- Se actualizó el comentario de las frases de la décima ronda: ya no dice «anunciada», sino que ya
+  está en el SQL.
+
+### 13.3 Cómo se comprobó
+
+Primero se agregó la regla (n) y se ejecutó contra la matriz anterior: **10 de 11 reglas OK**, con
+**21 problemas en (n)** (rojo). Luego se cambiaron los textos en `herramientas/datos_matriz.js`, se
+regeneró el Excel con `generar_matriz.js` y quedó en **11 de 11 reglas OK** (verde). Contra la matriz
+original da **1 de 11** (solo pasa (k); (n) tiene 16 problemas).
+
+### 13.4 Lo que la base no controla (queda en la aplicación)
+
+- **Sesiones y tokens de recuperación.** Las tablas `sesiones` y `recuperacion_contrasena` se escriben
+  durante el inicio de sesión y la recuperación, cuando todavía no hay usuario de sesión, así que la
+  base no puede comprobar el titular. Que el token sea del usuario lo comprueba la aplicación.
+- **Correos enviados por un proceso aparte.** Si en el futuro los correos los envía una cola sin
+  sesión de administrador, no podrá anotar `estado_correo`. Es un pendiente de la base de datos
+  (`base-de-datos/CAMBIOS.md` §16), no de la matriz.
