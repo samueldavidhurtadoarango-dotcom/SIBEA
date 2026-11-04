@@ -36,7 +36,11 @@
  *       desbloquea); igual que (h), copiadas a mano y no leídas del SQL;
  *   (m) frases acordadas de la auditoría de cuentas y migraciones (ronda 7):
  *       qué anota la base en auditoria y quién queda registrado; igual que
- *       (h), copiadas a mano y no leídas del SQL.
+ *       (h), copiadas a mano y no leídas del SQL;
+ *   (n) frases acordadas de la ronda 11 (D19, nadie toca los datos de otra
+ *       persona): cuenta bancaria, datos de la cuenta, recuperación de
+ *       contraseña, postulaciones, documentos, notificaciones y migraciones;
+ *       igual que (h), copiadas a mano y no leídas del SQL.
  * Termina con código 1 si alguna regla falla.
  */
 'use strict';
@@ -281,7 +285,7 @@ function reglaEstadoRequisito(filas) {
 }
 
 // ---------------------------------------------------------------------------
-// Reglas de contenido (h, i, j, k, l, m)
+// Reglas de contenido (h, i, j, k, l, m, n)
 // ---------------------------------------------------------------------------
 
 /** Minúsculas, sin tildes y con espacios simples, para comparar frases. */
@@ -380,8 +384,8 @@ const REGLAS_BD = [
     debe: ['que el documento se cargue con el tipo documento adicional (lo valida la aplicación)'] },
   { rf: 'RF-7.0', que: 'beneficio Inactivo sin convocatorias nuevas: lo valida la aplicación',
     debe: ['un beneficio inactivo no admite convocatorias nuevas (lo valida la aplicación)'] },
-  // Décima ronda (anunciada por el coordinador el 28/10/2026; se redacta ya en
-  // su forma final, sin nombres de triggers ni columnas nuevas).
+  // Décima ronda (CAMBIOS.md §14, D18; ya está en el SQL desde el rebase sobre
+  // la base de datos final).
   { rf: 'RF-7.1', que: 'cualquier cambio de una convocatoria lo hace solo un administrador activo (décima ronda)',
     debe: ['cualquier cambio de una convocatoria (valor, número de pagos, duración, fechas, cupos o estado) lo hace solo un administrador activo'] },
   { rf: 'RF-7.2', que: 'quién cerró y cuándo lo anota el sistema al cerrar (décima ronda)',
@@ -585,6 +589,47 @@ function reglaAuditoriaCuentas(filas) {
   return revisarFrases(filas, REGLAS_AUDITORIA);
 }
 
+// (n) Frases acordadas de la ronda 11 (CAMBIOS.md §15 y decisión D19 de la spec):
+// nadie toca los datos de otra persona. Copiadas a mano y revisadas contra los
+// triggers de la ronda 11; el verificador no lee el SQL aquí.
+const REGLAS_RONDA11 = [
+  { rf: 'RF-3.0', que: 'la cuenta bancaria la gestiona su titular o un administrador y no se traspasa',
+    debe: ['la cuenta bancaria solo la registra o la cambia su titular o un administrador activo',
+      'no se pasa a otro usuario'] },
+  { rf: 'RF-1.2', que: 'cada quien cambia sus datos de cuenta; los de otro, solo un administrador',
+    debe: ['cada usuario cambia sus propios datos de cuenta',
+      'los de otro usuario, y sus intentos fallidos, solo un administrador activo',
+      'un administrador no puede cambiar la contraseña ni el correo de otro administrador'] },
+  { rf: 'RF-2.2', que: 'recuperación de contraseña con el dueño del token como usuario de sesión',
+    debe: ['sin usuario de sesión, la aplicación solo puede cambiar los intentos fallidos, el bloqueo y el desbloqueo',
+      'la aplicación fija como usuario de sesión al dueño del token'] },
+  { rf: 'RF-3.2', que: 'el aprendiz postula solo a su nombre; un administrador puede registrarla por él',
+    debe: ['el aprendiz solo crea postulaciones a su nombre',
+      'un administrador activo puede registrarla a nombre de un aprendiz'] },
+  { rf: 'RF-4.2', que: 'formulario y observaciones: el aprendiz dueño o un administrador',
+    debe: ['el formulario y las observaciones de una postulación solo los cambia el aprendiz dueño o un administrador activo'] },
+  { rf: 'RF-3.1', que: 'documentos solo a la postulación propia (o un administrador)',
+    debe: ['solo el aprendiz dueño de la postulación o un administrador activo puede subirle documentos'] },
+  { rf: 'RF-5.6', que: 'quién crea, marca como leída y cambia una notificación',
+    debe: ['las notificaciones las crea solo el sistema o un administrador activo',
+      'solo su titular o un administrador activo puede marcarla como leída',
+      'el texto de la notificación solo lo cambia un administrador activo'] },
+  { rf: 'RF-5.7', que: 'el estado del correo y la fecha de envío solo los cambia un administrador',
+    debe: ['el estado del correo y la fecha de envío solo los cambia un administrador activo'] },
+  { rf: 'RF-4.3', que: 'migraciones: solo un administrador; autor de la sesión y fijo',
+    debe: ['solo un administrador activo puede registrar o modificar una carga',
+      'la carga queda a nombre del usuario de sesión',
+      'quién hizo la carga no se puede cambiar'] },
+  { rf: 'RF-2.3', que: 'resumen de la ronda 11 en los permisos',
+    debe: ['nadie toca los datos de otra persona', 'registrar o modificar migraciones desde excel'],
+    noDebe: ['el aprendiz sí puede crear su postulación y corregir su formulario mientras está pendiente'] },
+];
+
+/** (n) Las reglas de la ronda 11 están en el requisito que corresponde. */
+function reglaRonda11(filas) {
+  return revisarFrases(filas, REGLAS_RONDA11);
+}
+
 // ---------------------------------------------------------------------------
 // (f) Informe
 // ---------------------------------------------------------------------------
@@ -611,6 +656,7 @@ function main() {
     ['(k) Sin preguntas abiertas (hoja y §7 de CAMBIOS_MATRIZ.md)', reglaSinPreguntasAbiertas(celdas, RUTA_CAMBIOS_MATRIZ)],
     ['(l) Frases acordadas del bloqueo de la cuenta presentes (no lee el SQL)', reglaBloqueoCuenta(filas)],
     ['(m) Frases acordadas de la auditoría de cuentas y migraciones presentes (no lee el SQL)', reglaAuditoriaCuentas(filas)],
+    ['(n) Frases acordadas de la ronda 11 (nadie toca los datos de otra persona) presentes (no lee el SQL)', reglaRonda11(filas)],
   ];
 
   let fallidas = 0;
