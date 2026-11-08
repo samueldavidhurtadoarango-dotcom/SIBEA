@@ -484,3 +484,36 @@ input[type="checkbox"], input[type="radio"] { width: 20px; height: 20px; accent-
   .br-dialogo { padding: 20px; }
   .br-dialogo__acciones .br-boton { flex: 1 1 100%; }
 }
+
+/* ---------- Subir un archivo (vista 08-subir-documento) ---------- */
+/* Zona para elegir o arrastrar: es un <label> que envuelve el <input type="file"> (oculto pero enfocable). */
+.br-zona {
+  display: grid; justify-items: center; gap: 6px; padding: 28px 16px; text-align: center; cursor: pointer;
+  background: var(--br-fondo); border: 2px dashed var(--br-gris-claro); border-radius: var(--br-radio);
+}
+.br-zona:hover { background: var(--br-fondo-2); border-color: var(--br-enlace); }
+.br-zona:focus-within { outline: 3px solid var(--br-enlace); outline-offset: 2px; }
+.br-zona__icono { width: 36px; height: 36px; color: var(--br-enlace); }
+.br-zona__titulo { font-size: 16px; font-weight: 600; }
+.br-zona__ayuda { font-size: 13px; color: var(--br-gris); }
+.br-zona .br-boton { margin-top: 8px; }
+
+/* Archivo elegido: nombre, tamaño y estado en una fila */
+.br-archivo {
+  display: flex; align-items: center; gap: 12px; padding: 12px 14px;
+  background: var(--br-fondo); border: 1px solid var(--br-borde); border-radius: 10px;
+}
+.br-archivo__icono { flex: none; width: 24px; height: 24px; color: var(--br-enlace); }
+.br-archivo__texto { min-width: 0; display: grid; gap: 2px; }
+.br-archivo__nombre { font-weight: 600; overflow-wrap: anywhere; }
+.br-archivo--error { background: var(--br-rojo-fondo); border-color: var(--br-rojo); }
+.br-archivo--error .br-archivo__icono, .br-archivo--error .br-suave { color: var(--br-rojo-texto); }
+.br-archivo--ok { background: var(--br-verde-claro); border-color: var(--br-verde); }
+.br-archivo--ok .br-archivo__icono { color: var(--br-verde); }
+
+/* Mensaje de error dentro de una tarjeta (rojo del panel de postulaciones) */
+.br-mensaje-error { display: grid; gap: 4px; padding: 12px 14px; background: var(--br-rojo-fondo); border-left: 4px solid var(--br-rojo); border-radius: 8px; color: var(--br-rojo-texto); }
+.br-mensaje-error strong { font-weight: 600; }
+
+/* Enlace discreto de «volver» */
+.br-volver { display: inline-flex; align-items: center; min-height: 44px; color: var(--br-enlace); font-weight: 500; }
