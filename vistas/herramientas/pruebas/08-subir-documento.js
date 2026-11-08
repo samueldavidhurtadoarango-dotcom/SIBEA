@@ -67,4 +67,24 @@ module.exports = [
       exige(acciones.includes('Intentar de nuevo'), `falta «Intentar de nuevo»: ${acciones.join(' | ')}`);
     },
   },
+  {
+    estado: 'enviado',
+    nombre: 'campanita en cero tras enviar (el aviso ya se atendió)',
+    prueba: async (page) => {
+      const r = await page.$eval('.br-campanita', (b) => ({
+        n: b.querySelectorAll('.br-campanita__contador').length,
+        l: b.getAttribute('aria-label'),
+      }));
+      exige(r.n === 0, 'el contador de la campanita sigue visible');
+      exige(/ninguno sin leer/.test(r.l), `aria-label: «${r.l}»`);
+    },
+  },
+  {
+    estado: 'error',
+    nombre: 'campanita con 1 aviso mientras no se envíe nada',
+    prueba: async (page) => {
+      const t = await page.$eval('.br-campanita__contador', (e) => e.textContent.trim());
+      exige(t === '1', `contador: «${t}»`);
+    },
+  },
 ];
