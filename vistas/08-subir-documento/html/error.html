@@ -940,6 +940,18 @@ select.br-entrada { cursor: pointer; }
   background: var(--br-chip-fondo); border: 1px solid var(--br-chip-borde); color: var(--br-azul);
 }
 
+/* Campo obligatorio vacío o con error: borde rojo (el mensaje va debajo con .br-motivo--alerta) */
+.br-campo [aria-invalid="true"] { border-color: var(--br-rojo); }
+/* Por qué el botón final de un diálogo está deshabilitado: debajo de los botones, alineado con ellos */
+.br-dialogo > .br-dialogo__nota-final { justify-content: flex-end; margin-top: 10px; }
+@media (max-width: 480px) { .br-dialogo > .br-dialogo__nota-final { justify-content: flex-start; } }
+/* En el celular el menú de una fila se ancla a la celda de acciones (no al botón), para no salirse de la ficha */
+@media (max-width: 640px) {
+  .br-tabla--fichas td.br-tabla__acciones { position: relative; }
+  .br-tabla--fichas .br-menu-acciones { position: static; }
+  .br-tabla--fichas .br-menu-acciones__lista { left: 0; right: auto; width: min(290px, 100%); }
+}
+
 </style>
 </head>
 <body>
