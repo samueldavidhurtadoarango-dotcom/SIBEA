@@ -722,6 +722,224 @@ input[type="checkbox"], input[type="radio"] { width: 20px; height: 20px; accent-
 .br-decision__paso--rechazado .br-decision__numero { background: var(--br-rojo); border-color: var(--br-rojo); color: var(--br-blanco); }
 .br-vacio > .br-fila { justify-content: center; }
 
+/* =====================================================================
+   Administrador: listados con filtros, selección múltiple y acciones por fila
+   (vista 05-pagos y las que siguen; sale del panel de postulaciones de Samuel)
+   ===================================================================== */
+
+/* Encabezado de un listado: el subtítulo va debajo del título */
+.br-encabezado__sub { color: var(--br-gris); font-size: 15px; }
+
+/* Pestañas con contador (Todos 25, Pendientes 20, Retrasados 3, Pagados 2) */
+.br-pestanas {
+  display: flex; gap: 4px; overflow-x: auto; border-bottom: 1px solid var(--br-borde);
+  scrollbar-width: thin;
+}
+.br-pestanas a {
+  position: relative; flex: none; display: inline-flex; align-items: center; gap: 8px; min-height: 44px;
+  padding: 0 14px; color: var(--br-gris); font-weight: 500; text-decoration: none; white-space: nowrap;
+}
+.br-pestanas a:hover { color: var(--br-azul); }
+.br-pestanas a[aria-current="page"] { color: var(--br-azul); font-weight: 600; }
+.br-pestanas a[aria-current="page"]::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 3px; border-radius: 3px 3px 0 0;
+  background: var(--br-verde);
+}
+.br-pestanas a:focus-visible { outline-offset: -3px; }
+.br-contador {
+  display: inline-flex; align-items: center; justify-content: center; min-width: 24px; padding: 0 7px;
+  border-radius: 999px; font-size: 12px; font-weight: 600; line-height: 20px; font-variant-numeric: tabular-nums;
+  background: var(--br-fondo-3); color: var(--br-gris);
+}
+[aria-current="page"] > .br-contador { background: var(--br-azul); color: var(--br-blanco); }
+.br-contador--aviso { background: var(--br-aviso-fondo); color: var(--br-aviso-texto); }
+
+/* Tarjeta de listado: herramientas arriba, tabla al ras y paginación abajo */
+.br-tarjeta.br-listado { padding: 0; }
+.br-listado > * + * { margin-top: 0; }
+.br-listado__herramientas { display: grid; gap: 12px; padding: 20px 20px 16px; }
+.br-listado__resumen {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px;
+  font-size: 14px; color: var(--br-gris);
+}
+.br-listado__pie {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 14px 20px; border-top: 1px solid var(--br-borde); font-size: 14px; color: var(--br-gris);
+}
+.br-listado .br-tabla-envoltura { border-top: 1px solid var(--br-borde); }
+.br-listado > .br-vacio { margin: 0 20px 20px; }
+
+/* Filtros: buscador y listas desplegables que se reacomodan solos */
+.br-filtros { display: grid; grid-template-columns: minmax(220px, 1.4fr) repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
+.br-buscador { position: relative; }
+.br-buscador svg { position: absolute; left: 14px; top: 50%; width: 18px; height: 18px; transform: translateY(-50%); color: var(--br-gris); pointer-events: none; }
+.br-buscador .br-entrada { padding-left: 42px; }
+.br-entrada::placeholder { color: var(--br-gris); opacity: 1; }
+select.br-entrada { cursor: pointer; }
+@media (max-width: 640px) { .br-filtros { grid-template-columns: minmax(0, 1fr); } }
+
+/* Barra de selección múltiple: aparece sobre la tabla cuando hay filas marcadas */
+.br-seleccion {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; padding: 14px 20px;
+  background: var(--br-azul); color: var(--br-blanco);
+}
+.br-seleccion :focus-visible { outline-color: var(--br-lima); }
+.br-seleccion__texto { flex: 1 1 280px; min-width: 0; display: grid; gap: 2px; }
+.br-seleccion__cifra { font-size: 16px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.br-seleccion__detalle { font-size: 14px; color: var(--br-fondo-2); }
+.br-seleccion__acciones { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.br-seleccion .br-boton--secundario { border-color: var(--br-blanco); }
+.br-enlace-claro {
+  display: inline-flex; align-items: center; min-height: 44px; padding: 0 6px; background: none; border: 0;
+  color: var(--br-blanco); font-size: 14px; font-weight: 500; text-decoration: underline; text-underline-offset: 3px; cursor: pointer;
+}
+@media (max-width: 640px) {
+  .br-seleccion { padding: 14px 16px; }
+  .br-seleccion__acciones { width: 100%; }
+  .br-seleccion__acciones .br-boton { flex: 1 1 100%; }
+  .br-seleccion__acciones .br-enlace-claro { margin: 0 auto; }
+}
+
+/* Casilla de selección con área de toque de 44 px */
+.br-casilla { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin: -12px 0; cursor: pointer; }
+.br-casilla input { margin: 0; cursor: pointer; }
+.br-casilla input:disabled { cursor: not-allowed; }
+
+/* Tabla de listado: filas más altas, encabezado oscuro y celdas con dos renglones */
+.br-tabla--listado th { font-size: 13px; color: var(--br-azul); padding: 12px 10px; }
+.br-tabla--listado td { padding: 14px 10px; border-bottom-color: var(--br-borde); }
+.br-tabla--listado :is(th, td):first-child { padding-left: 20px; }
+.br-tabla--listado :is(th, td):last-child { padding-right: 20px; }
+.br-tabla--listado tbody tr:hover { background: var(--br-fondo); }
+.br-tabla--listado tbody tr.br-fila--elegida { background: var(--br-verde-claro); }
+.br-tabla .br-tabla__seleccion { width: 1%; padding-right: 0; }
+.br-tabla__principal { display: block; font-weight: 600; }
+.br-tabla__sub { display: block; font-size: 13px; color: var(--br-gris); font-variant-numeric: tabular-nums; }
+/* dato que sobra en el celular (p. ej. la convocatoria, que ya está en el filtro) */
+@media (max-width: 640px) { .br-ocultar-celular { display: none !important; } }
+.br-tabla__estado .br-tabla__sub { margin-top: 4px; }
+.br-tabla .br-tabla__acciones { width: 1%; white-space: nowrap; text-align: right; }
+.br-tabla__acciones-dentro { display: inline-flex; align-items: center; justify-content: flex-end; gap: 8px; }
+/* texto de retraso bajo la etiqueta («5 días de retraso») */
+.br-retraso { display: block; margin-top: 4px; font-size: 13px; font-weight: 500; color: var(--br-aviso-texto); }
+
+/* En el celular cada fila es una ficha: casilla a la izquierda, nombre y estado arriba,
+   los datos en dos columnas (cada uno con su etiqueta, sacada de data-etiqueta) y las acciones abajo */
+@media (max-width: 640px) {
+  .br-tabla--fichas thead {
+    position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+  }
+  .br-tabla--fichas, .br-tabla--fichas tbody { display: block; }
+  .br-tabla--fichas tbody tr {
+    display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr); gap: 10px 12px;
+    padding: 16px; border-bottom: 1px solid var(--br-borde);
+  }
+  .br-tabla--fichas tbody tr:last-child { border-bottom: 0; }
+  .br-tabla--fichas tbody td, .br-tabla--fichas tbody td:first-child, .br-tabla--fichas tbody td:last-child { padding: 0; border: 0; }
+  .br-tabla--fichas td.br-tabla__seleccion { grid-column: 1; grid-row: 1 / span 4; width: auto; padding: 0; }
+  .br-tabla--fichas td.br-tabla__seleccion .br-casilla { margin: -12px -8px 0 -12px; }
+  .br-tabla--fichas td.br-tabla__titulo { grid-column: 2; grid-row: 1; }
+  .br-tabla--fichas td.br-tabla__estado { grid-column: 3; grid-row: 1; justify-self: end; text-align: right; }
+  .br-tabla--fichas td[data-etiqueta]::before {
+    content: attr(data-etiqueta); display: block; font-size: 12px; font-weight: 400; color: var(--br-gris);
+  }
+  .br-tabla--fichas td.br-tabla__acciones { grid-column: 2 / -1; width: auto; text-align: left; white-space: normal; }
+  .br-tabla--fichas .br-tabla__acciones-dentro { display: flex; justify-content: flex-start; }
+  .br-tabla--fichas td.br-num { text-align: left; }
+  .br-tabla--fichas tbody tr:hover { background: transparent; }
+  .br-tabla--fichas tbody tr.br-fila--elegida { background: var(--br-verde-claro); }
+}
+
+/* Menú de acciones de una fila («Más acciones»): un <details> con su lista */
+.br-menu-acciones { position: relative; display: inline-block; text-align: left; }
+.br-menu-acciones > summary {
+  list-style: none; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+  width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--br-gris-claro); background: var(--br-blanco); color: var(--br-azul);
+}
+.br-menu-acciones > summary::-webkit-details-marker { display: none; }
+.br-menu-acciones > summary:hover, .br-menu-acciones[open] > summary { background: var(--br-fondo-2); }
+.br-menu-acciones > summary svg { width: 18px; height: 18px; }
+.br-menu-acciones__lista {
+  position: absolute; right: 0; top: calc(100% + 6px); z-index: 12; width: 290px; padding: 6px;
+  display: grid; gap: 2px; background: var(--br-blanco); color: var(--br-azul);
+  border-radius: var(--br-radio); white-space: normal;
+  box-shadow: 0 2px 6px rgb(0 48 77 / 0.12), 0 18px 36px -12px rgb(0 48 77 / 0.4);
+}
+.br-menu-acciones__item {
+  display: grid; gap: 2px; width: 100%; min-height: 44px; padding: 8px 12px; border: 0; border-radius: 8px;
+  background: var(--br-blanco); text-align: left; cursor: pointer; font-size: 14px; font-weight: 500;
+}
+.br-menu-acciones__item:hover { background: var(--br-fondo-2); }
+.br-menu-acciones__item .br-suave { font-weight: 400; }
+.br-menu-acciones__separador { height: 1px; margin: 4px 6px; background: var(--br-borde); }
+.br-menu-acciones__peligro { display: grid; gap: 6px; padding: 6px 6px 4px; }
+.br-menu-acciones__peligro .br-boton { width: 100%; }
+@media (max-width: 640px) {
+  .br-menu-acciones > summary { width: 44px; height: 44px; }
+  .br-menu-acciones__lista { right: auto; left: 0; width: min(290px, calc(100vw - 112px)); }
+}
+
+/* Paginación */
+.br-paginacion { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.br-paginacion a, .br-paginacion span[aria-current], .br-paginacion span[aria-disabled] {
+  display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-width: 40px; min-height: 40px;
+  padding: 0 12px; border: 1px solid var(--br-borde); border-radius: 8px; background: var(--br-blanco);
+  color: var(--br-azul); font-weight: 500; text-decoration: none; font-variant-numeric: tabular-nums;
+}
+.br-paginacion a:hover { background: var(--br-fondo-2); }
+.br-paginacion [aria-current="page"] { background: var(--br-azul); border-color: var(--br-azul); color: var(--br-blanco); font-weight: 600; }
+.br-paginacion [aria-disabled="true"] { color: var(--br-gris); background: var(--br-fondo); }
+.br-paginacion svg { width: 16px; height: 16px; }
+@media (max-width: 640px) {
+  .br-listado__pie { justify-content: center; text-align: center; }
+  .br-paginacion .br-paginacion__numero, .br-paginacion span.br-paginacion__numero[aria-current] { display: none; }
+  .br-paginacion a, .br-paginacion span[aria-disabled] { min-height: 44px; }
+}
+
+/* Aviso verde (algo salió bien) */
+.br-aviso--verde { background: var(--br-verde-claro); border-color: var(--br-verde); color: var(--br-azul); }
+.br-aviso--verde .br-aviso__icono { color: var(--br-verde); }
+
+/* Diálogos con más contenido */
+.br-dialogo--ancho { max-width: 600px; }
+.br-dialogo > .br-dialogo__sub { margin-top: 4px; color: var(--br-gris); font-size: 14px; }
+
+/* Resumen grande dentro de un diálogo («Vas a registrar 23 pagos por $ 4.140.000») */
+.br-resumen { display: grid; gap: 8px; padding: 16px; border-radius: 10px; background: var(--br-fondo); }
+.br-resumen__cifra { font-size: 20px; font-weight: 600; line-height: 1.3; font-variant-numeric: tabular-nums; text-wrap: balance; }
+.br-resumen__partes { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 14px; color: var(--br-gris); }
+.br-resumen__partes span { display: inline-flex; align-items: center; gap: 6px; }
+.br-resumen__punto { width: 8px; height: 8px; border-radius: 50%; background: var(--br-verde); }
+.br-resumen__punto--aviso { background: var(--br-aviso-texto); }
+
+/* Opciones grandes con radio (p. ej. «Mismo motivo para todos» / «Un motivo para cada uno») */
+.br-opciones { margin-inline: 0; margin-bottom: 0; padding: 0; border: 0; min-width: 0; }
+.br-opciones legend { padding: 0; margin-bottom: 8px; font-size: 14px; font-weight: 600; }
+.br-opciones__lista { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+.br-opcion {
+  display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 10px; align-items: start;
+  align-content: start; padding: 12px 14px; border: 1px solid var(--br-gris-claro); border-radius: 10px; cursor: pointer; background: var(--br-blanco);
+}
+.br-opcion:hover { background: var(--br-fondo); }
+.br-opcion input { margin: 1px 0 0; grid-row: 1 / span 2; }
+.br-opcion__titulo { font-weight: 600; font-size: 14px; }
+.br-opcion__ayuda { grid-column: 2; font-size: 13px; color: var(--br-gris); }
+.br-opcion:has(input:checked) { border-color: var(--br-verde); background: var(--br-verde-claro); box-shadow: inset 0 0 0 1px var(--br-verde); }
+.br-opcion:has(input:focus-visible) { outline: 3px solid var(--br-enlace); outline-offset: 2px; }
+
+/* Un motivo por pago: nombre y datos del pago encima de su campo */
+.br-motivos { list-style: none; margin-inline: 0; margin-bottom: 0; padding: 0; display: grid; gap: 14px; }
+.br-motivos .br-campo textarea { min-height: 88px; }
+.br-motivos .br-campo > label { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; }
+.br-motivos .br-campo > label .br-suave { font-weight: 400; }
+
+/* Nombres de las personas a las que llega algo (chips) */
+.br-nombres { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.br-nombres li {
+  padding: 3px 10px; border-radius: 999px; font-size: 13px; font-weight: 500;
+  background: var(--br-chip-fondo); border: 1px solid var(--br-chip-borde); color: var(--br-azul);
+}
+
 </style>
 </head>
 <body>
