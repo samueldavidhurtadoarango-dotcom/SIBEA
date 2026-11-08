@@ -23,6 +23,23 @@
   --br-aviso-borde: #F5C98B;
   --br-aviso-oscuro: #7A3E00;
   --br-verde-claro: #E6F4EC;
+  /* estados del panel de postulaciones aprobado (00-existentes/postulaciones) */
+  --br-rojo: #C2392F;           /* documento no válido, acciones destructivas */
+  --br-rojo-texto: #9E3A34;
+  --br-rojo-fondo: #FCEBEA;
+  --br-pendiente-fondo: #FFF0B8; /* insignia «Pendiente» */
+  --br-pendiente-texto: #5C4400;
+  --br-pendiente-punto: #E0A800;
+  --br-antiguedad-fondo: #FFF4D1; /* chip «hace N días» */
+  --br-antiguedad-texto: #6E5200;
+  --br-validada-fondo: #E2F2FB;  /* insignia «Validada» */
+  --br-validada-texto: #0B5180;
+  --br-doc-ok-fondo: #E6F4DD;    /* documento válido */
+  --br-doc-ok-texto: #22610A;
+  --br-doc-ok-marca: #2E7D12;
+  --br-doc-neutro-fondo: #EEF2F5; /* documento sin revisar (la marca gris es #7D8E9A) */
+  --br-chip-fondo: #EEF4F8;      /* chip «Doc. adicional» */
+  --br-chip-borde: #C9DCEA;
 
   --br-radio: 12px;
   --br-fuente: 'Work Sans', Inter, system-ui, sans-serif;
@@ -219,6 +236,12 @@ textarea:focus-visible, summary:focus-visible, [tabindex]:focus-visible {
 .br-etiqueta--info { background: var(--br-fondo-3); color: var(--br-enlace); }
 .br-etiqueta--neutra { background: var(--br-fondo-2); color: var(--br-gris); }
 
+/* estados del panel de postulaciones */
+.br-etiqueta--peligro { background: var(--br-rojo-fondo); color: var(--br-rojo-texto); }
+.br-etiqueta--pendiente { background: var(--br-pendiente-fondo); color: var(--br-pendiente-texto); }
+.br-etiqueta--pendiente::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--br-pendiente-punto); }
+.br-etiqueta--validada { background: var(--br-validada-fondo); color: var(--br-validada-texto); }
+
 /* ---------- Avisos ---------- */
 .br-aviso { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 12px 16px; border-radius: 10px; border: 1px solid; font-size: 14px; }
 .br-aviso__texto { flex: 1 1 220px; min-width: 0; }
@@ -265,9 +288,9 @@ textarea:focus-visible, summary:focus-visible, [tabindex]:focus-visible {
 .br-boton--primario:hover { background: var(--br-verde-hover); border-color: var(--br-verde-hover); }
 .br-boton--secundario { background: var(--br-blanco); border-color: var(--br-gris-claro); color: var(--br-azul); }
 .br-boton--secundario:hover { background: var(--br-fondo-2); }
-/* La paleta no tiene rojo: lo destructivo va en el naranja oscuro de los avisos */
-.br-boton--peligro { background: var(--br-aviso-texto); border-color: var(--br-aviso-texto); color: var(--br-blanco); }
-.br-boton--peligro:hover { background: var(--br-aviso-oscuro); border-color: var(--br-aviso-oscuro); }
+/* Rojo del panel de postulaciones: blanco sobre #C2392F da 5.4:1 */
+.br-boton--peligro { background: var(--br-rojo); border-color: var(--br-rojo); color: var(--br-blanco); }
+.br-boton--peligro:hover { background: var(--br-rojo-texto); border-color: var(--br-rojo-texto); }
 .br-boton:disabled, .br-boton[aria-disabled="true"] {
   background: var(--br-fondo-3); border-color: var(--br-borde); color: var(--br-gris); cursor: not-allowed;
 }

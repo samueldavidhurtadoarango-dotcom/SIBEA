@@ -9,6 +9,9 @@ const PALETA = [
   '#F5F7F9', '#F0F4F6', '#EEF2F4', '#E3E8EC', '#FFFFFF',
   // avisos del boceto aprobado
   '#FFF3E0', '#A35200', '#F5C98B', '#7A3E00', '#E6F4EC',
+  // estados del panel de postulaciones aprobado (00-existentes/postulaciones)
+  '#C2392F', '#9E3A34', '#FCEBEA', '#FFF0B8', '#5C4400', '#E0A800', '#FFF4D1', '#6E5200',
+  '#E2F2FB', '#0B5180', '#E6F4DD', '#22610A', '#2E7D12', '#EEF2F5', '#EEF4F8', '#C9DCEA',
 ].map((c) => c.toLowerCase());
 
 const ANCHOS = [1440, 390];

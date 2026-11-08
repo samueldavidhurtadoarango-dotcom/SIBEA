@@ -53,6 +53,17 @@ node vistas/herramientas/verificar.js --vista 01-mi-proceso # revisa una
 
 `verificar.js` imprime `OK` o `FALLA <vista>/<estado>: <motivo>` por cada revisión y termina con código 1 si algo falló. Revisa, entre otras cosas: que exista el HTML de cada estado de `estados.json`, que las tildes se vean bien, que no haya desplazamiento horizontal a 390 px, la letra Work Sans, que solo se usen los colores de la paleta, el contraste de texto (4.5:1), que las capturas midan 1440 y 390 px, que el aprendiz no tenga botones para postularse y que el administrador tenga siempre el mismo menú.
 
+## Colores de estado agregados (salen de `00-existentes/postulaciones`)
+
+- `#C2392F`: rojo de la marca de documento no válido; también el botón de peligro.
+- `#9E3A34` sobre `#FCEBEA`: texto y fondo de documento no válido (`.br-etiqueta--peligro`).
+- `#5C4400` sobre `#FFF0B8` y punto `#E0A800`: insignia «Pendiente» (`.br-etiqueta--pendiente`).
+- `#6E5200` sobre `#FFF4D1`: chip «hace N días».
+- `#0B5180` sobre `#E2F2FB`: insignia «Validada» (`.br-etiqueta--validada`).
+- `#22610A` sobre `#E6F4DD` y marca `#2E7D12`: documento válido.
+- `#EEF2F5`: fondo de documento sin revisar (la marca gris `#7D8E9A` ya estaba en la paleta).
+- `#EEF4F8` con borde `#C9DCEA`: chip «Doc. adicional».
+
 ## Cómo se escribe una vista nueva
 
 1. Crear `_fuente/<vista>/<estado>.html` (un archivo por estado). Esqueleto:
@@ -89,7 +100,7 @@ node vistas/herramientas/verificar.js --vista 01-mi-proceso # revisa una
 
 ## Reglas que conviene recordar
 
-- Solo se usan los colores de `_comun/estilo.css` (la paleta de la spec, sección 2, más los del aviso naranja del boceto aprobado). La paleta no tiene rojo: lo destructivo (`.br-boton--peligro`) va en naranja oscuro.
+- Solo se usan los colores de `_comun/estilo.css`: la paleta de la spec (sección 2), los del aviso naranja del boceto aprobado y los de estado del panel de postulaciones de Samuel (lista abajo). Lo destructivo (`.br-boton--peligro`) va en rojo `#C2392F`.
 - Los grises `#6B7C88` y `#7D8E9A` están permitidos, pero sobre fondos claros no llegan a 4.5:1 como texto. Para texto secundario se usa `#556776`. Si una vista usa un gris claro para texto, la verificación de contraste decide si está bien.
 - Todo botón y campo tiene contorno de foco visible (`:focus-visible`) definido en el CSS común.
 - Textos en español con tildes y ñ; nombres colombianos inventados, `$ 180.000`, fechas «15 nov 2026». Nunca nombres reales del equipo.
