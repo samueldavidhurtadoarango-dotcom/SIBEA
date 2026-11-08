@@ -133,6 +133,63 @@ module.exports = [
     },
   },
   {
+    estado: 'lista',
+    nombre: 'cada fila «Retrasado» tiene «Avisar retraso» y «Registrar novedad» en su menú de acciones',
+    prueba: async (page) => {
+      const filas = await page.$$eval('[data-prueba=tabla-pagos] tbody tr', (trs) => trs
+        .filter((tr) => [...tr.querySelectorAll('.br-etiqueta')].some((e) => e.innerText.trim() === 'Retrasado'))
+        .map((tr) => ({
+          nombre: tr.querySelector('.br-tabla__principal').textContent.trim(),
+          menu: [...tr.querySelectorAll('.br-menu-acciones button')].map((b) => b.textContent.replace(/\s+/g, ' ').trim()),
+        })));
+      exige(filas.length >= 1, 'no hay filas «Retrasado»');
+      for (const f of filas) {
+        exige(f.menu.some((t) => t.startsWith('Avisar retraso')), `el menú de ${f.nombre} no tiene «Avisar retraso»: ${f.menu.join(' | ')}`);
+        exige(f.menu.some((t) => t.startsWith('Registrar novedad')), `el menú de ${f.nombre} no tiene «Registrar novedad»: ${f.menu.join(' | ')}`);
+      }
+    },
+  },
+  {
+    estado: 'avisar-retraso-uno',
+    nombre: 'se ve de dónde sale: el menú de la fila de Luisa abierto con «Avisar retraso»',
+    prueba: async (page) => {
+      const r = await page.$$eval('[data-prueba=tabla-pagos] tbody tr', (trs, nombre) => {
+        const tr = trs.find((x) => x.innerText.includes(nombre));
+        const menu = tr && tr.querySelector('.br-menu-acciones');
+        return menu ? { abierto: menu.open, botones: [...menu.querySelectorAll('button')].map((b) => b.textContent.trim()) } : null;
+      }, LUISA);
+      exige(r, 'la fila de Luisa no tiene menú de acciones');
+      exige(r.abierto, 'el menú de la fila de Luisa no está abierto');
+      exige(r.botones.some((t) => t.startsWith('Avisar retraso')), `menú de Luisa: ${r.botones.join(' | ')}`);
+    },
+  },
+  {
+    estado: 'pago-con-retraso',
+    nombre: 'motivo obligatorio: si falta alguno, el campo muestra el error y «Registrar» queda deshabilitado con su porqué',
+    prueba: async (page) => {
+      const r = await page.$eval('[role=dialog]', (d) => {
+        const vis = (el) => !!el && el.getBoundingClientRect().height > 0;
+        const desc = (el) => (el.getAttribute('aria-describedby') || '').split(/\s+/).filter(Boolean)
+          .map((id) => document.getElementById(id)).filter(vis).map((x) => x.innerText.trim()).join(' ');
+        const vacios = [...d.querySelectorAll('textarea')].filter((t) => !t.value.trim())
+          .map((t) => ({ invalido: t.getAttribute('aria-invalid') === 'true', requerido: t.required, error: desc(t) }));
+        const boton = d.querySelector('[data-prueba=registrar-pagos]');
+        return { vacios, boton: boton ? { deshabilitado: boton.disabled, porque: desc(boton) } : null };
+      });
+      exige(r.boton, 'falta el botón [data-prueba=registrar-pagos]');
+      if (r.vacios.length === 0) {
+        exige(!r.boton.deshabilitado, 'todos los motivos están escritos pero «Registrar» está deshabilitado');
+        return;
+      }
+      for (const v of r.vacios) {
+        exige(v.requerido && v.invalido, 'un motivo vacío no tiene required y aria-invalid="true"');
+        exige(/motivo/i.test(v.error), `el motivo vacío no muestra un error visible: «${v.error}»`);
+      }
+      exige(r.boton.deshabilitado, 'falta un motivo y «Registrar» no está deshabilitado');
+      exige(/motivo/i.test(r.boton.porque), `el botón deshabilitado no explica por qué: «${r.boton.porque}»`);
+    },
+  },
+  {
     estado: 'seleccion-multiple',
     nombre: 'barra de selección: 23 pagos, $ 4.140.000, «Marcar como pagados» y «Avisar retraso»',
     prueba: async (page) => {
