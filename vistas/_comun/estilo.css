@@ -30,6 +30,8 @@
 
 *, *::before, *::after { box-sizing: border-box; }
 
+html { color: var(--br-azul); background: var(--br-fondo); }
+
 body {
   margin: 0;
   position: relative; /* las capas de diálogo se apoyan en el body */

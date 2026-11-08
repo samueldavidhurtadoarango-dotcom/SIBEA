@@ -11,6 +11,7 @@ const PALETA = [
   '#FFF3E0', '#A35200', '#F5C98B', '#7A3E00', '#E6F4EC',
 ].map((c) => c.toLowerCase());
 
+const ANCHOS = [1440, 390];
 const MENU_ADMIN = ['Dashboard', 'Convocatorias', 'Postulaciones', 'Pagos', 'Usuarios'];
 
 function anchoPng(ruta) {
@@ -65,6 +66,9 @@ module.exports = [
     estado: '*',
     nombre: 'colores de la paleta',
     prueba: async (page) => {
+      const errores = [];
+      for (const ancho of ANCHOS) {
+      await page.setViewportSize({ width: ancho, height: 900 });
       const fuera = await page.evaluate((paleta) => {
         const hex = (c) => '#' + c.slice(0, 3).map((n) => Number(n).toString(16).padStart(2, '0')).join('');
         const lee = (valor) => {
@@ -88,7 +92,7 @@ module.exports = [
             }
           }
         };
-        for (const el of document.body.querySelectorAll('*')) {
+        for (const el of [document.documentElement, document.body, ...document.body.querySelectorAll('*')]) {
           if (['SCRIPT', 'STYLE', 'TEMPLATE', 'NOSCRIPT'].includes(el.tagName)) continue;
           if (el.getClientRects().length === 0) continue;
           const cs = getComputedStyle(el);
@@ -103,7 +107,9 @@ module.exports = [
         }
         return [...malos].map(([id, el]) => `${id} en <${el}>`);
       }, PALETA);
-      if (fuera.length) throw new Error(`colores fuera de la paleta: ${fuera.slice(0, 6).join('; ')}`);
+      if (fuera.length) errores.push(`a ${ancho} px: ${fuera.slice(0, 6).join('; ')}`);
+      }
+      if (errores.length) throw new Error(`colores fuera de la paleta ${errores.join(' | ')}`);
     },
   },
   {
@@ -111,6 +117,9 @@ module.exports = [
     nombre: 'contraste AA, botones con nombre, campos con etiqueta, imágenes con alt',
     prueba: async (page) => {
       const axe = fs.readFileSync(require.resolve('axe-core/axe.min.js'), 'utf8');
+      const errores = [];
+      for (const ancho of ANCHOS) {
+      await page.setViewportSize({ width: ancho, height: 900 });
       await page.evaluate(axe);
       const violaciones = await page.evaluate(async () => {
         const r = await window.axe.run(document, {
@@ -123,8 +132,10 @@ module.exports = [
       });
       if (violaciones.length) {
         const txt = violaciones.map((v) => `${v.id} → ${v.nodos.slice(0, 3).join(' | ')}`).join('; ');
-        throw new Error(`axe: ${txt}`);
+        errores.push(`a ${ancho} px: ${txt}`);
       }
+      }
+      if (errores.length) throw new Error(`axe ${errores.join(' | ')}`);
     },
   },
   {

@@ -11,7 +11,10 @@ const estados = require(path.join(RAIZ, 'estados.json'));
 
 function leeVista() {
   const i = process.argv.indexOf('--vista');
-  return i >= 0 ? process.argv[i + 1] : null;
+  if (i < 0) return null;
+  const valor = process.argv[i + 1];
+  if (!valor || valor.startsWith('--')) throw new Error('--vista necesita el nombre de la carpeta, por ejemplo: --vista 01-mi-proceso');
+  return valor;
 }
 
 function cargaPruebas(vista) {
@@ -38,6 +41,12 @@ async function main() {
   for (const vista of vistas) {
     const { rol, estados: lista } = estados[vista];
     const pruebas = cargaPruebas(vista);
+    for (const t of pruebas) {
+      if (t.estado !== '*' && !lista.includes(t.estado)) {
+        fallas++;
+        console.log(`FALLA ${vista}/${t.estado}: ${t.nombre} — prueba con estado desconocido (no está en estados.json)`);
+      }
+    }
     for (const estado of lista) {
       const archivo = path.join(RAIZ, vista, 'html', `${estado}.html`);
       const hayHtml = fs.existsSync(archivo);
