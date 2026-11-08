@@ -127,9 +127,13 @@ Lista de aprendices con beneficio en curso, por convocatoria y por mes. El objet
 - **Retrasado** = la fecha esperada ya pasó y no hay pago registrado. Lo calcula la aplicación: la BD guarda solo los pagos hechos (`pagos.fecha_pago` es obligatoria) y el calendario sale de `asignaciones_beneficio` (`fecha_inicio`, `numero_pagos`, `duracion_meses`).
 - Si un pago se registra después de su fecha esperada, la BD exige `hubo_retraso = 1` y un **motivo de retraso**: el diálogo lo pide.
 - Acciones de una fila: registrar el pago con su observación, **anular** un pago mal registrado (con motivo, sin borrar nada) y registrar una novedad (**Retraso de pago**, Suspensión, Reactivación, Cancelación, Otra).
-- *Decisión de Claude:* **«Avisar retraso»** es una acción de las filas en estado Retrasado. Guarda una novedad de tipo «Retraso de pago» con su descripción. Esa descripción es el motivo que ve el aprendiz en el estado `seleccionado-con-retraso` de la vista 1, aunque el pago todavía no se haya hecho.
-- *Decisión de Claude:* en el pago masivo, si alguno de los pagos seleccionados está fuera de fecha, el resumen los muestra aparte («3 de estos pagos van con retraso») con **un solo campo de motivo para todos**. Cada fila tiene la opción «escribir un motivo distinto» para el caso raro.
-- **Estados:** `lista`, `seleccion-multiple`, `confirmar-pago-masivo` (resumen: «Vas a registrar 23 pagos por $ 4.140.000»), `pago-con-retraso` (pide el motivo), `avisar-retraso`, `exito`, `vacio`.
+- **«Avisar retraso»** (decisión de Samuel, 2026-11-08): el administrador **elige si el aviso es para todos o solo para uno**:
+  - **Para uno:** desde la acción de una fila en estado Retrasado.
+  - **Para todos:** desde la barra de selección múltiple. Puede ser «Seleccionar todos los retrasados» (por ejemplo, todo el pago de noviembre de una convocatoria) o los que marque a mano.
+  - El diálogo dice a cuántos aprendices les llegará el aviso («Se avisará a 23 aprendices») y pide **un motivo**, que se guarda igual para todos.
+  - Cada aviso guarda una novedad de tipo «Retraso de pago» por asignación, con esa descripción, y una notificación para cada aprendiz. Esa descripción es el motivo que ve el aprendiz en el estado `seleccionado-con-retraso` de la vista 1, aunque el pago todavía no se haya hecho.
+- **Registrar pagos con retraso**, con la misma idea (decisión de Samuel): al registrar el pago de uno o de varios, si alguno está fuera de fecha, el resumen los muestra aparte («3 de estos pagos van con retraso»). El administrador elige **«Mismo motivo para todos»** (un solo campo) o **«Un motivo para cada uno»** (un campo por pago).
+- **Estados:** `lista`, `seleccion-multiple`, `confirmar-pago-masivo` (resumen: «Vas a registrar 23 pagos por $ 4.140.000»), `pago-con-retraso` (pide el motivo, con la opción «para todos / uno por uno»), `avisar-retraso-uno`, `avisar-retraso-varios`, `exito`, `vacio`.
 
 ### Vista 6 — Administrador: «Usuarios» (crear cuentas de aprendices cargando Excel)
 
