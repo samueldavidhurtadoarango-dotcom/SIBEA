@@ -93,6 +93,10 @@ node vistas/herramientas/verificar.js --vista 01-mi-proceso # revisa una
    </div>
    ```
 
+   En una pantalla de detalle se agrega `pagina="..."` para que las migas digan «Dashboard > Postulaciones > Daniela Mosquera Palacios» (en el celular se esconde «Dashboard >»). La campanita de la cabecera muestra 4 avisos; se cambia con `avisos="0"`, `avisos="2"`, etc.
+
+   Piezas del administrador en `estilo.css` (para reutilizar en las vistas que siguen): `.br-encabezado` (volver, título y un indicador a la derecha), `.br-cupos` (contador de cupos con barra), `.br-detalle` (contenido + panel lateral fijo; en celular el panel baja al final), `.br-ficha-datos` (datos clave / valor), `.br-documentos` / `.br-documento` (documentos con su marca y acciones), `.br-revision` («Válido» / «No válido»), `.br-decision` (pasos de decisión), `.br-motivo` (por qué un botón está deshabilitado), `.br-nota` y `.br-historial`.
+
 2. `construir.js` reemplaza `<!-- incluir:... -->` por la pieza de `_comun/` (en el menú marca la opción activa con `aria-current="page"`) y cambia el `<link>` del CSS por un `<style>` con su contenido.
 3. Ejecutar `construir.js --vista <vista>` y luego `verificar.js --vista <vista>`.
 4. Los diálogos se escriben como `<div class="br-dialogo-capa"><div class="br-dialogo" role="dialog" aria-modal="true" aria-labelledby="..."> ... </div></div>` al final del `<body>`.

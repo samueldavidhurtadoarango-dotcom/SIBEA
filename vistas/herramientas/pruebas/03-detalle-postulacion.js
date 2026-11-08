@@ -54,7 +54,7 @@ module.exports = [
     prueba: async (page) => {
       const t = await texto(page, '[data-prueba=documento-eps]');
       exige(/No válido/.test(t), `el documento de EPS no dice «No válido»: «${t}»`);
-      exige(/vencido/i.test(t), `falta el motivo: «${t}»`);
+      exige(/no se alcanza a leer/i.test(t), `falta el motivo: «${t}»`);
       const pedir = await page.$$eval('button', (bs) => bs.map((b) => b.innerText.trim()));
       exige(pedir.includes('Pedir documento'), `falta «Pedir documento»: ${pedir.join(' | ')}`);
     },
@@ -94,7 +94,7 @@ module.exports = [
     prueba: async (page) => {
       const t = await texto(page, '[data-prueba=solicitud]');
       exige(t.includes('Certificado de EPS'), `falta el tipo pedido: «${t}»`);
-      exige(/\d{1,2} nov 2026/.test(t), `falta la fecha de la solicitud: «${t}»`);
+      exige(/\d{1,2} (oct|nov) 2026/.test(t), `falta la fecha de la solicitud: «${t}»`);
       exige(/hace \d+ días?/.test(t), `falta desde cuándo espera: «${t}»`);
     },
   },

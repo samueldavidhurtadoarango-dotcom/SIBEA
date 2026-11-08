@@ -25,12 +25,17 @@ function leeAtributos(texto) {
   return attrs;
 }
 
-function migas(activo) {
+// Migas: «Dashboard > <activo>»; en una vista de detalle (pagina="..." en la pieza),
+// «Dashboard > <activo> > <pagina>» y <activo> pasa a ser enlace.
+function migas(activo, pagina) {
   const dashboard = '<a href="#">Dashboard</a>';
   if (!activo || activo === 'Dashboard') {
     return '<nav aria-label="Ruta" class="br-migas"><span aria-current="page">Dashboard</span></nav>';
   }
   const flecha = '<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"></path></svg>';
+  if (pagina) {
+    return `<nav aria-label="Ruta" class="br-migas">${dashboard}${flecha}<a href="#">${escapa(activo)}</a>${flecha}<span aria-current="page">${escapa(pagina)}</span></nav>`;
+  }
   return `<nav aria-label="Ruta" class="br-migas">${dashboard}${flecha}<span aria-current="page">${escapa(activo)}</span></nav>`;
 }
 
@@ -66,9 +71,14 @@ function incluirPiezas(html, archivo) {
   });
   if (panel !== null && !panelUsado) throw new Error(`${archivo}: hay bloque <!-- panel-avisos --> pero la barra no tiene panel="abierto"`);
   salida = salida.replace(/<!--\s*incluir:menu-admin((?:\s+[\w-]+="[^"]*")*)\s*-->/g, (_, a) => {
-    const activo = leeAtributos(a).activo || '';
+    const attrs = leeAtributos(a);
+    const activo = attrs.activo || '';
     if (activo && !OPCIONES_MENU.includes(activo)) throw new Error(`${archivo}: opción de menú desconocida «${activo}»`);
-    let pieza = leePieza('menu-admin').replace('{{migas}}', migas(activo));
+    const avisos = attrs.avisos === undefined ? '4' : attrs.avisos;
+    let pieza = leePieza('menu-admin')
+      .replace('{{migas}}', () => migas(activo, attrs.pagina))
+      .replace('{{etiquetaAvisos}}', () => (avisos === '0' ? 'Avisos, ninguno sin leer' : `Avisos, ${escapa(avisos)} sin leer`))
+      .replace('{{contador}}', () => (avisos === '0' ? '' : `<span class="br-campanita__contador" aria-hidden="true">${escapa(avisos)}</span>`));
     if (activo) {
       pieza = pieza.replace(new RegExp(`data-opcion="${activo}"`, 'g'), `data-opcion="${activo}" aria-current="page"`);
     }

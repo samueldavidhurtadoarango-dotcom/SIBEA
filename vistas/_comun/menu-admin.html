@@ -35,11 +35,17 @@
 
 <header class="br-cabecera">
   {{migas}}
+  <div class="br-cabecera__derecha">
+  <button type="button" class="br-campanita br-campanita--clara" aria-label="{{etiquetaAvisos}}" aria-haspopup="true" aria-expanded="false">
+    <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg>
+    {{contador}}
+  </button>
   <div class="br-usuario">
     <span class="br-usuario__inicial" aria-hidden="true">LG</span>
     <span class="br-usuario__texto">
       <span class="br-usuario__nombre">Laura Gómez</span>
       <span class="br-usuario__rol">Administradora</span>
     </span>
+  </div>
   </div>
 </header>
