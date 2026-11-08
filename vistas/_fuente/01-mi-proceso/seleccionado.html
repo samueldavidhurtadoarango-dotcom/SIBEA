@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mi proceso · Seleccionada</title>
+  <link rel="stylesheet" href="../../_comun/estilo.css">
+</head>
+<body>
+  <!-- incluir:barra-aprendiz nombre="Luisa Fernanda" avisos="1" -->
+  <main class="br-pagina">
+    <section class="br-tarjeta" data-prueba="resultado" aria-labelledby="titulo-beneficio">
+      <span class="br-etiqueta br-etiqueta--ok br-etiqueta--grande"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>Fuiste seleccionada</span>
+      <h1 id="titulo-beneficio">Apoyo de alimentación</h1>
+      <p class="br-suave">Convocatoria <span class="br-sin-corte">2026-2</span> · Aprobada el 22 ago 2026</p>
+      <ol class="br-pasos" aria-label="Avance de tu postulación">
+        <li class="br-pasos__paso br-pasos__paso--hecho">
+          <span class="br-pasos__punto"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></span>
+          <span class="br-pasos__nombre">Enviada <span class="br-solo-lectores">(hecho)</span></span>
+          <span class="br-pasos__fecha">4 ago 2026</span>
+        </li>
+        <li class="br-pasos__paso br-pasos__paso--hecho">
+          <span class="br-pasos__punto"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></span>
+          <span class="br-pasos__nombre">Validada <span class="br-solo-lectores">(hecho)</span></span>
+          <span class="br-pasos__fecha">12 ago 2026</span>
+        </li>
+        <li class="br-pasos__paso br-pasos__paso--hecho">
+          <span class="br-pasos__punto"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></span>
+          <span class="br-pasos__nombre">Aprobada <span class="br-solo-lectores">(hecho)</span></span>
+          <span class="br-pasos__fecha">22 ago 2026</span>
+        </li>
+      </ol>
+    </section>
+    <section class="br-tarjeta" data-prueba="resumen-pagos" aria-labelledby="titulo-resumen">
+      <h2 id="titulo-resumen">Tu beneficio</h2>
+      <div class="br-datos">
+        <div><div class="br-datos__clave">Cada pago</div><div class="br-datos__valor br-cifra">$ 180.000</div></div>
+        <div><div class="br-datos__clave">Duración</div><div class="br-datos__valor">6 meses</div></div>
+        <div class="br-datos--completo"><div class="br-datos__clave">Desde – hasta</div><div class="br-datos__valor">sep 2026 – feb 2027</div></div>
+      </div>
+      <div class="br-avance">
+        <div class="br-avance__fila"><span id="etiqueta-avance">Pagos recibidos: <strong>2 de 6</strong></span></div>
+        <progress class="br-progreso" value="2" max="6" aria-labelledby="etiqueta-avance">2 de 6</progress>
+        <p class="br-avance__fila br-cifra"><span>$ 360.000 recibidos · quedan 4 meses</span></p>
+      </div>
+    </section>
+    <section class="br-tarjeta" aria-labelledby="titulo-pagos">
+      <h2 id="titulo-pagos">Mis pagos</h2>
+      <div class="br-tabla-envoltura">
+        <table class="br-tabla br-tabla--al-ras br-tabla--apilada" aria-labelledby="titulo-pagos">
+          <thead><tr><th scope="col">Mes</th><th scope="col">Fecha esperada</th><th scope="col" class="br-num">Valor</th><th scope="col">Estado</th></tr></thead>
+          <tbody>
+            <tr><td>Septiembre</td><td>15 sep 2026</td><td class="br-num">$ 180.000</td><td><span class="br-etiqueta br-etiqueta--ok">Pagado</span></td></tr>
+            <tr><td>Octubre</td><td>15 oct 2026</td><td class="br-num">$ 180.000</td><td><span class="br-etiqueta br-etiqueta--ok">Pagado</span></td></tr>
+            <tr><td>Noviembre</td><td>15 nov 2026</td><td class="br-num">$ 180.000</td><td><span class="br-etiqueta br-etiqueta--neutra">Pendiente</span></td></tr>
+            <tr><td>Diciembre</td><td>15 dic 2026</td><td class="br-num">$ 180.000</td><td><span class="br-etiqueta br-etiqueta--neutra">Pendiente</span></td></tr>
+            <tr><td>Enero</td><td>15 ene 2027</td><td class="br-num">$ 180.000</td><td><span class="br-etiqueta br-etiqueta--neutra">Pendiente</span></td></tr>
+            <tr><td>Febrero</td><td>15 feb 2027</td><td class="br-num">$ 180.000</td><td><span class="br-etiqueta br-etiqueta--neutra">Pendiente</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+    <details class="br-plegable" data-prueba="postulaciones-anteriores">
+      <summary>Postulaciones anteriores (1)</summary>
+      <div class="br-plegable__contenido">
+        <div class="br-plegable__item">
+          <div class="br-fila"><h3>Apoyo de transporte</h3><span class="br-etiqueta br-etiqueta--neutra">Terminado</span></div>
+          <p class="br-suave">Convocatoria <span class="br-sin-corte">2026-1</span> · Beneficio de un solo pago</p>
+          <p>Recibiste tu pago de <span class="br-cifra">$ 180.000</span> el 15 may 2026.</p>
+        </div>
+      </div>
+    </details>
+  </main>
+</body>
+</html>

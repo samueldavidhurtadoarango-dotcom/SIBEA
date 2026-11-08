@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mi proceso · Documento pedido</title>
+  <link rel="stylesheet" href="../../_comun/estilo.css">
+</head>
+<body>
+  <!-- incluir:barra-aprendiz nombre="Luisa Fernanda" avisos="1" -->
+  <main class="br-pagina">
+    <div class="br-aviso br-aviso--azul br-aviso--grande" data-prueba="aviso-documento">
+      <svg aria-hidden="true" class="br-aviso__icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M9 13h6"></path><path d="M9 17h4"></path></svg>
+      <div class="br-aviso__cuerpo">
+        <p class="br-aviso__titulo">Bienestar te pidió: Certificado de afiliación a la EPS.</p>
+        <p class="br-aviso__detalle">«El certificado que enviaste no se alcanza a leer. Súbelo de nuevo en PDF o en una foto clara, por favor.»</p>
+        <p class="br-suave">Lo pidió el 10 ago 2026</p>
+        <a class="br-boton br-boton--primario" href="../../08-subir-documento/html/elegir-archivo.html"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="m17 8-5-5-5 5"></path><path d="M12 3v12"></path></svg>Subir documento</a>
+      </div>
+    </div>
+    <section class="br-tarjeta" data-prueba="resultado" aria-labelledby="titulo-revision">
+      <span class="br-etiqueta br-etiqueta--info br-etiqueta--grande"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>En revisión</span>
+      <h1 id="titulo-revision">Tu postulación está en revisión</h1>
+      <p class="br-suave">Apoyo de alimentación · Convocatoria <span class="br-sin-corte">2026-2</span> · Enviada el 4 ago 2026</p>
+      <ol class="br-pasos" aria-label="Avance de tu postulación">
+        <li class="br-pasos__paso br-pasos__paso--hecho">
+          <span class="br-pasos__punto"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></span>
+          <span class="br-pasos__nombre">Enviada <span class="br-solo-lectores">(hecho)</span></span>
+          <span class="br-pasos__fecha">4 ago 2026</span>
+        </li>
+        <li class="br-pasos__paso br-pasos__paso--actual">
+          <span class="br-pasos__punto"><span aria-hidden="true">2</span></span>
+          <span class="br-pasos__nombre">Validada <span class="br-solo-lectores">(en curso)</span></span>
+          <span class="br-pasos__fecha">Falta un documento</span>
+        </li>
+        <li class="br-pasos__paso">
+          <span class="br-pasos__punto"><span aria-hidden="true">3</span></span>
+          <span class="br-pasos__nombre">Aprobada <span class="br-solo-lectores">(pendiente)</span></span>
+          <span class="br-pasos__fecha">Pendiente</span>
+        </li>
+      </ol>
+      <p class="br-texto">Tu postulación sigue en revisión. Cuando subas el documento, Bienestar continúa con la validación y te avisaremos aquí.</p>
+    </section>
+    <section class="br-tarjeta" aria-labelledby="titulo-sigue">
+      <h2 id="titulo-sigue">¿Qué sigue?</h2>
+      <ol class="br-lista">
+        <li>Bienestar revisa tus datos y tus documentos.</li>
+        <li>Se publica quiénes fueron seleccionados en la convocatoria.</li>
+        <li>Si te escogen, aquí verás tu beneficio y las fechas de tus pagos.</li>
+      </ol>
+    </section>
+  </main>
+</body>
+</html>

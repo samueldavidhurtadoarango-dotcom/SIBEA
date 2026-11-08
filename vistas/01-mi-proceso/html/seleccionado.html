@@ -1,0 +1,576 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mi proceso · Seleccionada</title>
+  <style>
+/* BenefitRack · estilo común de las vistas (spec 002, sección 2).
+   Letra y colores salen del inicio de sesión de Samuel. NO agregar colores fuera de esta lista
+   sin anotarlos antes en la spec y en vistas/herramientas/pruebas/_global.js. */
+@import url('https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700&display=swap');
+
+:root {
+  --br-azul: #00304D;
+  --br-verde: #007832;
+  --br-verde-hover: #00632A;
+  --br-lima: #6BD11F;
+  --br-enlace: #0B6CB8;
+  --br-gris: #556776;        /* texto secundario (el que pasa el contraste AA) */
+  --br-gris-medio: #6B7C88;  /* solo texto grande o decorativo: no llega a 4.5:1 sobre blanco */
+  --br-gris-claro: #7D8E9A;  /* bordes de campos y adornos */
+  --br-fondo: #F5F7F9;
+  --br-fondo-2: #F0F4F6;
+  --br-fondo-3: #EEF2F4;
+  --br-borde: #E3E8EC;
+  --br-blanco: #FFFFFF;
+  /* avisos (boceto aprobado) */
+  --br-aviso-fondo: #FFF3E0;
+  --br-aviso-texto: #A35200;
+  --br-aviso-borde: #F5C98B;
+  --br-aviso-oscuro: #7A3E00;
+  --br-verde-claro: #E6F4EC;
+  /* estados del panel de postulaciones aprobado (00-existentes/postulaciones) */
+  --br-rojo: #C2392F;           /* documento no válido, acciones destructivas */
+  --br-rojo-texto: #9E3A34;
+  --br-rojo-fondo: #FCEBEA;
+  --br-pendiente-fondo: #FFF0B8; /* insignia «Pendiente» */
+  --br-pendiente-texto: #5C4400;
+  --br-pendiente-punto: #E0A800;
+  --br-antiguedad-fondo: #FFF4D1; /* chip «hace N días» */
+  --br-antiguedad-texto: #6E5200;
+  --br-validada-fondo: #E2F2FB;  /* insignia «Validada» */
+  --br-validada-texto: #0B5180;
+  --br-doc-ok-fondo: #E6F4DD;    /* documento válido */
+  --br-doc-ok-texto: #22610A;
+  --br-doc-ok-marca: #2E7D12;
+  --br-doc-neutro-fondo: #EEF2F5; /* documento sin revisar (la marca gris es #7D8E9A) */
+  --br-chip-fondo: #EEF4F8;      /* chip «Doc. adicional» */
+  --br-chip-borde: #C9DCEA;
+
+  --br-radio: 12px;
+  --br-fuente: 'Work Sans', Inter, system-ui, sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { color: var(--br-azul); background: var(--br-fondo); }
+
+body {
+  margin: 0;
+  position: relative; /* las capas de diálogo se apoyan en el body */
+  font-family: var(--br-fuente);
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--br-azul);
+  background: var(--br-fondo);
+  overflow-wrap: break-word;
+}
+
+::selection { background: var(--br-verde-claro); color: var(--br-azul); }
+
+h1, h2, h3, p { margin: 0; }
+h1 { font-size: 26px; font-weight: 600; letter-spacing: -0.015em; line-height: 1.25; }
+h2 { font-size: 18px; font-weight: 600; line-height: 1.3; }
+h3 { font-size: 15px; font-weight: 600; }
+a { color: var(--br-enlace); }
+img { max-width: 100%; }
+button, input, select, textarea { font: inherit; color: inherit; }
+
+/* Foco visible en todo lo que se puede usar con teclado */
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible,
+textarea:focus-visible, summary:focus-visible, [tabindex]:focus-visible {
+  outline: 3px solid var(--br-enlace);
+  outline-offset: 2px;
+}
+.br-barra-aprendiz :focus-visible, .br-lateral :focus-visible, .br-movil :focus-visible {
+  outline-color: var(--br-lima);
+}
+
+.br-solo-lectores {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* ---------- Estructura ---------- */
+.br-pila { display: grid; gap: 16px; }
+.br-fila { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.br-suave { color: var(--br-gris); font-size: 13px; }
+.br-lista { margin: 0; padding-left: 22px; display: grid; gap: 6px; }
+.br-lista li::marker { color: var(--br-gris); font-weight: 600; }
+.br-texto { max-width: 62ch; }
+.br-sin-corte { white-space: nowrap; } /* p. ej. «2026-2»: que no se parta en el guion */
+.br-pagina { width: 100%; max-width: 760px; margin: 0 auto; padding-block: 20px 48px; padding-inline: 16px; }
+.br-pagina > * + * { margin-top: 16px; }
+
+/* ---------- Barra del aprendiz ---------- */
+.br-barra-aprendiz { background: var(--br-azul); color: var(--br-blanco); }
+/* Marca a la izquierda; saludo, campanita y «Salir» a la derecha.
+   En celular el saludo baja debajo de la marca para que un nombre largo no empuje nada. */
+.br-barra-aprendiz__dentro {
+  position: relative; /* el panel de avisos se apoya aquí */
+  max-width: 760px; margin: 0 auto; padding: 10px 16px;
+  display: grid; align-items: center; column-gap: 12px;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  grid-template-areas: "marca saludo campana salir";
+}
+.br-barra-aprendiz__marca { grid-area: marca; font-size: 18px; font-weight: 700; letter-spacing: -0.01em; }
+.br-barra-aprendiz__saludo {
+  grid-area: saludo; justify-self: end; min-width: 0; max-width: 100%;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: 14px; color: var(--br-fondo-2);
+}
+.br-barra-aprendiz__salir {
+  grid-area: salir; display: inline-flex; align-items: center; min-height: 44px; padding: 0 8px;
+  color: var(--br-blanco); font-size: 14px; font-weight: 500; text-underline-offset: 3px;
+}
+.br-campanita-caja { grid-area: campana; }
+@media (max-width: 480px) {
+  .br-barra-aprendiz__dentro {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-areas: "marca campana salir" "saludo campana salir";
+    row-gap: 0; padding-block: 8px;
+  }
+  .br-barra-aprendiz__marca { line-height: 1.3; }
+  .br-barra-aprendiz__saludo { justify-self: start; font-size: 13px; line-height: 1.4; }
+}
+.br-campanita {
+  position: relative; display: inline-flex; align-items: center; justify-content: center;
+  width: 44px; height: 44px; padding: 0; cursor: pointer;
+  background: var(--br-azul); color: var(--br-blanco);
+  border: 1px solid var(--br-gris); border-radius: 10px;
+}
+.br-campanita:hover { border-color: var(--br-gris-claro); }
+.br-campanita[aria-expanded="true"] { background: var(--br-gris); border-color: var(--br-gris-claro); }
+.br-campanita__contador {
+  position: absolute; top: -6px; right: -6px; min-width: 20px; height: 20px; padding: 0 5px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--br-lima); color: var(--br-azul);
+  border: 2px solid var(--br-azul); border-radius: 999px; font-size: 12px; font-weight: 700;
+}
+
+/* ---------- Estructura del administrador: menú lateral + cabecera + contenido ---------- */
+.br-admin {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 248px minmax(0, 1fr);
+  grid-template-rows: auto auto 1fr;
+  grid-template-areas: "lateral movil" "lateral cabecera" "lateral contenido";
+}
+.br-admin > .br-lateral { grid-area: lateral; }
+.br-admin > .br-movil { grid-area: movil; display: none; }
+.br-admin > .br-cabecera { grid-area: cabecera; }
+.br-admin > main { grid-area: contenido; padding: 28px 32px 48px; display: grid; gap: 20px; align-content: start; min-width: 0; }
+
+.br-lateral {
+  background: var(--br-azul); color: var(--br-blanco);
+  padding: 24px 16px; display: flex; flex-direction: column; gap: 28px;
+}
+.br-lateral__marca { display: grid; gap: 14px; padding: 0 8px; }
+.br-logo-sena {
+  height: 64px; display: flex; align-items: center; justify-content: center;
+  border: 1.5px dashed var(--br-gris-claro); border-radius: 12px;
+  font-size: 14px; color: var(--br-fondo-2);
+}
+.br-lateral__nombre { display: block; font-size: 18px; font-weight: 700; letter-spacing: -0.01em; }
+.br-lateral__sub { display: block; font-size: 14px; color: var(--br-fondo-2); }
+.br-lateral__lista { display: grid; gap: 4px; }
+.br-lateral__enlace {
+  position: relative; display: flex; align-items: center; gap: 12px; min-height: 44px;
+  padding: 0 12px; border-radius: 10px; color: var(--br-fondo-2);
+  text-decoration: none; font-size: 15px; font-weight: 500;
+}
+.br-lateral__enlace:hover { background: var(--br-gris); color: var(--br-blanco); }
+.br-lateral__enlace[aria-current="page"] { background: var(--br-verde); color: var(--br-blanco); font-weight: 600; }
+.br-lateral__enlace[aria-current="page"]::before {
+  content: ''; position: absolute; left: 0; top: 10px; bottom: 10px; width: 3px;
+  border-radius: 3px; background: var(--br-lima);
+}
+.br-lateral__nota {
+  margin-top: auto; padding: 14px; border-radius: 12px;
+  background: var(--br-gris); color: var(--br-blanco); font-size: 14px; line-height: 1.45;
+}
+
+.br-movil {
+  align-items: center; justify-content: space-between; gap: 12px; position: relative;
+  background: var(--br-azul); color: var(--br-blanco); padding: 10px 16px;
+}
+.br-movil__marca { display: flex; align-items: center; gap: 10px; font-size: 17px; font-weight: 700; }
+.br-movil__logo {
+  width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
+  border: 1.5px dashed var(--br-gris-claro); border-radius: 8px; font-size: 11px; font-weight: 400; color: var(--br-fondo-2);
+}
+.br-movil details { position: relative; }
+.br-movil summary {
+  list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  width: 44px; height: 44px; border-radius: 10px; border: 1px solid var(--br-gris);
+}
+.br-movil summary::-webkit-details-marker { display: none; }
+.br-movil__menu {
+  position: absolute; right: 0; top: 52px; z-index: 10; width: 240px; padding: 8px;
+  display: grid; background: var(--br-blanco); border: 1px solid var(--br-borde);
+  border-radius: 12px; color: var(--br-azul);
+}
+.br-movil__menu a {
+  display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 8px;
+  color: var(--br-azul); text-decoration: none;
+}
+.br-movil__menu a[aria-current="page"] { background: var(--br-verde-claro); color: var(--br-verde); font-weight: 600; }
+
+.br-cabecera {
+  background: var(--br-blanco); border-bottom: 1px solid var(--br-borde);
+  padding: 14px 32px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px;
+}
+.br-migas { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--br-gris); }
+.br-migas a { color: var(--br-gris); text-decoration: none; }
+.br-migas [aria-current="page"] { color: var(--br-azul); font-weight: 600; }
+.br-usuario {
+  display: flex; align-items: center; gap: 10px; padding: 4px 12px 4px 4px;
+  border: 1px solid var(--br-borde); border-radius: 12px; background: var(--br-blanco);
+}
+.br-usuario__inicial {
+  width: 36px; height: 36px; border-radius: 999px; display: flex; align-items: center; justify-content: center;
+  background: var(--br-fondo-2); color: var(--br-azul); font-size: 14px; font-weight: 600;
+}
+.br-usuario__texto { display: grid; line-height: 1.25; }
+.br-usuario__nombre { font-size: 14px; font-weight: 600; }
+.br-usuario__rol { font-size: 13px; color: var(--br-gris); }
+
+@media (max-width: 860px) {
+  .br-admin { grid-template-columns: minmax(0, 1fr); grid-template-areas: "movil" "cabecera" "contenido"; }
+  .br-admin > .br-lateral { display: none; }
+  .br-admin > .br-movil { display: flex; }
+  .br-admin > main { padding: 20px 16px 40px; }
+  .br-cabecera { padding: 12px 16px; }
+  .br-usuario__texto { display: none; }
+  .br-usuario { padding: 4px; }
+}
+
+/* ---------- Tarjeta ---------- */
+.br-tarjeta {
+  background: var(--br-blanco); border: 1px solid var(--br-borde);
+  border-radius: var(--br-radio); padding: 20px; min-width: 0;
+}
+.br-tarjeta > * + * { margin-top: 12px; }
+
+/* datos clave / valor en rejilla */
+.br-datos { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 14px; }
+.br-datos__clave { font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--br-gris); }
+.br-datos__valor { font-size: 17px; font-weight: 600; overflow-wrap: anywhere; }
+
+/* ---------- Etiquetas ---------- */
+.br-etiqueta {
+  display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px; border-radius: 999px;
+  font-size: 12px; font-weight: 600; line-height: 1.6; white-space: nowrap;
+}
+.br-etiqueta svg { flex: none; width: 13px; height: 13px; }
+.br-etiqueta--grande { padding: 4px 12px; font-size: 13px; }
+.br-etiqueta--ok { background: var(--br-verde-claro); color: var(--br-verde); }
+.br-etiqueta--aviso { background: var(--br-aviso-fondo); color: var(--br-aviso-texto); }
+.br-etiqueta--info { background: var(--br-fondo-3); color: var(--br-enlace); }
+.br-etiqueta--neutra { background: var(--br-fondo-2); color: var(--br-gris); }
+
+/* estados del panel de postulaciones */
+.br-etiqueta--peligro { background: var(--br-rojo-fondo); color: var(--br-rojo-texto); }
+.br-etiqueta--pendiente { background: var(--br-pendiente-fondo); color: var(--br-pendiente-texto); }
+.br-etiqueta--pendiente::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--br-pendiente-punto); }
+.br-etiqueta--validada { background: var(--br-validada-fondo); color: var(--br-validada-texto); }
+
+/* ---------- Avisos ---------- */
+.br-aviso { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 12px 16px; border-radius: 10px; border: 1px solid; font-size: 14px; }
+.br-aviso__texto { flex: 1 1 220px; min-width: 0; }
+.br-aviso--naranja { background: var(--br-aviso-fondo); border-color: var(--br-aviso-borde); color: var(--br-aviso-oscuro); }
+.br-aviso--azul { background: var(--br-fondo-2); border-color: var(--br-enlace); color: var(--br-azul); }
+/* Aviso con ícono, título y detalle (Mi proceso): el ícono va arriba a la izquierda y el texto a su lado */
+.br-aviso--grande { align-items: flex-start; flex-wrap: nowrap; gap: 12px; padding: 14px 16px; font-size: 15px; }
+.br-aviso__icono { flex: none; width: 22px; height: 22px; margin-top: 1px; }
+.br-aviso--naranja .br-aviso__icono { color: var(--br-aviso-texto); }
+.br-aviso--azul .br-aviso__icono { color: var(--br-enlace); }
+.br-aviso__cuerpo { flex: 1 1 auto; min-width: 0; display: grid; gap: 4px; }
+.br-aviso__titulo { font-weight: 600; }
+.br-aviso__detalle { font-size: 14px; }
+.br-aviso__cuerpo .br-boton { justify-self: start; margin-top: 8px; }
+
+/* ---------- Panel de avisos de la campanita (vista 01b) ---------- */
+.br-avisos {
+  position: absolute; z-index: 15; top: calc(100% + 6px); right: 16px;
+  width: min(380px, calc(100% - 32px));
+  background: var(--br-blanco); color: var(--br-azul);
+  border-radius: var(--br-radio);
+  /* flota sobre la página: sombra (no borde) hecha con el azul de la marca */
+  box-shadow: 0 2px 6px rgb(0 48 77 / 0.12), 0 18px 36px -12px rgb(0 48 77 / 0.4);
+  overflow: hidden;
+}
+.br-avisos__cabecera {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+  padding: 14px 16px 12px; border-bottom: 1px solid var(--br-borde);
+}
+.br-avisos__cabecera h2 { font-size: 16px; }
+.br-avisos__lista { list-style: none; margin: 0; padding: 0; }
+.br-avisos__item {
+  position: relative; display: grid; gap: 2px; padding: 12px 16px 12px 36px;
+  border-bottom: 1px solid var(--br-fondo-3); font-size: 14px;
+}
+.br-avisos__item:last-child { border-bottom: 0; }
+.br-avisos__item--nuevo { background: var(--br-fondo); }
+.br-avisos__punto {
+  position: absolute; left: 16px; top: 19px; width: 8px; height: 8px; border-radius: 50%;
+  background: var(--br-verde);
+}
+.br-avisos__titulo { font-weight: 500; }
+.br-avisos__item--nuevo .br-avisos__titulo { font-weight: 600; }
+.br-avisos__detalle { color: var(--br-gris); }
+.br-avisos__fecha { color: var(--br-gris); font-size: 13px; }
+.br-avisos__vacio { display: grid; justify-items: center; gap: 6px; padding: 28px 20px 32px; text-align: center; }
+.br-avisos__vacio p { max-width: 32ch; color: var(--br-gris); font-size: 14px; }
+.br-avisos__vacio .br-avisos__titulo { color: var(--br-azul); font-size: 15px; font-weight: 600; }
+.br-avisos__vacio-icono {
+  width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  background: var(--br-fondo-2); color: var(--br-gris); margin-bottom: 4px;
+}
+
+/* ---------- Pasos (Enviada → Validada → Aprobada) ---------- */
+.br-pasos { list-style: none; margin: 0; padding: 0; display: flex; align-items: flex-start; }
+.br-pasos__paso { flex: 1 1 0; min-width: 0; display: grid; justify-items: center; gap: 6px; text-align: center; position: relative; font-size: 13px; }
+.br-pasos__paso + .br-pasos__paso::before {
+  content: ''; position: absolute; top: 13px; right: 50%; width: 100%; height: 2px; background: var(--br-borde);
+}
+.br-pasos__paso--hecho + .br-pasos__paso::before { background: var(--br-lima); }
+.br-pasos__punto {
+  position: relative; z-index: 1; width: 28px; height: 28px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700;
+  background: var(--br-fondo-3); color: var(--br-gris); border: 2px solid var(--br-borde);
+}
+.br-pasos__paso--hecho .br-pasos__punto { background: var(--br-verde); border-color: var(--br-verde); color: var(--br-blanco); }
+.br-pasos__paso--actual .br-pasos__punto { background: var(--br-blanco); border-color: var(--br-enlace); color: var(--br-enlace); }
+.br-pasos__nombre { font-weight: 600; }
+.br-pasos__fecha { color: var(--br-gris); font-size: 12px; }
+.br-pasos__punto svg { width: 14px; height: 14px; }
+.br-tarjeta > .br-pasos { margin-top: 20px; }
+.br-pasos__paso--actual .br-pasos__fecha { color: var(--br-enlace); font-weight: 600; }
+
+/* ---------- Barra de progreso ---------- */
+.br-barra-progreso { height: 10px; background: var(--br-fondo-3); border-radius: 999px; overflow: hidden; }
+.br-barra-progreso > span { display: block; height: 100%; background: var(--br-verde); border-radius: 999px; }
+/* La misma barra con <progress value max> (sin estilos en línea y con su valor para lectores de pantalla) */
+.br-progreso {
+  display: block; width: 100%; height: 10px; border: 0; border-radius: 999px; overflow: hidden;
+  appearance: none; -webkit-appearance: none; background: var(--br-fondo-3); color: var(--br-verde);
+}
+.br-progreso::-webkit-progress-bar { background: var(--br-fondo-3); border-radius: 999px; }
+.br-progreso::-webkit-progress-value { background: var(--br-verde); border-radius: 999px; }
+.br-progreso::-moz-progress-bar { background: var(--br-verde); border-radius: 999px; }
+
+/* Resumen del beneficio: «Pagos recibidos: 2 de 6», la barra y la línea de dinero */
+.br-avance { display: grid; gap: 8px; padding-top: 16px; border-top: 1px solid var(--br-fondo-3); }
+.br-avance__fila { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; font-size: 14px; }
+.br-avance__fila strong { font-weight: 600; }
+.br-cifra { font-variant-numeric: tabular-nums; }
+
+/* ---------- Sección plegable (p. ej. «Postulaciones anteriores») ---------- */
+.br-plegable {
+  background: var(--br-blanco); border: 1px solid var(--br-borde); border-radius: var(--br-radio);
+}
+.br-plegable > summary {
+  list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  min-height: 52px; padding: 12px 20px; font-weight: 600; border-radius: var(--br-radio);
+}
+.br-plegable > summary::-webkit-details-marker { display: none; }
+.br-plegable > summary:hover { background: var(--br-fondo); }
+.br-plegable > summary::after {
+  content: ''; flex: none; width: 8px; height: 8px; margin-right: 4px;
+  border-right: 2px solid var(--br-gris); border-bottom: 2px solid var(--br-gris);
+  transform: translateY(-2px) rotate(45deg);
+}
+.br-plegable[open] > summary::after { transform: translateY(2px) rotate(-135deg); }
+.br-plegable__contenido { padding: 4px 20px 20px; display: grid; gap: 12px; }
+.br-plegable__item { display: grid; gap: 4px; padding-top: 12px; border-top: 1px solid var(--br-fondo-3); }
+
+/* ---------- Esqueleto de carga ---------- */
+.br-esqueleto { display: block; height: 14px; width: 100%; border-radius: 6px; background: var(--br-fondo-3); }
+.br-esqueleto--etiqueta { width: 150px; height: 24px; border-radius: 999px; }
+.br-esqueleto--titulo { width: 60%; height: 28px; }
+.br-esqueleto--corta { width: 40%; }
+.br-esqueleto--media { width: 70%; }
+.br-esqueleto--bloque { height: 56px; border-radius: 10px; }
+.br-esqueleto--barra { height: 10px; border-radius: 999px; }
+@media (prefers-reduced-motion: no-preference) {
+  .br-esqueleto { animation: br-latido 1.6s ease-in-out infinite; }
+  @keyframes br-latido { 50% { opacity: 0.55; } }
+}
+
+/* ---------- Tabla (envolverla en .br-tabla-envoltura para que se desplace sola en celular) ---------- */
+.br-tabla-envoltura { overflow-x: auto; max-width: 100%; }
+.br-tabla { width: 100%; border-collapse: collapse; font-size: 14px; }
+.br-tabla caption { text-align: left; font-weight: 600; padding-bottom: 8px; }
+.br-tabla th { text-align: left; font-size: 12px; font-weight: 600; color: var(--br-gris); padding: 8px 10px; border-bottom: 1px solid var(--br-borde); white-space: nowrap; }
+.br-tabla td { padding: 10px; border-bottom: 1px solid var(--br-fondo-3); vertical-align: middle; }
+.br-tabla tr:last-child td { border-bottom: 0; }
+.br-tabla .br-num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+/* Tabla al ras de la tarjeta: la primera y la última columna se alinean con el texto de la tarjeta */
+.br-tabla--al-ras :is(th, td):first-child { padding-left: 0; }
+.br-tabla--al-ras :is(th, td):last-child { padding-right: 0; }
+/* Tabla que en celular se vuelve lista: cada fila es un bloque de dos renglones
+   (1.ª celda + última arriba, 2.ª + 3.ª abajo). Para tablas de 4 columnas como «Mis pagos». */
+@media (max-width: 480px) {
+  .br-tabla--apilada thead {
+    position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+  }
+  .br-tabla--apilada tbody tr {
+    display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 2px 12px;
+    padding: 12px 0; border-bottom: 1px solid var(--br-fondo-3);
+  }
+  .br-tabla--apilada tbody tr:last-child { border-bottom: 0; padding-bottom: 0; }
+  .br-tabla--apilada tbody td { padding: 0; border: 0; }
+  .br-tabla--apilada tbody td:nth-child(1) { grid-column: 1; grid-row: 1; font-weight: 600; }
+  .br-tabla--apilada tbody td:nth-child(2) { grid-column: 1; grid-row: 2; color: var(--br-gris); font-size: 14px; }
+  .br-tabla--apilada tbody td:nth-child(3) { grid-column: 2; grid-row: 2; justify-self: end; font-size: 14px; }
+  .br-tabla--apilada tbody td:nth-child(4) { grid-column: 2; grid-row: 1; justify-self: end; }
+}
+
+/* ---------- Botones ---------- */
+.br-boton {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 44px; padding: 0 18px; border: 1px solid transparent; border-radius: 10px;
+  font-size: 15px; font-weight: 600; text-decoration: none; cursor: pointer;
+}
+.br-boton--primario { background: var(--br-verde); border-color: var(--br-verde); color: var(--br-blanco); }
+.br-boton--primario:hover { background: var(--br-verde-hover); border-color: var(--br-verde-hover); }
+.br-boton--secundario { background: var(--br-blanco); border-color: var(--br-gris-claro); color: var(--br-azul); }
+.br-boton--secundario:hover { background: var(--br-fondo-2); }
+/* Rojo del panel de postulaciones: blanco sobre #C2392F da 5.4:1 */
+.br-boton--peligro { background: var(--br-rojo); border-color: var(--br-rojo); color: var(--br-blanco); }
+.br-boton--peligro:hover { background: var(--br-rojo-texto); border-color: var(--br-rojo-texto); }
+.br-boton:disabled, .br-boton[aria-disabled="true"] {
+  background: var(--br-fondo-3); border-color: var(--br-borde); color: var(--br-gris); cursor: not-allowed;
+}
+
+/* ---------- Formularios ---------- */
+.br-campo { display: grid; gap: 6px; }
+.br-campo > label { font-size: 14px; font-weight: 600; }
+.br-ayuda { font-size: 13px; color: var(--br-gris); }
+.br-campo input:not([type="checkbox"]):not([type="radio"]):not([type="file"]), .br-campo select, .br-campo textarea,
+.br-entrada {
+  width: 100%; min-height: 44px; padding: 8px 14px; background: var(--br-blanco); color: var(--br-azul);
+  border: 1px solid var(--br-gris-claro); border-radius: 10px;
+}
+.br-campo textarea { min-height: 96px; resize: vertical; }
+.br-campo input::placeholder, .br-campo textarea::placeholder { color: var(--br-gris); opacity: 1; }
+input[type="checkbox"], input[type="radio"] { width: 20px; height: 20px; accent-color: var(--br-verde); }
+
+/* ---------- Diálogo (capa sobre la página; en las maquetas la página queda detrás) ---------- */
+.br-dialogo-capa {
+  position: absolute; inset: 0; min-height: 100vh; z-index: 20;
+  display: flex; align-items: flex-start; justify-content: center; padding: 72px 16px 32px;
+}
+.br-dialogo-capa::before { content: ''; position: absolute; inset: 0; background: var(--br-azul); opacity: 0.55; }
+.br-dialogo {
+  position: relative; width: 100%; max-width: 520px; padding: 24px;
+  background: var(--br-blanco); color: var(--br-azul); border-radius: 14px; border: 1px solid var(--br-borde);
+}
+.br-dialogo > * + * { margin-top: 14px; }
+.br-dialogo__acciones { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; }
+
+/* ---------- Estado vacío ---------- */
+.br-vacio {
+  display: grid; justify-items: center; gap: 10px; text-align: center; padding: 40px 20px;
+  background: var(--br-blanco); border: 1px dashed var(--br-gris-claro); border-radius: var(--br-radio);
+}
+.br-vacio__icono {
+  width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  background: var(--br-fondo-2); color: var(--br-gris); font-size: 24px;
+}
+.br-vacio p { max-width: 42ch; color: var(--br-gris); }
+.br-vacio h1, .br-vacio h2 { color: var(--br-azul); }
+.br-vacio h1 { font-size: 20px; max-width: 28ch; text-wrap: balance; }
+
+@media (max-width: 480px) {
+  h1 { font-size: 22px; }
+  .br-tarjeta { padding: 16px; }
+  .br-datos > .br-datos--completo { grid-column: 1 / -1; }
+  .br-dialogo { padding: 20px; }
+  .br-dialogo__acciones .br-boton { flex: 1 1 100%; }
+}
+
+</style>
+</head>
+<body>
+  <header class="br-barra-aprendiz">
+  <div class="br-barra-aprendiz__dentro">
+    <span class="br-barra-aprendiz__marca">BenefitRack</span>
+    <span class="br-barra-aprendiz__saludo">Hola, Luisa Fernanda</span>
+    <div class="br-campanita-caja">
+      <button type="button" class="br-campanita" aria-label="Avisos, 1 sin leer" aria-haspopup="true" aria-expanded="false">
+        <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg>
+        <span class="br-campanita__contador" aria-hidden="true">1</span>
+      </button>
+    </div>
+    <a href="#" class="br-barra-aprendiz__salir">Salir</a>
+    
+  </div>
+</header>
+  <main class="br-pagina">
+    <section class="br-tarjeta" data-prueba="resultado" aria-labelledby="titulo-beneficio">
+      <span class="br-etiqueta br-etiqueta--ok br-etiqueta--grande"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>Fuiste seleccionada</span>
+      <h1 id="titulo-beneficio">Apoyo de alimentación</h1>
+      <p class="br-suave">Convocatoria <span class="br-sin-corte">2026-2</span> · Aprobada el 22 ago 2026</p>
+      <ol class="br-pasos" aria-label="Avance de tu postulación">
+        <li class="br-pasos__paso br-pasos__paso--hecho">
+          <span class="br-pasos__punto"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></span>
+          <span class="br-pasos__nombre">Enviada <span class="br-solo-lectores">(hecho)</span></span>
+          <span class="br-pasos__fecha">4 ago 2026</span>
+        </li>
+        <li class="br-pasos__paso br-pasos__paso--hecho">
+          <span class="br-pasos__punto"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></span>
+          <span class="br-pasos__nombre">Validada <span class="br-solo-lectores">(hecho)</span></span>
+          <span class="br-pasos__fecha">12 ago 2026</span>
+        </li>
+        <li class="br-pasos__paso br-pasos__paso--hecho">
+          <span class="br-pasos__punto"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></span>
+          <span class="br-pasos__nombre">Aprobada <span class="br-solo-lectores">(hecho)</span></span>
+          <span class="br-pasos__fecha">22 ago 2026</span>
+        </li>
+      </ol>
+    </section>
+    <section class="br-tarjeta" data-prueba="resumen-pagos" aria-labelledby="titulo-resumen">
+      <h2 id="titulo-resumen">Tu beneficio</h2>
+      <div class="br-datos">
+        <div><div class="br-datos__clave">Cada pago</div><div class="br-datos__valor br-cifra">$ 180.000</div></div>
+        <div><div class="br-datos__clave">Duración</div><div class="br-datos__valor">6 meses</div></div>
+        <div class="br-datos--completo"><div class="br-datos__clave">Desde – hasta</div><div class="br-datos__valor">sep 2026 – feb 2027</div></div>
+      </div>
+      <div class="br-avance">
+        <div class="br-avance__fila"><span id="etiqueta-avance">Pagos recibidos: <strong>2 de 6</strong></span></div>
+        <progress class="br-progreso" value="2" max="6" aria-labelledby="etiqueta-avance">2 de 6</progress>
+        <p class="br-avance__fila br-cifra"><span>$ 360.000 recibidos · quedan 4 meses</span></p>
+      </div>
+    </section>
+    <section class="br-tarjeta" aria-labelledby="titulo-pagos">
+      <h2 id="titulo-pagos">Mis pagos</h2>
+      <div class="br-tabla-envoltura">
+        <table class="br-tabla br-tabla--al-ras br-tabla--apilada" aria-labelledby="titulo-pagos">
+          <thead><tr><th scope="col">Mes</th><th scope="col">Fecha esperada</th><th scope="col" class="br-num">Valor</th><th scope="col">Estado</th></tr></thead>
+          <tbody>
+            <tr><td>Septiembre</td><td>15 sep 2026</td><td class="br-num">$ 180.000</td><td><span class="br-etiqueta br-etiqueta--ok">Pagado</span></td></tr>
+            <tr><td>Octubre</td><td>15 oct 2026</td><td class="br-num">$ 180.000</td><td><span class="br-etiqueta br-etiqueta--ok">Pagado</span></td></tr>
+            <tr><td>Noviembre</td><td>15 nov 2026</td><td class="br-num">$ 180.000</td><td><span class="br-etiqueta br-etiqueta--neutra">Pendiente</span></td></tr>
+            <tr><td>Diciembre</td><td>15 dic 2026</td><td class="br-num">$ 180.000</td><td><span class="br-etiqueta br-etiqueta--neutra">Pendiente</span></td></tr>
+            <tr><td>Enero</td><td>15 ene 2027</td><td class="br-num">$ 180.000</td><td><span class="br-etiqueta br-etiqueta--neutra">Pendiente</span></td></tr>
+            <tr><td>Febrero</td><td>15 feb 2027</td><td class="br-num">$ 180.000</td><td><span class="br-etiqueta br-etiqueta--neutra">Pendiente</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+    <details class="br-plegable" data-prueba="postulaciones-anteriores">
+      <summary>Postulaciones anteriores (1)</summary>
+      <div class="br-plegable__contenido">
+        <div class="br-plegable__item">
+          <div class="br-fila"><h3>Apoyo de transporte</h3><span class="br-etiqueta br-etiqueta--neutra">Terminado</span></div>
+          <p class="br-suave">Convocatoria <span class="br-sin-corte">2026-1</span> · Beneficio de un solo pago</p>
+          <p>Recibiste tu pago de <span class="br-cifra">$ 180.000</span> el 15 may 2026.</p>
+        </div>
+      </div>
+    </details>
+  </main>
+</body>
+</html>

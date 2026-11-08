@@ -60,6 +60,8 @@ body {
   overflow-wrap: break-word;
 }
 
+::selection { background: var(--br-verde-claro); color: var(--br-azul); }
+
 h1, h2, h3, p { margin: 0; }
 h1 { font-size: 26px; font-weight: 600; letter-spacing: -0.015em; line-height: 1.25; }
 h2 { font-size: 18px; font-weight: 600; line-height: 1.3; }
@@ -87,29 +89,52 @@ textarea:focus-visible, summary:focus-visible, [tabindex]:focus-visible {
 .br-pila { display: grid; gap: 16px; }
 .br-fila { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
 .br-suave { color: var(--br-gris); font-size: 13px; }
+.br-lista { margin: 0; padding-left: 22px; display: grid; gap: 6px; }
+.br-lista li::marker { color: var(--br-gris); font-weight: 600; }
+.br-texto { max-width: 62ch; }
+.br-sin-corte { white-space: nowrap; } /* p. ej. «2026-2»: que no se parta en el guion */
 .br-pagina { width: 100%; max-width: 760px; margin: 0 auto; padding-block: 20px 48px; padding-inline: 16px; }
 .br-pagina > * + * { margin-top: 16px; }
 
 /* ---------- Barra del aprendiz ---------- */
 .br-barra-aprendiz { background: var(--br-azul); color: var(--br-blanco); }
+/* Marca a la izquierda; saludo, campanita y «Salir» a la derecha.
+   En celular el saludo baja debajo de la marca para que un nombre largo no empuje nada. */
 .br-barra-aprendiz__dentro {
+  position: relative; /* el panel de avisos se apoya aquí */
   max-width: 760px; margin: 0 auto; padding: 10px 16px;
-  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px;
+  display: grid; align-items: center; column-gap: 12px;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  grid-template-areas: "marca saludo campana salir";
 }
-.br-barra-aprendiz__marca { font-size: 18px; font-weight: 700; letter-spacing: -0.01em; }
-.br-barra-aprendiz__derecha { display: flex; align-items: center; gap: 12px; min-width: 0; }
-.br-barra-aprendiz__saludo { min-width: 0; font-size: 14px; color: var(--br-fondo-2); }
+.br-barra-aprendiz__marca { grid-area: marca; font-size: 18px; font-weight: 700; letter-spacing: -0.01em; }
+.br-barra-aprendiz__saludo {
+  grid-area: saludo; justify-self: end; min-width: 0; max-width: 100%;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: 14px; color: var(--br-fondo-2);
+}
 .br-barra-aprendiz__salir {
-  display: inline-flex; align-items: center; min-height: 44px; padding: 0 8px;
-  color: var(--br-blanco); font-size: 14px; font-weight: 500;
+  grid-area: salir; display: inline-flex; align-items: center; min-height: 44px; padding: 0 8px;
+  color: var(--br-blanco); font-size: 14px; font-weight: 500; text-underline-offset: 3px;
 }
-.br-campanita-caja { position: relative; }
+.br-campanita-caja { grid-area: campana; }
+@media (max-width: 480px) {
+  .br-barra-aprendiz__dentro {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-areas: "marca campana salir" "saludo campana salir";
+    row-gap: 0; padding-block: 8px;
+  }
+  .br-barra-aprendiz__marca { line-height: 1.3; }
+  .br-barra-aprendiz__saludo { justify-self: start; font-size: 13px; line-height: 1.4; }
+}
 .br-campanita {
   position: relative; display: inline-flex; align-items: center; justify-content: center;
   width: 44px; height: 44px; padding: 0; cursor: pointer;
   background: var(--br-azul); color: var(--br-blanco);
   border: 1px solid var(--br-gris); border-radius: 10px;
 }
+.br-campanita:hover { border-color: var(--br-gris-claro); }
+.br-campanita[aria-expanded="true"] { background: var(--br-gris); border-color: var(--br-gris-claro); }
 .br-campanita__contador {
   position: absolute; top: -6px; right: -6px; min-width: 20px; height: 20px; padding: 0 5px;
   display: flex; align-items: center; justify-content: center;
@@ -231,6 +256,8 @@ textarea:focus-visible, summary:focus-visible, [tabindex]:focus-visible {
   display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px; border-radius: 999px;
   font-size: 12px; font-weight: 600; line-height: 1.6; white-space: nowrap;
 }
+.br-etiqueta svg { flex: none; width: 13px; height: 13px; }
+.br-etiqueta--grande { padding: 4px 12px; font-size: 13px; }
 .br-etiqueta--ok { background: var(--br-verde-claro); color: var(--br-verde); }
 .br-etiqueta--aviso { background: var(--br-aviso-fondo); color: var(--br-aviso-texto); }
 .br-etiqueta--info { background: var(--br-fondo-3); color: var(--br-enlace); }
@@ -247,6 +274,53 @@ textarea:focus-visible, summary:focus-visible, [tabindex]:focus-visible {
 .br-aviso__texto { flex: 1 1 220px; min-width: 0; }
 .br-aviso--naranja { background: var(--br-aviso-fondo); border-color: var(--br-aviso-borde); color: var(--br-aviso-oscuro); }
 .br-aviso--azul { background: var(--br-fondo-2); border-color: var(--br-enlace); color: var(--br-azul); }
+/* Aviso con ícono, título y detalle (Mi proceso): el ícono va arriba a la izquierda y el texto a su lado */
+.br-aviso--grande { align-items: flex-start; flex-wrap: nowrap; gap: 12px; padding: 14px 16px; font-size: 15px; }
+.br-aviso__icono { flex: none; width: 22px; height: 22px; margin-top: 1px; }
+.br-aviso--naranja .br-aviso__icono { color: var(--br-aviso-texto); }
+.br-aviso--azul .br-aviso__icono { color: var(--br-enlace); }
+.br-aviso__cuerpo { flex: 1 1 auto; min-width: 0; display: grid; gap: 4px; }
+.br-aviso__titulo { font-weight: 600; }
+.br-aviso__detalle { font-size: 14px; }
+.br-aviso__cuerpo .br-boton { justify-self: start; margin-top: 8px; }
+
+/* ---------- Panel de avisos de la campanita (vista 01b) ---------- */
+.br-avisos {
+  position: absolute; z-index: 15; top: calc(100% + 6px); right: 16px;
+  width: min(380px, calc(100% - 32px));
+  background: var(--br-blanco); color: var(--br-azul);
+  border-radius: var(--br-radio);
+  /* flota sobre la página: sombra (no borde) hecha con el azul de la marca */
+  box-shadow: 0 2px 6px rgb(0 48 77 / 0.12), 0 18px 36px -12px rgb(0 48 77 / 0.4);
+  overflow: hidden;
+}
+.br-avisos__cabecera {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+  padding: 14px 16px 12px; border-bottom: 1px solid var(--br-borde);
+}
+.br-avisos__cabecera h2 { font-size: 16px; }
+.br-avisos__lista { list-style: none; margin: 0; padding: 0; }
+.br-avisos__item {
+  position: relative; display: grid; gap: 2px; padding: 12px 16px 12px 36px;
+  border-bottom: 1px solid var(--br-fondo-3); font-size: 14px;
+}
+.br-avisos__item:last-child { border-bottom: 0; }
+.br-avisos__item--nuevo { background: var(--br-fondo); }
+.br-avisos__punto {
+  position: absolute; left: 16px; top: 19px; width: 8px; height: 8px; border-radius: 50%;
+  background: var(--br-verde);
+}
+.br-avisos__titulo { font-weight: 500; }
+.br-avisos__item--nuevo .br-avisos__titulo { font-weight: 600; }
+.br-avisos__detalle { color: var(--br-gris); }
+.br-avisos__fecha { color: var(--br-gris); font-size: 13px; }
+.br-avisos__vacio { display: grid; justify-items: center; gap: 6px; padding: 28px 20px 32px; text-align: center; }
+.br-avisos__vacio p { max-width: 32ch; color: var(--br-gris); font-size: 14px; }
+.br-avisos__vacio .br-avisos__titulo { color: var(--br-azul); font-size: 15px; font-weight: 600; }
+.br-avisos__vacio-icono {
+  width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  background: var(--br-fondo-2); color: var(--br-gris); margin-bottom: 4px;
+}
 
 /* ---------- Pasos (Enviada → Validada → Aprobada) ---------- */
 .br-pasos { list-style: none; margin: 0; padding: 0; display: flex; align-items: flex-start; }
@@ -264,10 +338,59 @@ textarea:focus-visible, summary:focus-visible, [tabindex]:focus-visible {
 .br-pasos__paso--actual .br-pasos__punto { background: var(--br-blanco); border-color: var(--br-enlace); color: var(--br-enlace); }
 .br-pasos__nombre { font-weight: 600; }
 .br-pasos__fecha { color: var(--br-gris); font-size: 12px; }
+.br-pasos__punto svg { width: 14px; height: 14px; }
+.br-tarjeta > .br-pasos { margin-top: 20px; }
+.br-pasos__paso--actual .br-pasos__fecha { color: var(--br-enlace); font-weight: 600; }
 
 /* ---------- Barra de progreso ---------- */
 .br-barra-progreso { height: 10px; background: var(--br-fondo-3); border-radius: 999px; overflow: hidden; }
 .br-barra-progreso > span { display: block; height: 100%; background: var(--br-verde); border-radius: 999px; }
+/* La misma barra con <progress value max> (sin estilos en línea y con su valor para lectores de pantalla) */
+.br-progreso {
+  display: block; width: 100%; height: 10px; border: 0; border-radius: 999px; overflow: hidden;
+  appearance: none; -webkit-appearance: none; background: var(--br-fondo-3); color: var(--br-verde);
+}
+.br-progreso::-webkit-progress-bar { background: var(--br-fondo-3); border-radius: 999px; }
+.br-progreso::-webkit-progress-value { background: var(--br-verde); border-radius: 999px; }
+.br-progreso::-moz-progress-bar { background: var(--br-verde); border-radius: 999px; }
+
+/* Resumen del beneficio: «Pagos recibidos: 2 de 6», la barra y la línea de dinero */
+.br-avance { display: grid; gap: 8px; padding-top: 16px; border-top: 1px solid var(--br-fondo-3); }
+.br-avance__fila { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; font-size: 14px; }
+.br-avance__fila strong { font-weight: 600; }
+.br-cifra { font-variant-numeric: tabular-nums; }
+
+/* ---------- Sección plegable (p. ej. «Postulaciones anteriores») ---------- */
+.br-plegable {
+  background: var(--br-blanco); border: 1px solid var(--br-borde); border-radius: var(--br-radio);
+}
+.br-plegable > summary {
+  list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  min-height: 52px; padding: 12px 20px; font-weight: 600; border-radius: var(--br-radio);
+}
+.br-plegable > summary::-webkit-details-marker { display: none; }
+.br-plegable > summary:hover { background: var(--br-fondo); }
+.br-plegable > summary::after {
+  content: ''; flex: none; width: 8px; height: 8px; margin-right: 4px;
+  border-right: 2px solid var(--br-gris); border-bottom: 2px solid var(--br-gris);
+  transform: translateY(-2px) rotate(45deg);
+}
+.br-plegable[open] > summary::after { transform: translateY(2px) rotate(-135deg); }
+.br-plegable__contenido { padding: 4px 20px 20px; display: grid; gap: 12px; }
+.br-plegable__item { display: grid; gap: 4px; padding-top: 12px; border-top: 1px solid var(--br-fondo-3); }
+
+/* ---------- Esqueleto de carga ---------- */
+.br-esqueleto { display: block; height: 14px; width: 100%; border-radius: 6px; background: var(--br-fondo-3); }
+.br-esqueleto--etiqueta { width: 150px; height: 24px; border-radius: 999px; }
+.br-esqueleto--titulo { width: 60%; height: 28px; }
+.br-esqueleto--corta { width: 40%; }
+.br-esqueleto--media { width: 70%; }
+.br-esqueleto--bloque { height: 56px; border-radius: 10px; }
+.br-esqueleto--barra { height: 10px; border-radius: 999px; }
+@media (prefers-reduced-motion: no-preference) {
+  .br-esqueleto { animation: br-latido 1.6s ease-in-out infinite; }
+  @keyframes br-latido { 50% { opacity: 0.55; } }
+}
 
 /* ---------- Tabla (envolverla en .br-tabla-envoltura para que se desplace sola en celular) ---------- */
 .br-tabla-envoltura { overflow-x: auto; max-width: 100%; }
@@ -277,6 +400,26 @@ textarea:focus-visible, summary:focus-visible, [tabindex]:focus-visible {
 .br-tabla td { padding: 10px; border-bottom: 1px solid var(--br-fondo-3); vertical-align: middle; }
 .br-tabla tr:last-child td { border-bottom: 0; }
 .br-tabla .br-num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+/* Tabla al ras de la tarjeta: la primera y la última columna se alinean con el texto de la tarjeta */
+.br-tabla--al-ras :is(th, td):first-child { padding-left: 0; }
+.br-tabla--al-ras :is(th, td):last-child { padding-right: 0; }
+/* Tabla que en celular se vuelve lista: cada fila es un bloque de dos renglones
+   (1.ª celda + última arriba, 2.ª + 3.ª abajo). Para tablas de 4 columnas como «Mis pagos». */
+@media (max-width: 480px) {
+  .br-tabla--apilada thead {
+    position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+  }
+  .br-tabla--apilada tbody tr {
+    display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 2px 12px;
+    padding: 12px 0; border-bottom: 1px solid var(--br-fondo-3);
+  }
+  .br-tabla--apilada tbody tr:last-child { border-bottom: 0; padding-bottom: 0; }
+  .br-tabla--apilada tbody td { padding: 0; border: 0; }
+  .br-tabla--apilada tbody td:nth-child(1) { grid-column: 1; grid-row: 1; font-weight: 600; }
+  .br-tabla--apilada tbody td:nth-child(2) { grid-column: 1; grid-row: 2; color: var(--br-gris); font-size: 14px; }
+  .br-tabla--apilada tbody td:nth-child(3) { grid-column: 2; grid-row: 2; justify-self: end; font-size: 14px; }
+  .br-tabla--apilada tbody td:nth-child(4) { grid-column: 2; grid-row: 1; justify-self: end; }
+}
 
 /* ---------- Botones ---------- */
 .br-boton {
@@ -331,11 +474,13 @@ input[type="checkbox"], input[type="radio"] { width: 20px; height: 20px; accent-
   background: var(--br-fondo-2); color: var(--br-gris); font-size: 24px;
 }
 .br-vacio p { max-width: 42ch; color: var(--br-gris); }
-.br-vacio h2 { color: var(--br-azul); }
+.br-vacio h1, .br-vacio h2 { color: var(--br-azul); }
+.br-vacio h1 { font-size: 20px; max-width: 28ch; text-wrap: balance; }
 
 @media (max-width: 480px) {
   h1 { font-size: 22px; }
   .br-tarjeta { padding: 16px; }
+  .br-datos > .br-datos--completo { grid-column: 1 / -1; }
   .br-dialogo { padding: 20px; }
   .br-dialogo__acciones .br-boton { flex: 1 1 100%; }
 }

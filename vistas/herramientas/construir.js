@@ -34,13 +34,37 @@ function migas(activo) {
   return `<nav aria-label="Ruta" class="br-migas">${dashboard}${flecha}<span aria-current="page">${escapa(activo)}</span></nav>`;
 }
 
+// Panel de avisos de la campanita (vista 01b). La fuente lo escribe entre
+// <!-- panel-avisos --> y <!-- /panel-avisos -->, y la barra lo pide con panel="abierto".
+const BLOQUE_PANEL = /<!--\s*panel-avisos\s*-->([\s\S]*?)<!--\s*\/panel-avisos\s*-->/;
+
+function barraAprendiz(attrs, panel, archivo) {
+  const avisos = attrs.avisos === undefined ? '2' : attrs.avisos;
+  const abierto = attrs.panel === 'abierto';
+  if (abierto && panel === null) throw new Error(`${archivo}: panel="abierto" sin bloque <!-- panel-avisos -->`);
+  const sinLeer = avisos === '0';
+  return leePieza('barra-aprendiz')
+    .replace(/{{nombre}}/g, () => escapa(attrs.nombre || 'Daniela'))
+    .replace('{{etiquetaAvisos}}', () => (sinLeer ? 'Avisos, ninguno sin leer' : `Avisos, ${escapa(avisos)} sin leer`))
+    .replace('{{contador}}', () => (sinLeer ? '' : `<span class="br-campanita__contador" aria-hidden="true">${escapa(avisos)}</span>`))
+    .replace('{{expandido}}', abierto ? 'true' : 'false')
+    .replace('{{controla}}', abierto ? ' aria-controls="panel-avisos"' : '')
+    .replace('{{panel}}', () => (abierto
+      ? `<section class="br-avisos" id="panel-avisos" aria-labelledby="panel-avisos-titulo" data-prueba="panel-avisos">${panel.trim()}</section>`
+      : ''));
+}
+
 function incluirPiezas(html, archivo) {
-  let salida = html.replace(/<!--\s*incluir:barra-aprendiz((?:\s+[\w-]+="[^"]*")*)\s*-->/g, (_, a) => {
+  const bloque = html.match(BLOQUE_PANEL);
+  const panel = bloque ? bloque[1] : null;
+  let salida = html.replace(BLOQUE_PANEL, '');
+  let panelUsado = false;
+  salida = salida.replace(/<!--\s*incluir:barra-aprendiz((?:\s+[\w-]+="[^"]*")*)\s*-->/g, (_, a) => {
     const attrs = leeAtributos(a);
-    return leePieza('barra-aprendiz')
-      .replace(/{{nombre}}/g, escapa(attrs.nombre || 'Daniela'))
-      .replace(/{{avisos}}/g, escapa(attrs.avisos || '2'));
+    if (attrs.panel === 'abierto') panelUsado = true;
+    return barraAprendiz(attrs, panel, archivo);
   });
+  if (panel !== null && !panelUsado) throw new Error(`${archivo}: hay bloque <!-- panel-avisos --> pero la barra no tiene panel="abierto"`);
   salida = salida.replace(/<!--\s*incluir:menu-admin((?:\s+[\w-]+="[^"]*")*)\s*-->/g, (_, a) => {
     const activo = leeAtributos(a).activo || '';
     if (activo && !OPCIONES_MENU.includes(activo)) throw new Error(`${archivo}: opción de menú desconocida «${activo}»`);
