@@ -41,6 +41,36 @@ module.exports = [
       exige(actual === NOMBRE, `miga actual: «${actual}»`);
     },
   })),
+  // Orden obligatorio (spec §5 Vista 3): primero «Datos confirmados» (Validada), después «Aprobar».
+  ...['pendiente', 'documento-pedido', 'documento-recibido', 'pedir-documento'].map((estado) => ({
+    estado,
+    nombre: 'orden: «Datos confirmados» deshabilitado mientras haya documentos sin validar',
+    prueba: async (page) => {
+      exige(await deshabilitado(page, '[data-prueba=confirmar-datos]'), '[data-prueba=confirmar-datos] no tiene disabled');
+    },
+  })),
+  ...['pendiente', 'documento-pedido', 'documento-recibido', 'pedir-documento', 'sin-cupos'].map((estado) => ({
+    estado,
+    nombre: 'orden: «Aprobar» deshabilitado (no está Validada o no hay cupos)',
+    prueba: async (page) => {
+      exige(await deshabilitado(page, '[data-prueba=aprobar]'), '[data-prueba=aprobar] no tiene disabled');
+    },
+  })),
+  {
+    estado: 'validada',
+    nombre: 'orden: «Aprobar» habilitado en Validada',
+    prueba: async (page) => {
+      exige(!(await deshabilitado(page, '[data-prueba=aprobar]')), '[data-prueba=aprobar] está deshabilitado');
+    },
+  },
+  ...['aprobada', 'rechazada'].map((estado) => ({
+    estado,
+    nombre: 'orden: ya decidida, no hay «Aprobar» habilitado',
+    prueba: async (page) => {
+      const habilitados = await page.$$eval('[data-prueba=aprobar]', (bs) => bs.filter((b) => !b.disabled).length);
+      exige(habilitados === 0, `hay ${habilitados} [data-prueba=aprobar] habilitado(s)`);
+    },
+  })),
   {
     estado: 'pendiente',
     nombre: 'CA-4 «Aprobar» deshabilitado mientras no esté Validada',

@@ -14,7 +14,7 @@ module.exports = [
     nombre: 'muestra el documento pedido y el mensaje de Bienestar',
     prueba: async (page) => {
       const t = await texto(page, '[data-prueba=pedido]');
-      exige(t.includes('Certificado de afiliación a la EPS'), `falta el documento pedido: «${t}»`);
+      exige(t.includes('Certificado de EPS'), `falta el documento pedido: «${t}»`);
       exige(/no se alcanza a leer/.test(t), `falta el mensaje del administrador: «${t}»`);
     },
   },
