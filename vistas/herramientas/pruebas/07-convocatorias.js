@@ -165,6 +165,20 @@ module.exports = [
       exige(/Cerrar convocatoria/.test(r.texto) && /postular/i.test(r.texto), `menú: «${r.texto}»`);
     },
   },
+  {
+    estado: 'lista',
+    nombre: '«Ver postulaciones» es un enlace al panel de postulaciones (no un botón sin destino)',
+    prueba: async (page) => {
+      const ver = await page.$$eval('[data-prueba=tabla-convocatorias] :is(a, button)', (els) => els
+        .filter((e) => e.textContent.trim().startsWith('Ver postulaciones'))
+        .map((e) => ({ tag: e.tagName.toLowerCase(), href: e.getAttribute('href') || '' })));
+      exige(ver.length >= 1, 'no hay «Ver postulaciones»');
+      for (const v of ver) {
+        exige(v.tag === 'a' && v.href === '../../00-existentes/postulaciones/html/computador-filtrada.html',
+          `«Ver postulaciones» es <${v.tag}> hacia «${v.href}»`);
+      }
+    },
+  },
 
   // ---------- Crear o editar ----------
   {
@@ -207,6 +221,18 @@ module.exports = [
       const t = await texto(page, 'main');
       exige(/aprobadas/i.test(t) && /cupos/i.test(t), 'no aclara que los cupos no bajan de las postulaciones aprobadas');
       exige(/ya aprobados/i.test(t), 'no aclara que cambiar los valores no afecta a los ya aprobados');
+    },
+  },
+
+  {
+    estado: 'crear-editar',
+    nombre: 'la ayuda de Requisitos no promete un vínculo con los documentos (es texto libre en la base)',
+    prueba: async (page) => {
+      const t = await texto(page, 'main');
+      exige(!/revisas en cada postulaci/i.test(t), 'promete que los requisitos son los documentos que se revisan');
+      const ayuda = await page.$eval('#requisitos', (el) => (el.getAttribute('aria-describedby') || '').split(/\s+/)
+        .map((id) => document.getElementById(id)).filter(Boolean).map((x) => x.innerText).join(' '));
+      exige(/texto que verá el aprendiz/i.test(ayuda), `ayuda de Requisitos: «${ayuda}»`);
     },
   },
 
