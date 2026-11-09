@@ -4,6 +4,7 @@
 - **Fecha:** 2026-11-08
 - **Rama:** `feat/002-vistas`
 - **Depende de:** spec 001 (base de datos v2 en `base-de-datos/benefitrack_v2.sql`)
+- **Cambio 2026-11-09 (decisión de Samuel):** el aprendiz **sí se postula dentro de BenefitRack**, con un formulario propio (vista 9) que reemplaza al formulario externo. Cambian §1, §4, la vista 1 (`sin-postulacion` y el nuevo `convocatoria-abierta`), CA-3, §7 y §9; se agregan la vista 9, CA-11 y CA-12.
 
 ## 1. Objetivo y por qué
 
@@ -11,7 +12,7 @@
 
 **BenefitRack** existe para:
 
-1. Que las respuestas del formulario **lleguen solas** a una tabla dentro del sistema, que se puede **descargar en Excel con un clic**.
+1. Que el aprendiz **se postule dentro de BenefitRack** (vista 9) y sus respuestas queden directamente en la tabla de postulaciones, que se puede **descargar en Excel con un clic**. Nadie vuelve a copiar respuestas a mano.
 2. Que el administrador haga en pantalla los pasos que siguen siendo manuales (confirmar datos, aprobar o rechazar, registrar pagos).
 3. Que el aprendiz **vea solo** cómo va su proceso, sin tener que preguntar.
 
@@ -50,7 +51,7 @@ Hecho por Samuel en Claude Design el 2026-11-05 (archivos en `C:\Users\samue\Dow
 
 ## 4. Roles
 
-- **Aprendiz** (en la BD el rol se llama «Estudiante»). **No se postula dentro de la página.** Se postula con el formulario que se le envía, y su cuenta la crea el administrador. Entra solo a **ver cómo va su proceso**.
+- **Aprendiz** (en la BD el rol se llama «Estudiante»). Su cuenta la crea el administrador (vista 6). Entra a **postularse** cuando hay una convocatoria abierta (vista 9) y a **ver cómo va su proceso**.
 - **Administrador** (Bienestar al Aprendiz). Revisa, confirma, aprueba o rechaza, registra pagos y gestiona aprendices y convocatorias.
 
 ## 5. Vistas a diseñar
@@ -73,7 +74,8 @@ Es la vista más importante del lado del aprendiz. Usa una sola columna que se l
 3. `en-revision`: «Tu postulación está en revisión». Los pasos muestran cuáles ya pasó (Enviada ✓, Validada en curso). Texto tranquilizador: aún no hay respuesta y se le avisará.
 4. `no-seleccionado`: mensaje claro y amable: «Esta vez no fuiste seleccionado/a para <beneficio>». Invitación a **estar pendiente de las próximas convocatorias**. Sin culpas y sin detalles internos de la selección.
 5. `beneficio-terminado`: los pagos están completos. «Recibiste los 6 pagos de tu beneficio», con el resumen y la tabla de pagos.
-6. `sin-postulacion`: cuenta creada, pero sin postulación registrada (por ejemplo, el administrador creó la cuenta antes de cargar las respuestas). Mensaje: «Aún no tenemos una postulación tuya registrada».
+6. `sin-postulacion`: cuenta creada, sin postulación y **sin convocatorias abiertas**. Mensaje: «Aún no tienes postulaciones» y la invitación a estar pendiente: cuando se abra una convocatoria, aparecerá aquí y le llegará un aviso.
+6b. `convocatoria-abierta`: hay una convocatoria abierta a la que aún no se ha postulado. Tarjeta con el beneficio, el valor de cada pago, el número de pagos, la fecha de cierre y el botón **«Postularme»**, que lleva a la vista 9.
 7. `documento-pedido`: la postulación está en revisión y el administrador pidió un documento (ver la vista 3). Arriba aparece un **aviso azul**: «Bienestar te pidió: <documento>. <mensaje del administrador>», con el botón **«Subir documento»**, que lleva a la vista 8. Es la **única acción** que el aprendiz puede hacer en «Mi proceso».
 8. `cargando`.
 
@@ -162,6 +164,32 @@ Se llega aquí solo desde el aviso «Bienestar te pidió…» (vista 1, estado `
 - `enviado`: «Listo, Bienestar revisará tu documento», con un botón para volver a «Mi proceso».
 - `error`: tipo de archivo o tamaño no permitido, o falla al subir, con la opción de intentar de nuevo.
 
+### Vista 9 — Aprendiz: formulario de postulación
+
+Se llega desde «Postularme» (vista 1, `convocatoria-abierta`). Es una sola página que se lee de arriba abajo, por secciones; en celular, una columna. Lo que el aprendiz envía queda en `postulaciones` (las respuestas en `datos_formulario`), sus datos personales en `usuarios`, la cuenta en `informacion_bancaria` y los archivos en `documentos_postulacion`.
+
+**Encabezado:** nombre de la convocatoria, beneficio, valor de cada pago, número de pagos y «Cierra el <fecha>». Los requisitos de la convocatoria (texto de `convocatorias`), plegables.
+
+**Secciones** (*decisión de Claude*; Samuel puede cambiarlas):
+1. **Tus datos** (de tu cuenta, solo lectura): nombre, documento, correo, programa y ficha. Nota: «¿Algo está mal? Avísale a Bienestar antes de enviar».
+2. **Contacto:** teléfono, dirección y fecha de nacimiento (obligatorios). Si ya están en la cuenta, aparecen llenos y se pueden corregir.
+3. **Salud:** EPS (lista de la tabla `eps`).
+4. **Cuenta para recibir los pagos:** entidad bancaria, tipo de cuenta (Ahorros / Corriente), número de cuenta y titular. Nota: la cuenta debe estar a nombre del aprendiz.
+5. **Documentos** (PDF, JPG o PNG, máximo 5 MB cada uno, todos obligatorios): Documento de identidad, **Certificado de EPS** y Certificado bancario.
+6. **¿Por qué necesitas este beneficio?** (opcional, máximo 500 caracteres).
+7. Casilla obligatoria: «Declaro que la información es verdadera y autorizo el tratamiento de mis datos personales (Ley 1581 de 2012)».
+
+Botón «Revisar y enviar». Después de enviar no se puede editar; si algo cambia, se habla con Bienestar.
+
+**Estados:**
+- `formulario`: vacío, con «Tus datos» llenos desde la cuenta.
+- `con-errores`: el aprendiz intentó enviar con faltantes. Arriba, un resumen «Revisa 3 campos» con enlaces a cada campo; cada campo con error dice qué falta (por ejemplo «Falta el Certificado de EPS» o «El archivo pesa más de 5 MB»).
+- `revisar-y-enviar`: resumen de lo que va a enviar, con «Corregir» y «Enviar postulación», y el aviso de que después no se puede editar.
+- `enviada`: «Listo, tu postulación fue enviada», con la fecha, qué sigue (Bienestar revisa tus datos y documentos y te avisará) y el botón «Ver mi proceso» (vista 1, `en-revision`).
+- `convocatoria-cerrada`: el aprendiz llega cuando ya pasó la fecha de cierre: «Esta convocatoria ya cerró», con el enlace a «Mi proceso».
+
+**Casos borde:** nombre largo; número de cuenta largo; archivo de más de 5 MB o de formato no permitido; el aprendiz ya se postuló a esa convocatoria (la BD no permite dos postulaciones a la misma convocatoria: la app muestra el mismo diseño de `convocatoria-cerrada` con el texto «Ya te postulaste a esta convocatoria»; la fuente deja ese texto en un comentario HTML).
+
 ### Vista 0 — Administrador: «Dashboard» (inicio)
 
 *Decisión de Claude:* el menú existente tiene «Dashboard», pero entre las vistas existentes no hay una pantalla para esa opción (solo Postulaciones). Se diseña una página de inicio **mínima**:
@@ -181,7 +209,9 @@ Se usa **el menú del panel existente, sin «Auditoría»** (decisión de Samuel
 
 - **CA-1** Dado un aprendiz seleccionado con un pago retrasado, cuando abre «Mi proceso», entonces lo primero que ve, sin desplazarse en un celular de 390 px, es que fue seleccionado y el aviso naranja del retraso.
 - **CA-2** Dado un aprendiz no seleccionado, cuando abre «Mi proceso», entonces ve un mensaje claro de que no fue seleccionado y la invitación a próximas convocatorias, sin detalles internos.
-- **CA-3** Dado que el aprendiz no puede postularse en la página, entonces ninguna vista del aprendiz tiene botones ni enlaces para postularse. Su única acción es subir un documento que Bienestar le pidió.
+- **CA-3** (cambiado el 2026-11-09) Dado un aprendiz, el botón o enlace para postularse aparece **solo** en «Mi proceso» `convocatoria-abierta` y lleva a la vista 9. Ningún otro estado de las vistas 1, 1b, 2 y 8 tiene acciones de postulación.
+- **CA-11** Dado un aprendiz que llena el formulario con datos faltantes o un archivo no permitido, cuando pulsa «Revisar y enviar», entonces ve arriba un resumen de los errores y cada campo dice qué le falta; no se envía nada.
+- **CA-12** Dado un formulario completo, cuando el aprendiz pulsa «Revisar y enviar», entonces ve un resumen antes de enviar y el aviso de que después no se podrá editar. El Certificado de EPS es obligatorio.
 - **CA-3b** Dada una postulación con un documento pedido y pendiente, cuando el administrador abre su detalle, entonces «Datos confirmados» está deshabilitado y la vista dice que se espera el documento. Cuando el aprendiz entra, ve arriba el aviso con el botón «Subir documento».
 - **CA-4** Dada una postulación Pendiente, cuando el administrador abre su detalle, entonces «Aprobar» está deshabilitado hasta marcar «Datos confirmados».
 - **CA-5** Dada una convocatoria sin cupos, cuando el administrador abre el detalle de una postulación Validada, entonces «Aprobar» está deshabilitado y la vista dice por qué.
@@ -194,8 +224,8 @@ Se usa **el menú del panel existente, sin «Auditoría»** (decisión de Samuel
 ## 7. Fuera de alcance
 
 - Programar la aplicación (backend, rutas reales, conexión a la BD). Esto es solo diseño.
-- **Postularse dentro de la página** (el aprendiz se postula con el formulario externo).
-- Cómo llegan técnicamente las respuestas del formulario al sistema. Se decide cuando se programe la aplicación, y para las vistas basta con que aparezcan en la tabla.
+- El formulario externo (Google Forms u otro): lo reemplaza la vista 9.
+- Guardar un borrador del formulario para terminarlo después (se agrega si Samuel lo pide).
 - Gráficas, estadísticas, chat y reportes complejos (decisión de Samuel: simple pero completo).
 - Figuras `anatomy` (Samuel decidió omitirlas en este proyecto).
 - Perfil o edición de datos personales por parte del aprendiz.
@@ -208,6 +238,6 @@ Se usa **el menú del panel existente, sin «Auditoría»** (decisión de Samuel
 
 ## 9. Orden de trabajo propuesto
 
-1 (Mi proceso + avisos) → 8 (subir documento) → 3 (detalle de postulación) → 5 (pagos) → 6 (usuarios) → 7 (convocatorias) → 4 (reporte) → 0 (Dashboard) → 2 (contraseña).
+1 (Mi proceso + avisos) → 8 (subir documento) → 3 (detalle de postulación) → 5 (pagos) → 6 (usuarios) → 7 (convocatorias) → 4 (reporte) → 0 (Dashboard) → 9 (formulario de postulación, agregada el 2026-11-09) → 2 (contraseña).
 
 Primero va lo que aporta más valor: lo que ve el aprendiz y el flujo principal del administrador.
