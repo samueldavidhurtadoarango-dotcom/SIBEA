@@ -229,10 +229,10 @@ module.exports = [
     nombre: 'la ayuda de Requisitos no promete un vínculo con los documentos (es texto libre en la base)',
     prueba: async (page) => {
       const t = await texto(page, 'main');
-      exige(!/revisas en cada postulaci/i.test(t), 'promete que los requisitos son los documentos que se revisan');
+      exige(!/revisas en cada postulaci|verá el aprendiz/i.test(t), 'la ayuda promete algo que la base no respalda');
       const ayuda = await page.$eval('#requisitos', (el) => (el.getAttribute('aria-describedby') || '').split(/\s+/)
         .map((id) => document.getElementById(id)).filter(Boolean).map((x) => x.innerText).join(' '));
-      exige(/texto que verá el aprendiz/i.test(ayuda), `ayuda de Requisitos: «${ayuda}»`);
+      exige(ayuda.trim() === 'Uno por línea.', `ayuda de Requisitos: «${ayuda}», debe ser exactamente «Uno por línea.» (el aprendiz no ve los requisitos en BenefitRack)`);
     },
   },
 
