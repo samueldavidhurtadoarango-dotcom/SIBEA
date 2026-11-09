@@ -236,6 +236,17 @@ module.exports = [
     },
   },
 
+  {
+    estado: 'crear-editar',
+    nombre: 'el estado inicial viene en «Inactiva» (el DEFAULT de la base), no en «Activa»',
+    prueba: async (page) => {
+      const r = await page.$$eval('main form input[type=radio][name=estado]', (rs) =>
+        Object.fromEntries(rs.map((x) => [x.value, x.checked])));
+      exige(r.Inactiva === true, `«Inactiva» no está marcada: ${JSON.stringify(r)}`);
+      exige(r.Activa === false, `«Activa» está marcada: ${JSON.stringify(r)}`);
+    },
+  },
+
   // ---------- Cerrar ----------
   {
     estado: 'cerrar',

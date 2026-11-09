@@ -1177,7 +1177,7 @@ a.br-menu-acciones__item { color: var(--br-azul); text-decoration: none; }
             </div>
             <div class="br-campo br-formulario__ancho">
               <label for="requisitos">Requisitos</label>
-              <textarea id="requisitos" name="requisitos" rows="4" required aria-describedby="ayuda-requisitos">Ser aprendiz con matrícula activa en etapa lectiva.
+              <textarea id="requisitos" name="requisitos" rows="5" required aria-describedby="ayuda-requisitos">Ser aprendiz con matrícula activa en etapa lectiva.
 Certificado de EPS vigente.
 Certificado bancario a nombre del aprendiz.</textarea>
               <p class="br-ayuda" id="ayuda-requisitos">Uno por línea.</p>
@@ -1186,14 +1186,14 @@ Certificado bancario a nombre del aprendiz.</textarea>
               <legend>¿Recibe postulaciones desde ya?</legend>
               <div class="br-opciones__lista">
                 <label class="br-opcion">
-                  <input type="radio" name="estado" value="Activa" checked>
+                  <input type="radio" name="estado" value="Activa">
                   <span class="br-opcion__titulo">Activa</span>
                   <span class="br-opcion__ayuda">Recibe postulaciones entre la fecha de inicio y la de cierre.</span>
                 </label>
                 <label class="br-opcion">
-                  <input type="radio" name="estado" value="Inactiva">
+                  <input type="radio" name="estado" value="Inactiva" checked>
                   <span class="br-opcion__titulo">Inactiva</span>
-                  <span class="br-opcion__ayuda">Queda guardada y nadie puede postularse hasta que la actives.</span>
+                  <span class="br-opcion__ayuda">Queda guardada y nadie puede postularse. Puedes activarla cuando esté lista.</span>
                 </label>
               </div>
             </fieldset>
