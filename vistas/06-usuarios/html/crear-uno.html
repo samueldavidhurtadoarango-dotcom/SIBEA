@@ -1011,6 +1011,52 @@ select.br-entrada { cursor: pointer; }
 /* Cada campo del formulario se queda arriba aunque el de al lado tenga ayuda debajo */
 .br-formulario > .br-campo { align-content: start; }
 
+/* =====================================================================
+   Administrador: convocatorias (vista 07-convocatorias y las que siguen)
+   ===================================================================== */
+
+/* Cupos de una fila: «18 de 40», barra fina y lo que queda; en rojo si ya no quedan */
+.br-tabla__cupos { min-width: 128px; }
+.br-tabla__cupos .br-progreso { width: 112px; max-width: 100%; margin: 6px 0 4px; }
+.br-tabla__cupos--lleno .br-cifra, .br-tabla__cupos--lleno .br-tabla__sub { color: var(--br-rojo-texto); }
+.br-tabla__cupos--lleno .br-cifra { font-weight: 600; }
+.br-tabla__cupos--lleno .br-progreso { color: var(--br-rojo); }
+.br-tabla__cupos--lleno .br-progreso::-webkit-progress-value { background: var(--br-rojo); }
+.br-tabla__cupos--lleno .br-progreso::-moz-progress-bar { background: var(--br-rojo); }
+/* Estado con una explicación larga debajo (p. ej. el motivo de un cierre anticipado) */
+.br-tabla__estado--largo .br-tabla__sub { max-width: 26ch; white-space: normal; }
+
+/* Opción del menú de una fila que es un enlace, y la que lleva a una acción delicada (cerrar, anular) */
+a.br-menu-acciones__item { color: var(--br-azul); text-decoration: none; }
+.br-menu-acciones__item--peligro, a.br-menu-acciones__item--peligro { color: var(--br-rojo-texto); }
+.br-menu-acciones__item--peligro:hover { background: var(--br-rojo-fondo); }
+
+/* Casos posibles de una acción y cuál aplica ahora (p. ej. cierre normal o cierre anticipado) */
+.br-casos { list-style: none; margin-inline: 0; margin-bottom: 0; padding: 0; display: grid; gap: 8px; }
+.br-casos__item {
+  display: grid; grid-template-columns: 9.5rem minmax(0, 1fr); align-items: start; gap: 6px 12px;
+  padding: 12px 14px; border: 1px solid var(--br-borde); border-radius: 10px; background: var(--br-fondo);
+}
+.br-casos__item > .br-etiqueta { justify-self: start; margin-top: 1px; }
+.br-casos__item--actual { background: var(--br-blanco); border-color: var(--br-azul); box-shadow: inset 0 0 0 1px var(--br-azul); }
+.br-casos__texto { display: grid; gap: 2px; min-width: 0; }
+.br-casos__titulo { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; font-size: 14px; font-weight: 600; }
+.br-casos__marca {
+  padding: 1px 8px; border-radius: 999px; background: var(--br-azul); color: var(--br-blanco);
+  font-size: 12px; font-weight: 600; line-height: 1.6;
+}
+@media (max-width: 480px) { .br-casos__item { grid-template-columns: minmax(0, 1fr); } }
+/* En el celular: fechas y pagos lado a lado, los cupos con su barra a todo el ancho y el estado largo debajo del nombre */
+@media (max-width: 640px) {
+  .br-tabla--fichas td.br-tabla__cupos { grid-column: 1 / -1; order: 1; min-width: 0; }
+  .br-tabla--fichas tr:has(> .br-tabla__cupos) > td.br-tabla__acciones { order: 2; }
+  .br-tabla--fichas td.br-tabla__estado--largo { grid-column: 1 / -1; grid-row: 2; justify-self: start; text-align: left; }
+  .br-tabla__estado--largo .br-tabla__sub { max-width: none; }
+}
+@media (max-width: 640px) {
+  .br-tabla--fichas tr:has(> .br-tabla__estado--largo) > td.br-tabla__titulo { grid-column: 1 / -1; }
+}
+
 </style>
 </head>
 <body>

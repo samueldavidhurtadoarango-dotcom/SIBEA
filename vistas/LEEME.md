@@ -101,6 +101,8 @@ node vistas/herramientas/verificar.js --vista 01-mi-proceso # revisa una
 
    Piezas de cuentas y carga de archivos (vista 06-usuarios): `.br-encabezado__acciones` (botones a la derecha del título), `.br-tabla--sin-seleccion` (tabla de fichas sin casilla; en el celular nombre y estado arriba) y `.br-tabla__ancha` (dato largo que ocupa toda la ficha), `.br-columnas` (columnas que debe traer un archivo, con su letra de Excel y un ejemplo), `.br-formulario` (campos en dos columnas; `__ancho` ocupa la fila), `.br-acciones-pie` (botones al pie de una tarjeta) y `.br-boton--ancho`. La zona de carga es la misma `.br-zona` / `.br-archivo` de la vista 08; un `<a>` dentro de `.br-archivo` queda a la derecha («Cambiar archivo»).
 
+   Piezas de convocatorias (vista 07-convocatorias): `.br-tabla__cupos` (celda de cupos «18 de 40» con barra fina; `--lleno` la pone en rojo), `.br-tabla__estado--largo` (estado con una explicación larga, p. ej. el motivo de un cierre anticipado; en el celular baja debajo del nombre), `.br-menu-acciones__item--peligro` (opción delicada del menú de una fila; las opciones también pueden ser `<a>`) y `.br-casos` / `.br-casos__item--actual` / `.br-casos__marca` (casos posibles de una acción y cuál aplica ahora, p. ej. cierre normal o anticipado).
+
 2. `construir.js` reemplaza `<!-- incluir:... -->` por la pieza de `_comun/` (en el menú marca la opción activa con `aria-current="page"`) y cambia el `<link>` del CSS por un `<style>` con su contenido.
 3. Ejecutar `construir.js --vista <vista>` y luego `verificar.js --vista <vista>`.
 4. Los diálogos se escriben como `<div class="br-dialogo-capa"><div class="br-dialogo" role="dialog" aria-modal="true" aria-labelledby="..."> ... </div></div>` al final del `<body>`.
