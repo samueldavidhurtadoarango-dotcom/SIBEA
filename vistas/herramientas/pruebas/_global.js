@@ -164,9 +164,12 @@ module.exports = [
   },
   {
     estado: '*',
-    nombre: 'CA-3 el aprendiz no tiene cómo postularse',
+    nombre: 'CA-3 el aprendiz solo puede postularse desde convocatoria-abierta',
     prueba: async (page, ctx) => {
       if (ctx.rol !== 'aprendiz') return;
+      // Cambio del 2026-11-09: solo se permite en 01-mi-proceso/convocatoria-abierta y dentro del formulario (09-postulacion).
+      if (ctx.vista === '09-postulacion') return;
+      if (ctx.vista === '01-mi-proceso' && ctx.estado === 'convocatoria-abierta') return;
       const malos = await page.evaluate(() =>
         [...document.querySelectorAll('a, button')]
           .map((e) => `${e.innerText} ${e.getAttribute('aria-label') || ''}`.trim())

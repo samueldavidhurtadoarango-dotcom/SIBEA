@@ -5,11 +5,15 @@
   },
   "01-mi-proceso": {
     "rol": "aprendiz",
-    "estados": ["seleccionado", "seleccionado-con-retraso", "en-revision", "no-seleccionado", "beneficio-terminado", "sin-postulacion", "documento-pedido", "cargando"]
+    "estados": ["seleccionado", "seleccionado-con-retraso", "en-revision", "no-seleccionado", "beneficio-terminado", "sin-postulacion", "convocatoria-abierta", "documento-pedido", "cargando"]
   },
   "01b-avisos": {
     "rol": "aprendiz",
     "estados": ["con-avisos", "sin-avisos"]
+  },
+  "09-postulacion": {
+    "rol": "aprendiz",
+    "estados": ["formulario", "con-errores", "revisar-y-enviar", "enviada", "convocatoria-cerrada"]
   },
   "02-contrasena": {
     "rol": "aprendiz",

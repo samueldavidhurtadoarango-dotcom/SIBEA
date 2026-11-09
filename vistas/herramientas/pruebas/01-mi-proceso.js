@@ -117,10 +117,26 @@ module.exports = [
   },
   {
     estado: 'sin-postulacion',
-    nombre: 'sin postulación registrada',
+    nombre: 'CA-3 «Aún no tienes postulaciones» y ningún «Postularme»',
     prueba: async (page) => {
       const t = await texto(page);
-      exige(t.includes('Aún no tenemos una postulación tuya registrada'), 'falta el mensaje de sin postulación');
+      exige(t.includes('Aún no tienes postulaciones'), 'falta «Aún no tienes postulaciones»');
+      exige(/cuando se abra una convocatoria/i.test(t), 'falta la invitación a estar pendiente');
+      exige(!/Postularme/i.test(t), 'no debe decir «Postularme»');
+    },
+  },
+  {
+    estado: 'convocatoria-abierta',
+    nombre: 'CA-3 tarjeta de convocatoria con «Postularme» hacia la vista 9',
+    prueba: async (page) => {
+      const t = await texto(page, '[data-prueba=convocatoria]');
+      for (const x of ['Plan de datos 2026-2', '$ 50.000', '5 pagos', 'Cierra el 15 dic 2026']) {
+        exige(t.includes(x), `falta «${x}» en la tarjeta: «${t}»`);
+      }
+      const hrefs = await page.$$eval('a, button', (els) =>
+        els.filter((e) => /Postularme/.test(e.innerText)).map((e) => e.getAttribute('href')));
+      exige(hrefs.length === 1, `debe haber un solo «Postularme»: ${hrefs.length}`);
+      exige(hrefs[0] === '../../09-postulacion/html/formulario.html', `«Postularme» apunta a «${hrefs[0]}»`);
     },
   },
   {
