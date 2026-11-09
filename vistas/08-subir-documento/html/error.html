@@ -1091,6 +1091,115 @@ a.br-menu-acciones__item { color: var(--br-azul); text-decoration: none; }
   .br-grupo__lista { grid-template-columns: minmax(0, 1fr); }
 }
 
+/* ---------- Dashboard del administrador (vista 00-dashboard) ---------- */
+/* Franja «Tareas pendientes»: cada fila es un enlace a la vista ya filtrada */
+.br-pendientes { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.br-pendiente {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 4px 14px;
+  min-height: 56px; padding: 10px 12px; border-radius: 10px;
+  color: var(--br-azul); text-decoration: none;
+}
+.br-pendiente:hover { background: var(--br-fondo-2); }
+.br-pendiente__numero {
+  min-width: 44px; padding: 6px 10px; border-radius: 10px; text-align: center;
+  background: var(--br-aviso-fondo); color: var(--br-aviso-oscuro);
+  font-size: 20px; font-weight: 700; line-height: 1.2; font-variant-numeric: tabular-nums;
+}
+.br-pendiente__texto { display: grid; gap: 2px; min-width: 0; overflow-wrap: anywhere; font-weight: 600; }
+.br-pendiente__detalle { font-size: 13px; font-weight: 400; color: var(--br-gris); }
+.br-pendiente__flecha { color: var(--br-gris); }
+.br-pendiente:hover .br-pendiente__flecha { color: var(--br-azul); }
+/* Sin pendientes: mensaje tranquilo con marca verde */
+.br-al-dia { display: flex; align-items: center; gap: 14px; padding: 4px 0; }
+.br-al-dia__marca {
+  flex: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px;
+  background: var(--br-verde-claro); color: var(--br-verde);
+}
+.br-al-dia__texto { display: grid; gap: 2px; min-width: 0; }
+.br-al-dia__texto strong { font-size: 16px; }
+
+/* Fila de cifras: 4 tarjetas iguales; en pantallas chicas, 2 y luego 1 por fila */
+.br-cifras { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin: 0; padding: 0; list-style: none; }
+.br-medida {
+  display: grid; align-content: start; gap: 6px; min-width: 0; padding: 16px 20px;
+  background: var(--br-blanco); border: 1px solid var(--br-borde); border-radius: var(--br-radio);
+}
+.br-medida__etiqueta { font-size: 14px; font-weight: 500; color: var(--br-gris); }
+.br-medida__valor { font-size: 32px; font-weight: 700; line-height: 1.15; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.br-medida__valor small { font-size: 16px; font-weight: 500; color: var(--br-gris); }
+.br-medida__nota { font-size: 13px; color: var(--br-gris); overflow-wrap: anywhere; }
+.br-medida__enlace { justify-self: start; font-size: 14px; font-weight: 600; }
+.br-medida--aviso { background: var(--br-aviso-fondo); border-color: var(--br-aviso-borde); }
+.br-medida--aviso .br-medida__etiqueta, .br-medida--aviso .br-medida__nota { color: var(--br-aviso-oscuro); }
+.br-medida--aviso .br-medida__valor { color: var(--br-aviso-oscuro); }
+.br-medida--lleno .br-medida__valor, .br-medida--lleno .br-medida__nota { color: var(--br-rojo-texto); }
+.br-medida--lleno .br-progreso { color: var(--br-rojo); }
+.br-medida--lleno .br-progreso::-webkit-progress-value { background: var(--br-rojo); }
+.br-medida--lleno .br-progreso::-moz-progress-bar { background: var(--br-rojo); }
+.br-medida--vacia { border-style: dashed; border-color: var(--br-gris-claro); }
+.br-medida--vacia .br-medida__valor { font-size: 18px; line-height: 1.3; }
+.br-medida--vacia .br-boton { justify-self: start; margin-top: 4px; }
+@media (max-width: 1180px) { .br-cifras { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 480px) {
+  .br-cifras { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .br-medida__valor { font-size: 28px; }
+  .br-pendiente { grid-template-columns: auto minmax(0, 1fr); }
+  .br-pendiente__flecha { display: none; }
+}
+
+/* =====================================================================
+   Formulario de postulación (vista 09-postulacion)
+   ===================================================================== */
+.br-formulario-largo { display: grid; gap: 16px; }
+.br-formulario-largo > .br-tarjeta > h2 { margin-bottom: 2px; }
+.br-tarjeta > .br-nota { font-size: 14px; color: var(--br-gris); }
+
+/* Requisitos plegables */
+.br-plegable { border: 1px solid var(--br-borde); border-radius: 10px; background: var(--br-fondo); }
+.br-plegable > summary { min-height: 44px; display: flex; align-items: center; padding: 0 14px; font-weight: 600; cursor: pointer; }
+.br-plegable > div { padding: 0 14px 14px; display: grid; gap: 6px; }
+
+/* Casilla con su texto */
+.br-casilla-texto { display: flex; align-items: flex-start; gap: 12px; }
+.br-casilla-texto input { flex: none; margin: 2px 0 0; }
+.br-casilla-texto label { font-size: 15px; }
+
+/* Errores de campo */
+.br-error-campo { display: flex; align-items: flex-start; gap: 6px; color: var(--br-rojo-texto); font-size: 14px; font-weight: 500; }
+.br-error-campo svg { flex: none; width: 16px; height: 16px; margin-top: 3px; }
+.br-campo input[aria-invalid="true"], .br-campo select[aria-invalid="true"], .br-campo textarea[aria-invalid="true"] {
+  border-color: var(--br-rojo); border-width: 2px;
+}
+.br-zona--error { background: var(--br-rojo-fondo); border-color: var(--br-rojo); }
+.br-zona--error:hover { background: var(--br-rojo-fondo); border-color: var(--br-rojo); }
+.br-zona--error .br-zona__icono { color: var(--br-rojo-texto); }
+.br-zona--error .br-zona__ayuda { color: var(--br-rojo-texto); }
+
+/* Resumen de errores arriba del formulario */
+.br-resumen-errores { padding: 14px 16px; background: var(--br-rojo-fondo); border: 1px solid var(--br-rojo); border-left-width: 4px; border-radius: 10px; color: var(--br-rojo-texto); display: grid; gap: 8px; }
+.br-resumen-errores h2 { font-size: 17px; color: var(--br-rojo-texto); }
+.br-resumen-errores ul { margin: 0; padding-left: 20px; display: grid; gap: 2px; }
+.br-resumen-errores a { color: var(--br-rojo-texto); font-weight: 600; display: inline-flex; align-items: center; min-height: 32px; text-underline-offset: 3px; }
+
+/* Botones al pie del formulario */
+.br-acciones-formulario { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 12px 16px; }
+@media (max-width: 480px) { .br-acciones-formulario { flex-direction: column-reverse; align-items: stretch; } .br-acciones-formulario .br-boton { width: 100%; } }
+
+/* Archivo con una acción tipo enlace («Quitar») */
+.br-archivo > button { flex: none; margin-left: auto; min-height: 44px; padding: 0 8px; background: none; border: 0; color: var(--br-enlace); font: inherit; font-size: 14px; font-weight: 500; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+@media (max-width: 480px) {
+  .br-archivo:has(> button) { flex-wrap: wrap; }
+  .br-archivo:has(> button) .br-archivo__texto { flex-basis: calc(100% - 36px); }
+  .br-archivo > button { margin-left: 28px; }
+}
+.br-archivo-fila { display: grid; gap: 8px; }
+.br-archivo-fila > .br-boton { justify-self: start; }
+
+/* Resumen de lo que se va a enviar */
+.br-revision-bloque { display: grid; gap: 10px; padding-top: 16px; border-top: 1px solid var(--br-borde); }
+.br-revision-bloque > h2 { font-size: 16px; }
+.br-revision-bloque .br-archivo-fila { gap: 6px; }
+
 </style>
 </head>
 <body>
