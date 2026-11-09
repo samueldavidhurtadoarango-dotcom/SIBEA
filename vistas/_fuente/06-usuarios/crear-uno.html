@@ -24,20 +24,6 @@
           <h2 id="titulo-datos">Datos del aprendiz</h2>
           <div class="br-formulario">
             <div class="br-campo">
-              <label for="tipo-documento">Tipo de documento</label>
-              <select id="tipo-documento" name="tipo_documento" required>
-                <option>Cédula de ciudadanía (CC)</option>
-                <option selected>Tarjeta de identidad (TI)</option>
-                <option>Cédula de extranjería (CE)</option>
-                <option>Permiso por protección temporal (PPT)</option>
-              </select>
-            </div>
-            <div class="br-campo">
-              <label for="numero-documento">Número de documento</label>
-              <input id="numero-documento" name="numero_documento" inputmode="numeric" autocomplete="off" value="1036902115" required aria-describedby="ayuda-numero-documento">
-              <p class="br-ayuda" id="ayuda-numero-documento">Sin puntos ni espacios.</p>
-            </div>
-            <div class="br-campo">
               <label for="nombres">Nombres</label>
               <input id="nombres" name="nombres" autocomplete="off" value="Karen Dayana" required>
             </div>
@@ -46,13 +32,18 @@
               <input id="apellidos" name="apellidos" autocomplete="off" value="Moreno Lozano" required>
             </div>
             <div class="br-campo">
-              <label for="correo">Correo</label>
-              <input id="correo" name="correo" type="email" autocomplete="off" value="karen.moreno@soy.sena.edu.co" required aria-describedby="ayuda-correo">
-              <p class="br-ayuda" id="ayuda-correo">Aquí le llega la contraseña temporal.</p>
+              <label for="numero-documento">Número de documento</label>
+              <input id="numero-documento" name="numero_documento" inputmode="numeric" autocomplete="off" value="1036902115" required aria-describedby="ayuda-numero-documento">
+              <p class="br-ayuda" id="ayuda-numero-documento">Sin puntos ni espacios.</p>
             </div>
             <div class="br-campo">
               <label for="telefono">Teléfono</label>
               <input id="telefono" name="telefono" type="tel" inputmode="numeric" autocomplete="off" value="3104567812" required>
+            </div>
+            <div class="br-campo br-formulario__ancho">
+              <label for="correo">Correo</label>
+              <input id="correo" name="correo" type="email" autocomplete="off" value="karen.moreno@soy.sena.edu.co" required aria-describedby="ayuda-correo">
+              <p class="br-ayuda" id="ayuda-correo">Aquí le llega la contraseña temporal.</p>
             </div>
             <div class="br-campo">
               <label for="programa">Programa</label>
@@ -67,7 +58,7 @@
             <div class="br-campo">
               <label for="ficha">Ficha</label>
               <input id="ficha" name="ficha" inputmode="numeric" autocomplete="off" value="2758341" required aria-describedby="ayuda-ficha">
-              <p class="br-ayuda" id="ayuda-ficha">Debe ser una ficha que ya exista.</p>
+              <p class="br-ayuda" id="ayuda-ficha">El número de la ficha de formación.</p>
             </div>
           </div>
           <div class="br-aviso br-aviso--azul br-aviso--grande">
