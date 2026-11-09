@@ -10,7 +10,9 @@ const exige = (cond, mensaje) => {
 const ESTADOS = ['lista', 'cargar-excel', 'vista-previa', 'resultado', 'crear-uno', 'archivo-invalido'];
 const LISTADOS = ['lista', 'resultado'];
 const CARGA = ['cargar-excel', 'vista-previa', 'archivo-invalido'];
-const COLUMNAS_PLANTILLA = ['Tipo de documento', 'Número de documento', 'Nombres', 'Apellidos',
+// La tabla usuarios no guarda el tipo de documento (solo `documento`) y la ficha es texto libre
+// (hay catálogo de programas, no de fichas): ruling del orquestador, ronda de correcciones 1.
+const COLUMNAS_PLANTILLA = ['Número de documento', 'Nombres', 'Apellidos',
   'Correo', 'Teléfono', 'Programa', 'Ficha'];
 const COLUMNAS_LISTA = ['Aprendiz', 'Correo', 'Programa', 'Estado'];
 const MIGA = {
@@ -45,6 +47,41 @@ module.exports = [
       exige(h1s === 1, `hay ${h1s} h1 en main, debe haber 1`);
     },
   })),
+
+  // Nada pide ni muestra un dato que la base no guarda: ni tipo de documento ni prefijos TI/CC
+  ...ESTADOS.map((estado) => ({
+    estado,
+    nombre: 'sin «Tipo de documento» ni prefijos TI/CC (la tabla usuarios solo guarda el número)',
+    prueba: async (page) => {
+      const t = await texto(page, 'main');
+      exige(!/tipo de documento/i.test(t), 'aparece «tipo de documento»');
+      const prefijo = t.match(/\b(TI|CC|CE|PPT) \d/);
+      exige(!prefijo, `aparece un documento con prefijo: «${prefijo && prefijo[0]}»`);
+    },
+  })),
+  // Bloqueo real de la base: 3 intentos fallidos y desbloqueo solo a los 15 minutos
+  ...ESTADOS.map((estado) => ({
+    estado,
+    nombre: 'nunca dice «5 intentos» (la cuenta se bloquea a los 3)',
+    prueba: async (page) => {
+      const t = await texto(page, 'body');
+      exige(!/5 intentos/.test(t), 'aparece «5 intentos»');
+    },
+  })),
+  {
+    estado: 'lista',
+    nombre: 'Bloqueado por «3 intentos fallidos», con desbloqueo solo a los 15 minutos o ya',
+    prueba: async (page) => {
+      const filas = await page.$$eval('[data-prueba=tabla-usuarios] tbody tr', (trs) => trs
+        .filter((tr) => [...tr.querySelectorAll('.br-etiqueta')].some((e) => e.textContent.trim() === 'Bloqueado'))
+        .map((tr) => tr.querySelector('.br-tabla__estado').innerText.replace(/\s+/g, ' ')));
+      exige(filas.length >= 1, 'no hay filas «Bloqueado»');
+      for (const f of filas) exige(/3 intentos/.test(f), `la fila bloqueada no dice «3 intentos»: «${f}»`);
+      const nota = await texto(page, '[data-prueba=nota-bloqueo]');
+      exige(/se desbloquea sol[ao] a los 15 minutos/i.test(nota), `no explica el desbloqueo a los 15 minutos: «${nota}»`);
+      exige(/desbloquearla ya/i.test(nota), `no dice que se puede desbloquear ya: «${nota}»`);
+    },
+  },
 
   // ---------- Listado de aprendices ----------
   ...LISTADOS.map((estado) => ({
@@ -138,7 +175,7 @@ module.exports = [
   })),
   ...['cargar-excel', 'archivo-invalido'].map((estado) => ({
     estado,
-    nombre: 'zona para arrastrar un .xlsx, «Descargar plantilla» y las 8 columnas requeridas visibles',
+    nombre: 'zona para arrastrar un .xlsx, «Descargar plantilla» y las 7 columnas requeridas visibles',
     prueba: async (page) => {
       const zona = await page.$eval('[data-prueba=zona]', (z) => {
         const i = z.querySelector('input[type=file]') || document.getElementById(z.getAttribute('for'));
@@ -198,7 +235,7 @@ module.exports = [
         exige(f.motivo.length > 3, `fila ${f.fila} sin motivo`);
       }
       const motivos = filas.map((f) => f.motivo.toLowerCase()).join(' | ');
-      for (const m of ['correo repetido', 'documento vacío', 'ficha no existe', 'tipo de documento no válido']) {
+      for (const m of ['correo repetido', 'documento vacío', 'programa no existe', 'ficha vacía']) {
         exige(motivos.includes(m), `falta el motivo «${m}»: ${motivos}`);
       }
     },
