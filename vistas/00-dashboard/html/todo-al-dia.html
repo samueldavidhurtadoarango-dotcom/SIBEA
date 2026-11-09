@@ -1147,6 +1147,59 @@ a.br-menu-acciones__item { color: var(--br-azul); text-decoration: none; }
   .br-pendiente__flecha { display: none; }
 }
 
+/* =====================================================================
+   Formulario de postulación (vista 09-postulacion)
+   ===================================================================== */
+.br-formulario-largo { display: grid; gap: 16px; }
+.br-formulario-largo > .br-tarjeta > h2 { margin-bottom: 2px; }
+.br-tarjeta > .br-nota { font-size: 14px; color: var(--br-gris); }
+
+/* Requisitos plegables */
+.br-plegable { border: 1px solid var(--br-borde); border-radius: 10px; background: var(--br-fondo); }
+.br-plegable > summary { min-height: 44px; display: flex; align-items: center; padding: 0 14px; font-weight: 600; cursor: pointer; }
+.br-plegable > div { padding: 0 14px 14px; display: grid; gap: 6px; }
+
+/* Casilla con su texto */
+.br-casilla-texto { display: flex; align-items: flex-start; gap: 12px; }
+.br-casilla-texto input { flex: none; margin: 2px 0 0; }
+.br-casilla-texto label { font-size: 15px; }
+
+/* Errores de campo */
+.br-error-campo { display: flex; align-items: flex-start; gap: 6px; color: var(--br-rojo-texto); font-size: 14px; font-weight: 500; }
+.br-error-campo svg { flex: none; width: 16px; height: 16px; margin-top: 3px; }
+.br-campo input[aria-invalid="true"], .br-campo select[aria-invalid="true"], .br-campo textarea[aria-invalid="true"] {
+  border-color: var(--br-rojo); border-width: 2px;
+}
+.br-zona--error { background: var(--br-rojo-fondo); border-color: var(--br-rojo); }
+.br-zona--error:hover { background: var(--br-rojo-fondo); border-color: var(--br-rojo); }
+.br-zona--error .br-zona__icono { color: var(--br-rojo-texto); }
+.br-zona--error .br-zona__ayuda { color: var(--br-rojo-texto); }
+
+/* Resumen de errores arriba del formulario */
+.br-resumen-errores { padding: 14px 16px; background: var(--br-rojo-fondo); border: 1px solid var(--br-rojo); border-left-width: 4px; border-radius: 10px; color: var(--br-rojo-texto); display: grid; gap: 8px; }
+.br-resumen-errores h2 { font-size: 17px; color: var(--br-rojo-texto); }
+.br-resumen-errores ul { margin: 0; padding-left: 20px; display: grid; gap: 2px; }
+.br-resumen-errores a { color: var(--br-rojo-texto); font-weight: 600; display: inline-flex; align-items: center; min-height: 32px; text-underline-offset: 3px; }
+
+/* Botones al pie del formulario */
+.br-acciones-formulario { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 12px 16px; }
+@media (max-width: 480px) { .br-acciones-formulario { flex-direction: column-reverse; align-items: stretch; } .br-acciones-formulario .br-boton { width: 100%; } }
+
+/* Archivo con una acción tipo enlace («Quitar») */
+.br-archivo > button { flex: none; margin-left: auto; min-height: 44px; padding: 0 8px; background: none; border: 0; color: var(--br-enlace); font: inherit; font-size: 14px; font-weight: 500; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+@media (max-width: 480px) {
+  .br-archivo:has(> button) { flex-wrap: wrap; }
+  .br-archivo:has(> button) .br-archivo__texto { flex-basis: calc(100% - 36px); }
+  .br-archivo > button { margin-left: 28px; }
+}
+.br-archivo-fila { display: grid; gap: 8px; }
+.br-archivo-fila > .br-boton { justify-self: start; }
+
+/* Resumen de lo que se va a enviar */
+.br-revision-bloque { display: grid; gap: 10px; padding-top: 16px; border-top: 1px solid var(--br-borde); }
+.br-revision-bloque > h2 { font-size: 16px; }
+.br-revision-bloque .br-archivo-fila { gap: 6px; }
+
 </style>
 </head>
 <body>
@@ -1218,7 +1271,7 @@ a.br-menu-acciones__item { color: var(--br-azul); text-decoration: none; }
       </div>
     </section>
     <section aria-labelledby="titulo-cifras">
-      <h2 id="titulo-cifras" class="br-solo-lectores">Cifras de Alimentación 2026-2</h2>
+      <h2 id="titulo-cifras" class="br-solo-lectores">Cifras</h2>
       <ul class="br-cifras">
         <li class="br-medida" data-prueba="cifra">
           <span class="br-medida__etiqueta">Postulaciones por revisar</span>
