@@ -117,10 +117,10 @@ module.exports = [
   },
   {
     estado: 'sin-postulacion',
-    nombre: 'CA-3 «Aún no tienes postulaciones» y ningún «Postularme»',
+    nombre: 'CA-3 «En el momento no hay convocatorias disponibles» y ningún «Postularme»',
     prueba: async (page) => {
       const t = await texto(page);
-      exige(t.includes('Aún no tienes postulaciones'), 'falta «Aún no tienes postulaciones»');
+      exige(t.includes('En el momento no hay convocatorias disponibles'), 'falta «En el momento no hay convocatorias disponibles»');
       exige(/cuando se abra una convocatoria/i.test(t), 'falta la invitación a estar pendiente');
       exige(!/Postularme/i.test(t), 'no debe decir «Postularme»');
     },

@@ -14,6 +14,9 @@ const PALETA = [
   '#E2F2FB', '#0B5180', '#E6F4DD', '#22610A', '#2E7D12', '#EEF2F5', '#EEF4F8', '#C9DCEA',
 ].map((c) => c.toLowerCase());
 
+// CA-3: texto de un enlace o botón que invita a postularse (con o sin tilde). No debe chocar con «Postulaciones» ni «postulación».
+const PATRON_POSTULARSE = /post[uú]la(r|te|rse|me)|inscr[ií]b/i;
+
 const ANCHOS = [1440, 390];
 const MENU_ADMIN = ['Dashboard', 'Convocatorias', 'Postulaciones', 'Pagos', 'Usuarios'];
 
@@ -170,11 +173,25 @@ module.exports = [
       // Cambio del 2026-11-09: solo se permite en 01-mi-proceso/convocatoria-abierta y dentro del formulario (09-postulacion).
       if (ctx.vista === '09-postulacion') return;
       if (ctx.vista === '01-mi-proceso' && ctx.estado === 'convocatoria-abierta') return;
-      const malos = await page.evaluate(() =>
-        [...document.querySelectorAll('a, button')]
+      const malos = await page.evaluate(({ fuente, banderas }) => {
+        const re = new RegExp(fuente, banderas);
+        return [...document.querySelectorAll('a, button')]
           .map((e) => `${e.innerText} ${e.getAttribute('aria-label') || ''}`.trim())
-          .filter((t) => /postula(r|te|rse)|inscrib/i.test(t)));
+          .filter((t) => re.test(t));
+      }, { fuente: PATRON_POSTULARSE.source, banderas: PATRON_POSTULARSE.flags });
       if (malos.length) throw new Error(`enlaces o botones para postularse: ${malos.join(' | ')}`);
+    },
+  },
+  {
+    estado: '*',
+    nombre: 'CA-3 el patrón atrapa «Postularme», «Postúlate», «Inscríbete» y no «Postulaciones»',
+    prueba: async () => {
+      for (const t of ['Postularme', 'Postúlate', 'Postulate', 'Postularse', 'Inscríbete', 'Inscribete', 'Inscribirme']) {
+        if (!PATRON_POSTULARSE.test(t)) throw new Error(`el patrón no atrapa «${t}»`);
+      }
+      for (const t of ['Postulaciones', 'Postulaciones por revisar', 'Revisa la postulación', 'Revisar y enviar', 'Enviar postulación']) {
+        if (PATRON_POSTULARSE.test(t)) throw new Error(`el patrón choca con el texto legítimo «${t}»`);
+      }
     },
   },
   {

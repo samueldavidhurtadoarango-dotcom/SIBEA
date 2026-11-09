@@ -75,13 +75,18 @@ module.exports = [
   },
   {
     estado: 'sin-convocatoria-activa',
-    nombre: 'dice «En el momento no hay convocatorias disponibles» en la franja y en la cifra, y enlaza a «Crear convocatoria»',
+    nombre: 'dice «No hay convocatorias abiertas» una vez, cupos cortos, enlaza a «Crear convocatoria» y no usa la frase del aprendiz',
     prueba: async (page) => {
-      const msg = 'En el momento no hay convocatorias disponibles';
-      exige((await texto(page, '[data-prueba=pendientes]')).includes(msg), 'falta el mensaje en la franja de pendientes');
-      exige(!(await texto(page, 'main')).includes('Todo al día'), 'dice «Todo al día» sin convocatorias');
-      const enCifra = await page.$$eval('[data-prueba=cifra]', (c, m) => c.some((x) => x.innerText.replace(/\s+/g, ' ').includes(m)), msg);
-      exige(enCifra, 'falta el mensaje en la cifra de cupos');
+      const msg = 'No hay convocatorias abiertas';
+      const franja = await texto(page, '[data-prueba=pendientes]');
+      exige(franja.includes(msg), 'falta el mensaje en la franja de pendientes');
+      const todo = await texto(page, 'main');
+      exige(todo.split(msg).length === 2, `«${msg}» debe aparecer una sola vez: ${todo.split(msg).length - 1}`);
+      exige(!todo.includes('En el momento no hay convocatorias disponibles'), 'la frase del aprendiz no debe aparecer en el Dashboard');
+      exige(!todo.includes('Todo al día'), 'dice «Todo al día» sin convocatorias');
+      exige(!todo.includes('Nadie puede postularse'), 'el pie de postulaciones debe ser de administradora');
+      const cupos = await page.$$eval('[data-prueba=cifra]', (c) => (c.find((x) => /Cupos usados/.test(x.innerText)) || {}).innerText || '');
+      exige(/Sin convocatoria abierta/.test(cupos), `la cifra de cupos debe decir «Sin convocatoria abierta»: «${cupos}»`);
       const href = await page.$$eval('main a', (a) =>
         (a.find((x) => x.innerText.trim() === 'Crear convocatoria') || {}).href || null);
       exige(href && href.includes('07-convocatorias/html/crear-editar.html'), `enlace «Crear convocatoria»: ${href}`);

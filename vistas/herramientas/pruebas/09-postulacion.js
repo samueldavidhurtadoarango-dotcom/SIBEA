@@ -74,6 +74,21 @@ module.exports = [
     },
   },
   {
+    estado: 'con-errores',
+    nombre: 'cada zona de archivo (incluida doc-banco) muestra foco visible al enfocar su input',
+    prueba: async (page) => {
+      for (const id of ['doc-identidad', 'doc-eps', 'doc-banco']) {
+        await page.focus(`#${id}`);
+        const estilo = await page.$eval(`#${id}`, (el) => {
+          const e = el.closest('label');
+          const c = getComputedStyle(e);
+          return { estilo: c.outlineStyle, ancho: parseFloat(c.outlineWidth) };
+        });
+        exige(estilo.estilo !== 'none' && estilo.ancho >= 2, `#${id}: sin indicador de foco (${estilo.estilo} ${estilo.ancho}px)`);
+      }
+    },
+  },
+  {
     estado: 'revisar-y-enviar',
     nombre: 'CA-12 resumen con «Corregir», «Enviar postulación» y aviso «no podrás editar»',
     prueba: async (page) => {
@@ -106,6 +121,8 @@ module.exports = [
     prueba: async (page, ctx) => {
       const t = await texto(page);
       exige(t.includes('Esta convocatoria ya cerró'), 'falta «Esta convocatoria ya cerró»');
+      exige(!t.includes('Plan de datos'), 'no debe nombrar la convocatoria (sigue abierta en otras vistas)');
+      exige(t.includes('La fecha de cierre de esta convocatoria ya pasó'), 'falta «La fecha de cierre de esta convocatoria ya pasó»');
       const fuente = fs.readFileSync(path.join(ctx.raiz, '_fuente', ctx.vista, `${ctx.estado}.html`), 'utf8');
       const comentarios = (fuente.match(/<!--[\s\S]*?-->/g) || []).join('\n');
       exige(comentarios.includes('Ya te postulaste a esta convocatoria'),
