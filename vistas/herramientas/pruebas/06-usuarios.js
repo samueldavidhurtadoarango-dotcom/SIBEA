@@ -146,7 +146,7 @@ module.exports = [
       });
       exige(zona.accept !== null, 'la zona no tiene input type=file');
       exige(/\.xlsx/.test(zona.accept), `el input no acepta .xlsx: «${zona.accept}»`);
-      exige(/arrastr/i.test(zona.texto), `la zona no invita a arrastrar: «${zona.texto}»`);
+      exige(/arr[aá]str/i.test(zona.texto), `la zona no invita a arrastrar: «${zona.texto}»`);
       const a = await acciones(page);
       exige(a.some((t) => t.startsWith('Descargar plantilla')), `falta «Descargar plantilla»: ${a.join(' | ')}`);
       const cols = await page.$eval('[data-prueba=columnas]', (c) => {

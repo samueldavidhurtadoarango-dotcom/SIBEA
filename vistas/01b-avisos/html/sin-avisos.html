@@ -952,6 +952,65 @@ select.br-entrada { cursor: pointer; }
   .br-tabla--fichas .br-menu-acciones__lista { left: 0; right: auto; width: min(290px, 100%); }
 }
 
+/* =====================================================================
+   Administrador: cuentas de usuarios y carga de archivos (vista 06-usuarios y las que siguen)
+   ===================================================================== */
+
+/* Botones a la derecha del encabezado de una página (p. ej. «Cargar Excel» y «Crear una cuenta») */
+.br-encabezado__acciones { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+@media (max-width: 480px) { .br-encabezado__acciones .br-boton { flex: 1 1 100%; } }
+
+/* Tabla de fichas sin casilla de selección: en el celular, nombre y estado arriba en dos columnas */
+@media (max-width: 640px) {
+  .br-tabla--fichas.br-tabla--sin-seleccion tbody tr { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .br-tabla--sin-seleccion td.br-tabla__titulo { grid-column: 1; }
+  .br-tabla--sin-seleccion td.br-tabla__estado { grid-column: 2; }
+  .br-tabla--sin-seleccion td.br-tabla__acciones { grid-column: 1 / -1; }
+  /* dato largo (correo, motivo): ocupa toda la ficha */
+  .br-tabla--fichas td.br-tabla__ancha { grid-column: 1 / -1; }
+}
+
+/* Columnas que debe tener un archivo: letra de la columna de Excel, nombre y ejemplo */
+.br-columnas { list-style: none; margin: 0; padding: 0; }
+.br-columnas li {
+  display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; gap: 0 12px;
+  padding: 9px 0; border-top: 1px solid var(--br-fondo-3); font-size: 14px;
+}
+.br-columnas li:first-child { border-top: 0; padding-top: 0; }
+.br-columnas li:last-child { padding-bottom: 0; }
+.br-columnas__letra {
+  grid-row: 1 / span 2; display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px;
+  border: 1px solid var(--br-borde); border-radius: 6px; background: var(--br-fondo-2);
+  font-size: 12px; font-weight: 600; color: var(--br-gris); font-variant-numeric: tabular-nums;
+}
+.br-columnas__nombre { font-weight: 600; }
+.br-columnas .br-suave { grid-column: 2; }
+.br-tarjeta > .br-columnas { margin-top: 14px; }
+
+/* Botón que ocupa todo el ancho de su tarjeta (panel lateral) */
+.br-boton--ancho { width: 100%; }
+
+/* Formulario en rejilla: dos columnas en computador, una en el celular */
+.br-formulario { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 20px; }
+.br-formulario .br-formulario__ancho { grid-column: 1 / -1; }
+.br-tarjeta > .br-formulario { margin-top: 18px; }
+@media (max-width: 640px) { .br-formulario { grid-template-columns: minmax(0, 1fr); gap: 16px; } }
+/* Acciones al pie de un formulario o tarjeta: alineadas a la derecha; en el celular, a todo el ancho */
+.br-acciones-pie { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 10px; padding-top: 18px; border-top: 1px solid var(--br-borde); }
+.br-tarjeta > .br-acciones-pie { margin-top: 20px; }
+@media (max-width: 480px) { .br-acciones-pie .br-boton { flex: 1 1 100%; } }
+
+/* Archivo elegido con un enlace para cambiarlo a la derecha */
+.br-archivo__texto { flex: 1 1 auto; }
+.br-archivo > a { flex: none; font-size: 14px; font-weight: 500; text-underline-offset: 3px; }
+@media (max-width: 480px) {
+  .br-archivo:has(> a) { flex-wrap: wrap; }
+  .br-archivo:has(> a) .br-archivo__texto { flex-basis: calc(100% - 36px); }
+  .br-archivo > a { margin-left: 36px; min-height: 32px; display: inline-flex; align-items: center; }
+}
+/* Cada campo del formulario se queda arriba aunque el de al lado tenga ayuda debajo */
+.br-formulario > .br-campo { align-content: start; }
+
 </style>
 </head>
 <body>

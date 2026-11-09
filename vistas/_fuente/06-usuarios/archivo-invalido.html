@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Usuarios · Archivo no válido</title>
+  <link rel="stylesheet" href="../../_comun/estilo.css">
+</head>
+<body>
+<!-- Vista 6 · Administrador: usuarios. Estado: archivo-invalido (se eligió un PDF en lugar de un Excel). -->
+<div class="br-admin">
+  <!-- incluir:menu-admin activo="Usuarios" pagina="Cargar Excel" -->
+  <main>
+    <div class="br-encabezado">
+      <div class="br-encabezado__titulo">
+        <a href="lista.html" class="br-volver"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="m15 6-6 6 6 6"></path></svg>Volver a usuarios</a>
+        <h1>Cargar aprendices desde Excel</h1>
+        <p class="br-encabezado__sub">Sube la lista con la plantilla. Antes de crear cualquier cuenta te mostramos qué filas tienen errores.</p>
+      </div>
+    </div>
+    <div class="br-detalle">
+      <div class="br-detalle__principal">
+        <section class="br-tarjeta" aria-labelledby="titulo-archivo">
+          <h2 id="titulo-archivo">Archivo</h2>
+          <div class="br-archivo br-archivo--error">
+            <svg aria-hidden="true" class="br-archivo__icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg>
+            <div class="br-archivo__texto">
+              <span class="br-archivo__nombre">lista-aprendices-adso-2026-2.pdf</span>
+              <span class="br-suave">PDF · 312 KB</span>
+            </div>
+          </div>
+          <div class="br-mensaje-error" role="alert">
+            <strong>El archivo no es un Excel (.xlsx).</strong>
+            <span>Ábrelo en Excel o en Google Sheets, guárdalo como «Libro de Excel (.xlsx)» y súbelo de nuevo.</span>
+          </div>
+          <p class="br-ayuda">También rechazamos un Excel al que le falten columnas. En ese caso verás, por ejemplo, «Faltan las columnas: Ficha, Programa». Para no olvidar ninguna, usa la plantilla.</p>
+          <div class="br-campo">
+            <span class="br-solo-lectores" id="ayuda-formatos">Solo archivos de Excel (.xlsx), de hasta 5 MB y 1.000 filas.</span>
+            <label class="br-zona" for="archivo" data-prueba="zona">
+              <svg aria-hidden="true" class="br-zona__icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="m17 8-5-5-5 5"></path><path d="M12 3v12"></path></svg>
+              <span class="br-zona__titulo">Elige otro archivo o arrástralo aquí</span>
+              <span class="br-zona__ayuda" aria-hidden="true">Excel (.xlsx) · máximo 5 MB · hasta 1.000 filas</span>
+              <span class="br-boton br-boton--secundario" aria-hidden="true">Elegir archivo</span>
+              <input class="br-solo-lectores" type="file" id="archivo" name="archivo" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" aria-describedby="ayuda-formatos">
+            </label>
+          </div>
+          <div class="br-acciones-pie">
+            <p class="br-motivo" id="motivo-revisar"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v5"></path><path d="M12 8h.01"></path></svg>El botón se activa cuando eliges un Excel válido.</p>
+            <button type="button" class="br-boton br-boton--primario" data-prueba="revisar" disabled aria-describedby="motivo-revisar">Revisar archivo</button>
+          </div>
+        </section>
+      </div>
+      <aside class="br-detalle__lateral">
+        <section class="br-tarjeta" aria-labelledby="titulo-columnas" data-prueba="columnas">
+          <h2 id="titulo-columnas">Columnas de la plantilla</h2>
+          <p class="br-suave">El archivo debe tener estas 8 columnas en la primera fila, con estos nombres. Una fila por aprendiz.</p>
+          <ol class="br-columnas">
+            <li><span class="br-columnas__letra" aria-hidden="true">A</span><span class="br-columnas__nombre">Tipo de documento</span><span class="br-suave">CC, TI, CE o PPT</span></li>
+            <li><span class="br-columnas__letra" aria-hidden="true">B</span><span class="br-columnas__nombre">Número de documento</span><span class="br-suave">Sin puntos: 1032118904</span></li>
+            <li><span class="br-columnas__letra" aria-hidden="true">C</span><span class="br-columnas__nombre">Nombres</span><span class="br-suave">Luisa Fernanda</span></li>
+            <li><span class="br-columnas__letra" aria-hidden="true">D</span><span class="br-columnas__nombre">Apellidos</span><span class="br-suave">Ríos Cárdenas</span></li>
+            <li><span class="br-columnas__letra" aria-hidden="true">E</span><span class="br-columnas__nombre">Correo</span><span class="br-suave">No se puede repetir</span></li>
+            <li><span class="br-columnas__letra" aria-hidden="true">F</span><span class="br-columnas__nombre">Teléfono</span><span class="br-suave">10 dígitos: 3104567812</span></li>
+            <li><span class="br-columnas__letra" aria-hidden="true">G</span><span class="br-columnas__nombre">Programa</span><span class="br-suave">Como aparece en Sofía Plus</span></li>
+            <li><span class="br-columnas__letra" aria-hidden="true">H</span><span class="br-columnas__nombre">Ficha</span><span class="br-suave">Debe existir: 2758341</span></li>
+          </ol>
+          <a href="#" class="br-boton br-boton--secundario br-boton--ancho"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="m7 10 5 5 5-5"></path><path d="M12 15V3"></path></svg>Descargar plantilla</a>
+        </section>
+      </aside>
+    </div>
+  </main>
+</div>
+</body>
+</html>

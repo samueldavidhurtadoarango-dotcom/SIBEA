@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Usuarios · Aprendices</title>
+  <link rel="stylesheet" href="../../_comun/estilo.css">
+</head>
+<body>
+<!-- Vista 6 · Administrador: usuarios. Estado: lista. El menú «Más acciones» de Sara Lucía Zuluaga se muestra abierto.
+     Datos de ejemplo: hoy es el 20 nov 2026; hay 342 cuentas de aprendices. -->
+<div class="br-admin">
+  <!-- incluir:menu-admin activo="Usuarios" -->
+  <main>
+    <div class="br-encabezado">
+      <div class="br-encabezado__titulo">
+        <h1>Usuarios</h1>
+        <p class="br-encabezado__sub">Crea las cuentas de los aprendices y activa, desactiva o desbloquea las que ya existen.</p>
+      </div>
+      <div class="br-encabezado__acciones">
+        <a href="cargar-excel.html" class="br-boton br-boton--primario"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="m17 8-5-5-5 5"></path><path d="M12 3v12"></path></svg>Cargar Excel</a>
+        <a href="crear-uno.html" class="br-boton br-boton--secundario"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M12 5v14M5 12h14"></path></svg>Crear una cuenta</a>
+      </div>
+    </div>
+    <nav class="br-pestanas" aria-label="Filtrar por estado de la cuenta">
+      <a href="#" aria-current="page">Todos <span class="br-contador">342</span></a>
+      <a href="#">Activos <span class="br-contador">330</span></a>
+      <a href="#">Inactivos <span class="br-contador">9</span></a>
+      <a href="#">Bloqueados <span class="br-contador br-contador--aviso">3</span></a>
+    </nav>
+    <section class="br-tarjeta br-listado" aria-label="Lista de aprendices">
+      <div class="br-listado__herramientas">
+        <div class="br-filtros">
+          <div class="br-buscador">
+            <label for="buscar" class="br-solo-lectores">Buscar por nombre, documento o correo</label>
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+            <input id="buscar" class="br-entrada" type="search" placeholder="Nombre, documento o correo">
+          </div>
+          <label for="filtro-programa" class="br-solo-lectores">Programa</label>
+          <select id="filtro-programa" class="br-entrada">
+            <option selected>Todos los programas</option>
+            <option>Análisis y Desarrollo de Software</option>
+            <option>Gestión Contable y de Información Financiera</option>
+            <option>Mantenimiento de Equipos de Cómputo</option>
+            <option>Cocina</option>
+            <option>Gestión Empresarial</option>
+          </select>
+        </div>
+        <div class="br-listado__resumen">
+          <span>Mostrando 10 de 342 aprendices</span>
+        </div>
+      </div>
+      <div class="br-tabla-envoltura">
+        <table class="br-tabla br-tabla--listado br-tabla--fichas br-tabla--sin-seleccion" data-prueba="tabla-usuarios" aria-label="Cuentas de aprendices">
+          <thead><tr>
+            <th scope="col">Aprendiz</th><th scope="col">Correo</th><th scope="col">Programa</th><th scope="col">Último ingreso</th><th scope="col">Estado</th><th scope="col"><span class="br-solo-lectores">Acciones</span></th>
+          </tr></thead>
+          <tbody>
+            <tr>
+              <td class="br-tabla__titulo"><span class="br-tabla__principal">Daniela Mosquera Palacios</span><span class="br-tabla__sub">TI 1.034.567.218</span></td>
+              <td data-etiqueta="Correo" class="br-tabla__ancha">daniela.mosquera<wbr>@soy.sena.edu.co</td>
+              <td data-etiqueta="Programa" class="br-tabla__ancha">Análisis y Desarrollo de Software<span class="br-tabla__sub">Ficha 2758341</span></td>
+              <td data-etiqueta="Último ingreso">Hoy, 8:12 a. m.</td>
+              <td class="br-tabla__estado"><span class="br-etiqueta br-etiqueta--ok">Activo</span></td>
+              <td class="br-tabla__acciones"><div class="br-tabla__acciones-dentro"><details class="br-menu-acciones"><summary aria-label="Más acciones para Daniela Mosquera Palacios"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><circle cx="5" cy="12" r="1.25"></circle><circle cx="12" cy="12" r="1.25"></circle><circle cx="19" cy="12" r="1.25"></circle></svg></summary><div class="br-menu-acciones__lista"><button type="button" class="br-menu-acciones__item">Desactivar cuenta<span class="br-suave">No podrá ingresar. Sus postulaciones y pagos se conservan.</span></button></div></details></div></td>
+            </tr>
+            <tr>
+              <td class="br-tabla__titulo"><span class="br-tabla__principal">Luisa Fernanda Ríos Cárdenas</span><span class="br-tabla__sub">TI 1.032.118.904</span></td>
+              <td data-etiqueta="Correo" class="br-tabla__ancha">luisa.rios<wbr>@soy.sena.edu.co</td>
+              <td data-etiqueta="Programa" class="br-tabla__ancha">Gestión Contable y de Información Financiera<span class="br-tabla__sub">Ficha 2761190</span></td>
+              <td data-etiqueta="Último ingreso">19 nov 2026</td>
+              <td class="br-tabla__estado"><span class="br-etiqueta br-etiqueta--ok">Activo</span></td>
+              <td class="br-tabla__acciones"><div class="br-tabla__acciones-dentro"><details class="br-menu-acciones"><summary aria-label="Más acciones para Luisa Fernanda Ríos Cárdenas"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><circle cx="5" cy="12" r="1.25"></circle><circle cx="12" cy="12" r="1.25"></circle><circle cx="19" cy="12" r="1.25"></circle></svg></summary><div class="br-menu-acciones__lista"><button type="button" class="br-menu-acciones__item">Desactivar cuenta<span class="br-suave">No podrá ingresar. Sus postulaciones y pagos se conservan.</span></button></div></details></div></td>
+            </tr>
+            <tr>
+              <td class="br-tabla__titulo"><span class="br-tabla__principal">Brayan Stiven Cardona</span><span class="br-tabla__sub">CC 1.017.234.561</span></td>
+              <td data-etiqueta="Correo" class="br-tabla__ancha">brayan.cardona<wbr>@soy.sena.edu.co</td>
+              <td data-etiqueta="Programa" class="br-tabla__ancha">Mantenimiento de Equipos de Cómputo<span class="br-tabla__sub">Ficha 2749902</span></td>
+              <td data-etiqueta="Último ingreso">18 nov 2026</td>
+              <td class="br-tabla__estado"><span class="br-etiqueta br-etiqueta--peligro">Bloqueado</span><span class="br-tabla__sub">5 intentos fallidos</span></td>
+              <td class="br-tabla__acciones"><div class="br-tabla__acciones-dentro"><button type="button" class="br-boton br-boton--secundario br-boton--chico">Desbloquear<span class="br-solo-lectores"> la cuenta de Brayan Stiven Cardona</span></button><details class="br-menu-acciones"><summary aria-label="Más acciones para Brayan Stiven Cardona"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><circle cx="5" cy="12" r="1.25"></circle><circle cx="12" cy="12" r="1.25"></circle><circle cx="19" cy="12" r="1.25"></circle></svg></summary><div class="br-menu-acciones__lista"><button type="button" class="br-menu-acciones__item">Desactivar cuenta<span class="br-suave">No podrá ingresar. Sus postulaciones y pagos se conservan.</span></button></div></details></div></td>
+            </tr>
+            <tr>
+              <td class="br-tabla__titulo"><span class="br-tabla__principal">Sara Lucía Zuluaga</span><span class="br-tabla__sub">CC 1.000.876.543</span></td>
+              <td data-etiqueta="Correo" class="br-tabla__ancha">sara.zuluaga<wbr>@soy.sena.edu.co</td>
+              <td data-etiqueta="Programa" class="br-tabla__ancha">Cocina<span class="br-tabla__sub">Ficha 2770215</span></td>
+              <td data-etiqueta="Último ingreso">17 nov 2026</td>
+              <td class="br-tabla__estado"><span class="br-etiqueta br-etiqueta--ok">Activo</span></td>
+              <td class="br-tabla__acciones"><div class="br-tabla__acciones-dentro"><details class="br-menu-acciones" open data-prueba="acciones-fila"><summary aria-label="Más acciones para Sara Lucía Zuluaga"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><circle cx="5" cy="12" r="1.25"></circle><circle cx="12" cy="12" r="1.25"></circle><circle cx="19" cy="12" r="1.25"></circle></svg></summary><div class="br-menu-acciones__lista"><button type="button" class="br-menu-acciones__item">Desactivar cuenta<span class="br-suave">No podrá ingresar. Sus postulaciones y pagos se conservan.</span></button></div></details></div></td>
+            </tr>
+            <tr>
+              <td class="br-tabla__titulo"><span class="br-tabla__principal">Jhon Fredy Asprilla</span><span class="br-tabla__sub">CC 1.152.468.903</span></td>
+              <td data-etiqueta="Correo" class="br-tabla__ancha">jhon.asprilla<wbr>@soy.sena.edu.co</td>
+              <td data-etiqueta="Programa" class="br-tabla__ancha">Análisis y Desarrollo de Software<span class="br-tabla__sub">Ficha 2758341</span></td>
+              <td data-etiqueta="Último ingreso">16 nov 2026</td>
+              <td class="br-tabla__estado"><span class="br-etiqueta br-etiqueta--ok">Activo</span></td>
+              <td class="br-tabla__acciones"><div class="br-tabla__acciones-dentro"><details class="br-menu-acciones"><summary aria-label="Más acciones para Jhon Fredy Asprilla"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><circle cx="5" cy="12" r="1.25"></circle><circle cx="12" cy="12" r="1.25"></circle><circle cx="19" cy="12" r="1.25"></circle></svg></summary><div class="br-menu-acciones__lista"><button type="button" class="br-menu-acciones__item">Desactivar cuenta<span class="br-suave">No podrá ingresar. Sus postulaciones y pagos se conservan.</span></button></div></details></div></td>
+            </tr>
+            <tr>
+              <td class="br-tabla__titulo"><span class="br-tabla__principal">Manuela Echeverri Gil</span><span class="br-tabla__sub">TI 1.025.643.987</span></td>
+              <td data-etiqueta="Correo" class="br-tabla__ancha">manuela.echeverri<wbr>@soy.sena.edu.co</td>
+              <td data-etiqueta="Programa" class="br-tabla__ancha">Gestión Empresarial<span class="br-tabla__sub">Ficha 2765478</span></td>
+              <td data-etiqueta="Último ingreso">30 oct 2026</td>
+              <td class="br-tabla__estado"><span class="br-etiqueta br-etiqueta--neutra">Inactivo</span><span class="br-tabla__sub">Desde el 2 nov 2026</span></td>
+              <td class="br-tabla__acciones"><div class="br-tabla__acciones-dentro"><button type="button" class="br-boton br-boton--secundario br-boton--chico">Activar<span class="br-solo-lectores"> la cuenta de Manuela Echeverri Gil</span></button></div></td>
+            </tr>
+            <tr>
+              <td class="br-tabla__titulo"><span class="br-tabla__principal">Cristian Camilo Rendón</span><span class="br-tabla__sub">CC 1.040.321.765</span></td>
+              <td data-etiqueta="Correo" class="br-tabla__ancha">cristian.rendon<wbr>@soy.sena.edu.co</td>
+              <td data-etiqueta="Programa" class="br-tabla__ancha">Mantenimiento de Equipos de Cómputo<span class="br-tabla__sub">Ficha 2749902</span></td>
+              <td data-etiqueta="Último ingreso">14 nov 2026</td>
+              <td class="br-tabla__estado"><span class="br-etiqueta br-etiqueta--ok">Activo</span></td>
+              <td class="br-tabla__acciones"><div class="br-tabla__acciones-dentro"><details class="br-menu-acciones"><summary aria-label="Más acciones para Cristian Camilo Rendón"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><circle cx="5" cy="12" r="1.25"></circle><circle cx="12" cy="12" r="1.25"></circle><circle cx="19" cy="12" r="1.25"></circle></svg></summary><div class="br-menu-acciones__lista"><button type="button" class="br-menu-acciones__item">Desactivar cuenta<span class="br-suave">No podrá ingresar. Sus postulaciones y pagos se conservan.</span></button></div></details></div></td>
+            </tr>
+            <tr>
+              <td class="br-tabla__titulo"><span class="br-tabla__principal">Yuliana Marcela Pino</span><span class="br-tabla__sub">CC 1.036.789.012</span></td>
+              <td data-etiqueta="Correo" class="br-tabla__ancha">yuliana.pino<wbr>@soy.sena.edu.co</td>
+              <td data-etiqueta="Programa" class="br-tabla__ancha">Gestión Contable y de Información Financiera<span class="br-tabla__sub">Ficha 2761190</span></td>
+              <td data-etiqueta="Último ingreso">12 oct 2026</td>
+              <td class="br-tabla__estado"><span class="br-etiqueta br-etiqueta--neutra">Inactivo</span><span class="br-tabla__sub">Desde el 20 oct 2026</span></td>
+              <td class="br-tabla__acciones"><div class="br-tabla__acciones-dentro"><button type="button" class="br-boton br-boton--secundario br-boton--chico">Activar<span class="br-solo-lectores"> la cuenta de Yuliana Marcela Pino</span></button></div></td>
+            </tr>
+            <tr>
+              <td class="br-tabla__titulo"><span class="br-tabla__principal">Emanuel Córdoba Rentería</span><span class="br-tabla__sub">CC 1.077.456.123</span></td>
+              <td data-etiqueta="Correo" class="br-tabla__ancha">emanuel.cordoba<wbr>@soy.sena.edu.co</td>
+              <td data-etiqueta="Programa" class="br-tabla__ancha">Cocina<span class="br-tabla__sub">Ficha 2770215</span></td>
+              <td data-etiqueta="Último ingreso">19 nov 2026</td>
+              <td class="br-tabla__estado"><span class="br-etiqueta br-etiqueta--peligro">Bloqueado</span><span class="br-tabla__sub">5 intentos fallidos</span></td>
+              <td class="br-tabla__acciones"><div class="br-tabla__acciones-dentro"><button type="button" class="br-boton br-boton--secundario br-boton--chico">Desbloquear<span class="br-solo-lectores"> la cuenta de Emanuel Córdoba Rentería</span></button><details class="br-menu-acciones"><summary aria-label="Más acciones para Emanuel Córdoba Rentería"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><circle cx="5" cy="12" r="1.25"></circle><circle cx="12" cy="12" r="1.25"></circle><circle cx="19" cy="12" r="1.25"></circle></svg></summary><div class="br-menu-acciones__lista"><button type="button" class="br-menu-acciones__item">Desactivar cuenta<span class="br-suave">No podrá ingresar. Sus postulaciones y pagos se conservan.</span></button></div></details></div></td>
+            </tr>
+            <tr>
+              <td class="br-tabla__titulo"><span class="br-tabla__principal">Isabella Henao Ramírez</span><span class="br-tabla__sub">CC 1.001.234.876</span></td>
+              <td data-etiqueta="Correo" class="br-tabla__ancha">isabella.henao<wbr>@soy.sena.edu.co</td>
+              <td data-etiqueta="Programa" class="br-tabla__ancha">Análisis y Desarrollo de Software<span class="br-tabla__sub">Ficha 2758341</span></td>
+              <td data-etiqueta="Último ingreso">Nunca ha ingresado</td>
+              <td class="br-tabla__estado"><span class="br-etiqueta br-etiqueta--ok">Activo</span></td>
+              <td class="br-tabla__acciones"><div class="br-tabla__acciones-dentro"><details class="br-menu-acciones"><summary aria-label="Más acciones para Isabella Henao Ramírez"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><circle cx="5" cy="12" r="1.25"></circle><circle cx="12" cy="12" r="1.25"></circle><circle cx="19" cy="12" r="1.25"></circle></svg></summary><div class="br-menu-acciones__lista"><button type="button" class="br-menu-acciones__item">Desactivar cuenta<span class="br-suave">No podrá ingresar. Sus postulaciones y pagos se conservan.</span></button></div></details></div></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="br-listado__pie">
+        <span>Página 1 de 35</span>
+        <nav class="br-paginacion" aria-label="Páginas">
+          <span aria-disabled="true"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="m15 6-6 6 6 6"></path></svg>Anterior</span>
+          <span aria-current="page" class="br-paginacion__numero">1</span>
+          <a href="#" class="br-paginacion__numero">2</a>
+          <a href="#" class="br-paginacion__numero">3</a>
+          <a href="#">Siguiente<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="m9 6 6 6-6 6"></path></svg></a>
+        </nav>
+      </div>
+    </section>
+  </main>
+</div>
+</body>
+</html>
