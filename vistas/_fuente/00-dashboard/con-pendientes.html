@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dashboard · Con pendientes</title>
+  <link rel="stylesheet" href="../../_comun/estilo.css">
+</head>
+<body>
+<!-- Vista 0 · Administrador: dashboard (inicio). Estado: con-pendientes. Hoy es el 20 nov 2026.
+     Datos coherentes con 07-convocatorias (Alimentación 2026-2: 25 de 25 cupos) y 05-pagos (noviembre: 2 de 25 pagados, 3 retrasados; 2 × $ 180.000). -->
+<div class="br-admin">
+  <!-- incluir:menu-admin activo="Dashboard" -->
+  <main>
+    <div class="br-encabezado">
+      <div class="br-encabezado__titulo">
+        <h1>Dashboard</h1>
+        <p class="br-encabezado__sub">Lo que necesita tu atención hoy, 20 nov 2026.</p>
+      </div>
+    </div>
+    <section class="br-tarjeta" aria-labelledby="titulo-pendientes" data-prueba="pendientes">
+      <h2 id="titulo-pendientes">Tareas pendientes</h2>
+      <ul class="br-pendientes">
+        <li>
+          <a class="br-pendiente" href="../../00-existentes/postulaciones/html/computador-filtrada.html">
+            <span class="br-pendiente__numero">12</span>
+            <span class="br-pendiente__texto">postulaciones sin confirmar datos<span class="br-pendiente__detalle">Ver las postulaciones pendientes</span></span>
+            <svg class="br-pendiente__flecha" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="m9 6 6 6-6 6"></path></svg>
+          </a>
+        </li>
+        <li>
+          <a class="br-pendiente" href="../../03-detalle-postulacion/html/documento-recibido.html">
+            <span class="br-pendiente__numero">2</span>
+            <span class="br-pendiente__texto">documentos recibidos por revisar<span class="br-pendiente__detalle">El más reciente: María Fernanda Castañeda Villalobos</span></span>
+            <svg class="br-pendiente__flecha" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="m9 6 6 6-6 6"></path></svg>
+          </a>
+        </li>
+        <li>
+          <a class="br-pendiente" href="../../05-pagos/html/lista.html">
+            <span class="br-pendiente__numero">3</span>
+            <span class="br-pendiente__texto">pagos retrasados<span class="br-pendiente__detalle">El más antiguo lleva 5 días de retraso</span></span>
+            <svg class="br-pendiente__flecha" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="m9 6 6 6-6 6"></path></svg>
+          </a>
+        </li>
+      </ul>
+    </section>
+    <section aria-labelledby="titulo-cifras">
+      <h2 id="titulo-cifras" class="br-solo-lectores">Cifras de Alimentación 2026-2</h2>
+      <ul class="br-cifras">
+        <li class="br-medida" data-prueba="cifra">
+          <span class="br-medida__etiqueta">Postulaciones por revisar</span>
+          <span class="br-medida__valor">12</span>
+          <span class="br-medida__nota">En las convocatorias activas</span>
+        </li>
+        <li class="br-medida br-medida--lleno" data-prueba="cifra">
+          <span class="br-medida__etiqueta">Cupos usados</span>
+          <span class="br-medida__valor">25 <small>de 25</small></span>
+          <progress class="br-progreso br-progreso--fina" value="25" max="25" aria-label="Cupos usados de Alimentación 2026-2">25 de 25</progress>
+          <span class="br-medida__nota">Alimentación 2026-2 · sin cupos libres</span>
+        </li>
+        <li class="br-medida" data-prueba="cifra">
+          <span class="br-medida__etiqueta">Pagos registrados este mes</span>
+          <span class="br-medida__valor">2</span>
+          <span class="br-medida__nota">$ 360.000 en noviembre</span>
+        </li>
+        <li class="br-medida br-medida--aviso" data-prueba="cifra">
+          <span class="br-medida__etiqueta">Pagos retrasados</span>
+          <span class="br-medida__valor">3</span>
+          <span class="br-medida__nota">Faltan por registrar o avisar</span>
+        </li>
+      </ul>
+    </section>
+  </main>
+</div>
+</body>
+</html>

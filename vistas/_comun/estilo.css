@@ -1083,3 +1083,59 @@ a.br-menu-acciones__item { color: var(--br-azul); text-decoration: none; }
 @media (max-width: 360px) {
   .br-grupo__lista { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* ---------- Dashboard del administrador (vista 00-dashboard) ---------- */
+/* Franja «Tareas pendientes»: cada fila es un enlace a la vista ya filtrada */
+.br-pendientes { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.br-pendiente {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 4px 14px;
+  min-height: 56px; padding: 10px 12px; border-radius: 10px;
+  color: var(--br-azul); text-decoration: none;
+}
+.br-pendiente:hover { background: var(--br-fondo-2); }
+.br-pendiente__numero {
+  min-width: 44px; padding: 6px 10px; border-radius: 10px; text-align: center;
+  background: var(--br-aviso-fondo); color: var(--br-aviso-oscuro);
+  font-size: 20px; font-weight: 700; line-height: 1.2; font-variant-numeric: tabular-nums;
+}
+.br-pendiente__texto { display: grid; gap: 2px; min-width: 0; overflow-wrap: anywhere; font-weight: 600; }
+.br-pendiente__detalle { font-size: 13px; font-weight: 400; color: var(--br-gris); }
+.br-pendiente__flecha { color: var(--br-gris); }
+.br-pendiente:hover .br-pendiente__flecha { color: var(--br-azul); }
+/* Sin pendientes: mensaje tranquilo con marca verde */
+.br-al-dia { display: flex; align-items: center; gap: 14px; padding: 4px 0; }
+.br-al-dia__marca {
+  flex: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px;
+  background: var(--br-verde-claro); color: var(--br-verde);
+}
+.br-al-dia__texto { display: grid; gap: 2px; min-width: 0; }
+.br-al-dia__texto strong { font-size: 16px; }
+
+/* Fila de cifras: 4 tarjetas iguales; en pantallas chicas, 2 y luego 1 por fila */
+.br-cifras { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin: 0; padding: 0; list-style: none; }
+.br-medida {
+  display: grid; align-content: start; gap: 6px; min-width: 0; padding: 16px 20px;
+  background: var(--br-blanco); border: 1px solid var(--br-borde); border-radius: var(--br-radio);
+}
+.br-medida__etiqueta { font-size: 14px; font-weight: 500; color: var(--br-gris); }
+.br-medida__valor { font-size: 32px; font-weight: 700; line-height: 1.15; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.br-medida__valor small { font-size: 16px; font-weight: 500; color: var(--br-gris); }
+.br-medida__nota { font-size: 13px; color: var(--br-gris); overflow-wrap: anywhere; }
+.br-medida__enlace { justify-self: start; font-size: 14px; font-weight: 600; }
+.br-medida--aviso { background: var(--br-aviso-fondo); border-color: var(--br-aviso-borde); }
+.br-medida--aviso .br-medida__etiqueta, .br-medida--aviso .br-medida__nota { color: var(--br-aviso-oscuro); }
+.br-medida--aviso .br-medida__valor { color: var(--br-aviso-oscuro); }
+.br-medida--lleno .br-medida__valor, .br-medida--lleno .br-medida__nota { color: var(--br-rojo-texto); }
+.br-medida--lleno .br-progreso { color: var(--br-rojo); }
+.br-medida--lleno .br-progreso::-webkit-progress-value { background: var(--br-rojo); }
+.br-medida--lleno .br-progreso::-moz-progress-bar { background: var(--br-rojo); }
+.br-medida--vacia { border-style: dashed; border-color: var(--br-gris-claro); }
+.br-medida--vacia .br-medida__valor { font-size: 18px; line-height: 1.3; }
+.br-medida--vacia .br-boton { justify-self: start; margin-top: 4px; }
+@media (max-width: 1180px) { .br-cifras { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 480px) {
+  .br-cifras { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .br-medida__valor { font-size: 28px; }
+  .br-pendiente { grid-template-columns: auto minmax(0, 1fr); }
+  .br-pendiente__flecha { display: none; }
+}
