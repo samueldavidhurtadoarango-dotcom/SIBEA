@@ -75,9 +75,13 @@ module.exports = [
   },
   {
     estado: 'sin-convocatoria-activa',
-    nombre: 'dice «No hay convocatoria activa» y enlaza a «Crear convocatoria»',
+    nombre: 'dice «En el momento no hay convocatorias disponibles» en la franja y en la cifra, y enlaza a «Crear convocatoria»',
     prueba: async (page) => {
-      exige((await texto(page, 'main')).includes('No hay convocatoria activa'), 'falta «No hay convocatoria activa»');
+      const msg = 'En el momento no hay convocatorias disponibles';
+      exige((await texto(page, '[data-prueba=pendientes]')).includes(msg), 'falta el mensaje en la franja de pendientes');
+      exige(!(await texto(page, 'main')).includes('Todo al día'), 'dice «Todo al día» sin convocatorias');
+      const enCifra = await page.$$eval('[data-prueba=cifra]', (c, m) => c.some((x) => x.innerText.replace(/\s+/g, ' ').includes(m)), msg);
+      exige(enCifra, 'falta el mensaje en la cifra de cupos');
       const href = await page.$$eval('main a', (a) =>
         (a.find((x) => x.innerText.trim() === 'Crear convocatoria') || {}).href || null);
       exige(href && href.includes('07-convocatorias/html/crear-editar.html'), `enlace «Crear convocatoria»: ${href}`);
