@@ -21,7 +21,12 @@ final class AplicacionTest extends TestCase
     {
         $configuracion = new Configuracion(['app' => ['depuracion' => $depuracion]]);
 
-        return new Aplicacion($this->enrutador, new Vista(dirname(__DIR__, 3) . '/vistas'), $configuracion);
+        return new Aplicacion($this->enrutador, new Vista(dirname(__DIR__, 3) . '/vistas'), $configuracion, $this->fabrica($configuracion));
+    }
+
+    private function fabrica(Configuracion $configuracion): Fabrica
+    {
+        return new Fabrica($configuracion, dirname(__DIR__, 3) . '/vistas', '127.0.0.1');
     }
 
     private function peticion(string $metodo, string $ruta): Peticion
@@ -70,7 +75,7 @@ final class AplicacionTest extends TestCase
         $this->enrutador->agregar('GET', '/falla', static function (): Respuesta {
             throw new \RuntimeException('x');
         });
-        $aplicacion = new Aplicacion($this->enrutador, new Vista(dirname(__DIR__, 3) . '/vistas'), new Configuracion([]));
+        $aplicacion = new Aplicacion($this->enrutador, new Vista(dirname(__DIR__, 3) . '/vistas'), new Configuracion([]), $this->fabrica(new Configuracion([])));
         $anterior = ini_set('error_log', sys_get_temp_dir() . '/br_prueba_error.log');
 
         $respuesta = $aplicacion->ejecutar($this->peticion('GET', '/falla'));
@@ -85,7 +90,7 @@ final class AplicacionTest extends TestCase
             throw new \RuntimeException('x');
         });
         $vistaRota = new Vista(sys_get_temp_dir() . '/br_sin_vistas_' . bin2hex(random_bytes(4)));
-        $aplicacion = new Aplicacion($this->enrutador, $vistaRota, new Configuracion([]));
+        $aplicacion = new Aplicacion($this->enrutador, $vistaRota, new Configuracion([]), $this->fabrica(new Configuracion([])));
         $anterior = ini_set('error_log', sys_get_temp_dir() . '/br_prueba_error.log');
 
         $respuesta = $aplicacion->ejecutar($this->peticion('GET', '/falla'));
