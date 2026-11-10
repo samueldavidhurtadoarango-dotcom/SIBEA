@@ -18,7 +18,7 @@ const PALETA = [
 const PATRON_POSTULARSE = /post[uú]la(r|te|rse|me)|inscr[ií]b/i;
 
 // Elementos que cuentan como «botón o enlace» para CA-3.
-const SELECTOR_ACCIONES = 'a, button';
+const SELECTOR_ACCIONES = 'a, button, input[type=submit], input[type=button], [role=button]';
 
 const ANCHOS = [1440, 390];
 const MENU_ADMIN = ['Dashboard', 'Convocatorias', 'Postulaciones', 'Pagos', 'Usuarios'];

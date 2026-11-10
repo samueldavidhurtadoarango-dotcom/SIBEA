@@ -10,7 +10,7 @@ Piensa en esta carpeta como un taller: hay moldes (lo común), planos de cada pi
 |---|---|
 | `estados.json` | La lista oficial de pantallas y de los estados de cada una (copiada de la spec). El inspector la usa para saber qué debe existir. |
 | `_comun/estilo.css` | Letra, colores y piezas visuales compartidas (tarjeta, etiqueta, aviso, pasos, tabla, botones, diálogo, estado vacío). |
-| `_comun/barra-aprendiz.html` | Barra de arriba del aprendiz: logo, «Hola, nombre», campanita con contador y «Salir». |
+| `_comun/barra-aprendiz.html` | Barra de arriba del aprendiz: logo, «Hola, nombre», campanita con contador y «Salir». Admite `avisos="N"` y `panel="abierto"` (ver más abajo). |
 | `_comun/menu-admin.html` | Menú lateral y cabecera del administrador: Dashboard, Convocatorias, Postulaciones, Pagos, Usuarios. |
 | `_fuente/<vista>/<estado>.html` | Los planos. **Aquí se edita.** |
 | `<vista>/html/<estado>.html` | La pieza terminada: una página autocontenida (CSS adentro). **No se edita a mano**, se genera. |
@@ -22,7 +22,7 @@ Piensa en esta carpeta como un taller: hay moldes (lo común), planos de cada pi
 | `herramientas/pruebas/_global.js` | Revisiones que se aplican a todas las pantallas. |
 | `herramientas/pruebas/<vista>.js` | Revisiones propias de cada pantalla (se agregan con cada vista). |
 
-Las carpetas de vistas se llaman `00-dashboard`, `01-mi-proceso`, `01b-avisos`, `02-contrasena`, `03-detalle-postulacion`, `04-reporte-aprobados`, `05-pagos`, `06-usuarios`, `07-convocatorias` y `08-subir-documento`. No confundir `00-dashboard` (pantalla nueva) con `00-existentes` (copia de lo ya hecho).
+Las carpetas de vistas se llaman `00-dashboard`, `01-mi-proceso`, `01b-avisos`, `02-contrasena`, `03-detalle-postulacion`, `04-reporte-aprobados`, `05-pagos`, `06-usuarios`, `07-convocatorias`, `08-subir-documento` y `09-postulacion`. No confundir `00-dashboard` (pantalla nueva) con `00-existentes` (copia de lo ya hecho).
 
 ## Instalar las herramientas (una sola vez, fuera del repositorio)
 
@@ -51,7 +51,7 @@ node vistas/herramientas/verificar.js                       # revisa todo
 node vistas/herramientas/verificar.js --vista 01-mi-proceso # revisa una
 ```
 
-`verificar.js` imprime `OK` o `FALLA <vista>/<estado>: <motivo>` por cada revisión y termina con código 1 si algo falló. Revisa, entre otras cosas: que exista el HTML de cada estado de `estados.json`, que las tildes se vean bien, que no haya desplazamiento horizontal a 390 px, la letra Work Sans, que solo se usen los colores de la paleta, el contraste de texto (4.5:1), que las capturas midan 1440 y 390 px, que el aprendiz no tenga botones para postularse y que el administrador tenga siempre el mismo menú.
+`verificar.js` imprime `OK` o `FALLA <vista>/<estado>: <motivo>` por cada revisión y termina con código 1 si algo falló. Revisa, entre otras cosas: que exista el HTML de cada estado de `estados.json`, que las tildes se vean bien, que no haya desplazamiento horizontal a 390 px, la letra Work Sans, que solo se usen los colores de la paleta, el contraste de texto (4.5:1), que las capturas midan 1440 y 390 px, que el aprendiz solo pueda postularse desde `01-mi-proceso/convocatoria-abierta` y dentro de `09-postulacion` (CA-3; se revisan enlaces, botones, campos de envío y `role="button"`), que los enlaces relativos apunten a archivos que existen, que no aparezca el tipo de documento (CC o TI) y que el administrador tenga siempre el mismo menú.
 
 ## Colores de estado agregados (salen de `00-existentes/postulaciones`)
 
@@ -103,10 +103,21 @@ node vistas/herramientas/verificar.js --vista 01-mi-proceso # revisa una
 
    Piezas de convocatorias (vista 07-convocatorias): `.br-tabla__cupos` (celda de cupos «18 de 40» con barra fina; `--lleno` la pone en rojo), `.br-tabla__estado--largo` (estado con una explicación larga, p. ej. el motivo de un cierre anticipado; en el celular baja debajo del nombre), `.br-menu-acciones__item--peligro` (opción delicada del menú de una fila; las opciones también pueden ser `<a>`) y `.br-casos` / `.br-casos__item--actual` / `.br-casos__marca` (casos posibles de una acción y cuál aplica ahora, p. ej. cierre normal o anticipado).
 
+   Piezas del Dashboard, el acceso sin sesión y el formulario de postulación (vistas 00, 02 y 09): `.br-pendientes` y `.br-pendiente` (franja «Tareas pendientes»: cada fila es un enlace a la lista ya filtrada, con `__numero`, `__texto`, `__detalle` y `__flecha`), `.br-cifras` (fila de 4 tarjetas iguales; en pantallas chicas, 2 y luego 1) con `.br-medida` (una cifra con `__etiqueta`, `__valor` y `__nota`; `--lleno`, `--aviso` y `--vacia` cambian su aspecto), `.br-acceso` (tarjeta centrada sin sesión, igual al login de Samuel, con `__marca`, `__encabezado`, `__cuenta`, `__formulario`, `__acciones`, `__estado`, `__sello` y `__pie`), `.br-campo__clave` y `.br-campo__ojo` (campo de contraseña con botón de mostrar), `.br-reglas-caja` y `.br-reglas` (reglas de la contraseña, cada una con ícono y texto «cumplida», «pendiente» o «incumplida», no solo color), `.br-formulario-largo` (formulario en tarjetas), `.br-plegable` (requisitos que se abren y cierran), `.br-error-campo` y `.br-resumen-errores` (error junto a cada campo y resumen arriba), `.br-acciones-formulario` (botones al pie), `.br-revision-bloque` (cada bloque de «Revisar y enviar») y `.br-zona` / `.br-archivo` para subir archivos (la misma de las vistas 06 y 08; `.br-zona--error` para un archivo no permitido).
+
 2. `construir.js` reemplaza `<!-- incluir:... -->` por la pieza de `_comun/` (en el menú marca la opción activa con `aria-current="page"`) y cambia el `<link>` del CSS por un `<style>` con su contenido.
 3. Ejecutar `construir.js --vista <vista>` y luego `verificar.js --vista <vista>`.
 4. Los diálogos se escriben como `<div class="br-dialogo-capa"><div class="br-dialogo" role="dialog" aria-modal="true" aria-labelledby="..."> ... </div></div>` al final del `<body>`.
 5. Las tablas van dentro de `<div class="br-tabla-envoltura">` para que, si no caben en el celular, se desplacen solas sin mover toda la página.
+
+## La barra del aprendiz: avisos y panel abierto
+
+La barra se pide con `<!-- incluir:barra-aprendiz nombre="Luisa Fernanda" avisos="2" -->`. Tiene dos atributos opcionales:
+
+- `avisos="N"`: cuántos avisos sin leer muestra la campanita. Con `avisos="0"` no hay contador y la campanita dice «ninguno sin leer». Si no se escribe, son 2.
+- `panel="abierto"`: despliega el panel de avisos debajo de la campanita (vista `01b-avisos`). El contenido del panel se escribe en la misma fuente, entre `<!-- panel-avisos -->` y `<!-- /panel-avisos -->`. Si falta ese bloque, o el bloque existe pero la barra no lleva `panel="abierto"`, `construir.js` se detiene con un error.
+
+Sin `panel`, la campanita queda cerrada.
 
 ## Reglas que conviene recordar
 
@@ -114,5 +125,6 @@ node vistas/herramientas/verificar.js --vista 01-mi-proceso # revisa una
 - Los grises `#6B7C88` y `#7D8E9A` están permitidos, pero sobre fondos claros no llegan a 4.5:1 como texto. Para texto secundario se usa `#556776`. Si una vista usa un gris claro para texto, la verificación de contraste decide si está bien.
 - Todo botón y campo tiene contorno de foco visible (`:focus-visible`) definido en el CSS común.
 - Textos en español con tildes y ñ; nombres colombianos inventados, `$ 180.000`, fechas «15 nov 2026». Nunca nombres reales del equipo.
-- Las vistas del aprendiz nunca llevan botones ni enlaces para postularse.
-- La barra del aprendiz trae la campanita cerrada. La vista `01b-avisos` (panel desplegable abierto) amplía la pieza cuando se diseñe.
+- El aprendiz solo puede postularse desde `01-mi-proceso/convocatoria-abierta` y dentro de `09-postulacion` (CA-3). En las demás vistas del aprendiz no hay botones ni enlaces para postularse.
+- Los documentos de identidad se escriben solo con el número (`1.032.118.904`), sin «CC» ni «TI»: la base de datos no guarda el tipo.
+- Cada persona de ejemplo es la misma en todas las vistas (nombre, documento, ficha, programa y correo). La aprendiz es Luisa Fernanda Ríos Cárdenas.

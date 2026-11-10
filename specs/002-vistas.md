@@ -1,6 +1,6 @@
 # Spec 002 — Vistas (pantallas) de BenefitRack
 
-- **Estado:** borrador para aprobación de Samuel
+- **Estado:** aprobada por Samuel (2026-11-08; cambio de la vista 9 aprobado el 2026-11-09)
 - **Fecha:** 2026-11-08
 - **Rama:** `feat/002-vistas`
 - **Depende de:** spec 001 (base de datos v2 en `base-de-datos/benefitrack_v2.sql`)
