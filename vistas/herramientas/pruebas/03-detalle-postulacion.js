@@ -94,7 +94,7 @@ module.exports = [
     nombre: 'datos del formulario a la vista (nombre, documento, ficha, programa, dirección, EPS)',
     prueba: async (page) => {
       const t = await texto(page, '[data-prueba=datos]');
-      for (const dato of [NOMBRE, '1.034.567.218', '2879415', 'Gestión Administrativa', 'Dirección', 'EPS']) {
+      for (const dato of [NOMBRE, '1034567218', '2879415', 'Gestión Administrativa', 'Dirección', 'EPS']) {
         exige(t.includes(dato), `falta «${dato}» en los datos: «${t}»`);
       }
     },

@@ -47,7 +47,7 @@ Hecho por Samuel en Claude Design el 2026-11-05 (archivos en `C:\Users\samue\Dow
 - Las vistas existentes de Samuel se copian a `vistas/00-existentes/` para que todo quede junto.
 - Cada vista funciona en celular (390 px) y en computador (1440 px).
 - Por el manual global §5.1 se trabaja con la skill `impeccable` en modo «Operate»: claridad y patrones conocidos por encima de efectos llamativos.
-- Datos de ejemplo: nombres colombianos inventados, montos en pesos (`$ 180.000`), fechas en formato «15 nov 2026». Nunca datos de personas reales del equipo.
+- Datos de ejemplo: nombres colombianos inventados, montos en pesos (`$ 180.000`), fechas en formato «15 nov 2026». Nunca datos de personas reales del equipo. Los números de documento (y de cuenta) van solo con dígitos, sin puntos ni espacios, para poder copiarlos y pegarlos; los montos sí llevan puntos.
 
 ## 4. Roles
 

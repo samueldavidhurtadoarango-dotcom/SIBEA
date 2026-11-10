@@ -2,6 +2,11 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [2.1.1] - 2026-11-09 — «Documentos sin puntos»
+
+### Cambiado
+- Los números de documento de identidad de las vistas se escriben solo con dígitos (`1034567218`, antes `1.034.567.218`) para que el administrador pueda copiarlos y pegarlos sin problemas (pedido de Samuel). Los montos de dinero siguen con puntos (`$ 180.000`).
+
 ## [2.1.0] - 2026-11-09 — «Vistas de BenefitRack (spec 002)»
 
 Maquetas de las pantallas del sistema según `specs/002-vistas.md`. Son páginas HTML sin programar (no hay aplicación todavía), cada una con su captura de pantalla para computador (1440 px) y para celular (390 px). Se explican en `vistas/LEEME.md`.
