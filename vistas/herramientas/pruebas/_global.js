@@ -41,6 +41,15 @@ module.exports = [
   },
   {
     estado: '*',
+    nombre: 'documentos de identidad sin puntos (se pueden copiar y pegar)',
+    prueba: async (page) => {
+      const texto = await page.evaluate(() => document.body.innerText);
+      const c = texto.match(/\b\d{1,3}(\.\d{3}){3}\b/);
+      if (c) throw new Error(`documento con puntos: «${c[0]}»; debe escribirse solo con dígitos`);
+    },
+  },
+  {
+    estado: '*',
     nombre: 'charset utf-8 y sin caracteres rotos',
     prueba: async (page) => {
       const r = await page.evaluate(() => ({
