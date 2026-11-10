@@ -5,7 +5,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 ## [2.1.1] - 2026-11-09 — «Documentos sin puntos»
 
 ### Cambiado
-- Los números de documento de identidad de las vistas se escriben solo con dígitos (`1034567218`, antes `1.034.567.218`) para que el administrador pueda copiarlos y pegarlos sin problemas (pedido de Samuel). Los montos de dinero siguen con puntos (`$ 180.000`).
+- Los números de documento de identidad de las vistas se escriben solo con dígitos (`1034567218`, antes `1.034.567.218`) para que el administrador pueda copiarlos y pegarlos sin problemas (pedido de Samuel). Los montos de dinero siguen con puntos (`$ 180.000`). Esto incluye la tabla de postulaciones de Samuel en `vistas/00-existentes/postulaciones/html/`.
 
 ## [2.1.0] - 2026-11-09 — «Vistas de BenefitRack (spec 002)»
 
