@@ -50,6 +50,10 @@ final class Vista
         }
         $archivo = $this->carpeta . '/' . $nombre . '.php';
 
+        if (!is_file($archivo)) {
+            throw new \RuntimeException("No existe la vista: $nombre");
+        }
+
         // Las variables solo existen dentro de esta función anónima.
         return (static function (string $__archivo, array $__datos): string {
             extract($__datos, EXTR_SKIP);

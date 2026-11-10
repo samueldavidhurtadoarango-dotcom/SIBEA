@@ -21,6 +21,11 @@ use Throwable;
 
 final class Aplicacion
 {
+    /**
+     * @param Enrutador     $enrutador     La tabla de rutas ya cargada.
+     * @param Vista         $vista         Dibuja las páginas (incluidas las de error).
+     * @param Configuracion $configuracion Ajustes de la aplicación (se usa app.depuracion).
+     */
     public function __construct(
         private readonly Enrutador $enrutador,
         private readonly Vista $vista,
@@ -81,8 +86,26 @@ final class Aplicacion
     {
         error_log(sprintf('[BenefitRack] %s: %s en %s:%d', $error::class, $error->getMessage(), $error->getFile(), $error->getLine()));
 
-        $detalle = $this->configuracion->obtener('app.depuracion') === true ? $error->getMessage() : null;
+        try {
+            $detalle = $this->depuracionActiva() ? $error->getMessage() : null;
 
-        return Respuesta::html($this->vista->mostrar('errores/500', ['detalle' => $detalle]), 500);
+            return Respuesta::html($this->vista->mostrar('errores/500', ['detalle' => $detalle]), 500);
+        } catch (Throwable) {
+            // Último recurso: ni la página de error se pudo dibujar.
+            return Respuesta::html('Error del servidor', 500);
+        }
+    }
+
+    /**
+     * Lee app.depuracion sin lanzar excepciones: si falta en la configuración
+     * se asume false (lo más seguro: no mostrar detalles).
+     */
+    private function depuracionActiva(): bool
+    {
+        try {
+            return $this->configuracion->obtener('app.depuracion') === true;
+        } catch (Throwable) {
+            return false;
+        }
     }
 }

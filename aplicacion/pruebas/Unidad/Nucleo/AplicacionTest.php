@@ -65,6 +65,36 @@ final class AplicacionTest extends TestCase
         $this->assertSame('/ingresar', $respuesta->destino());
     }
 
+    public function test_configuracion_incompleta_no_impide_la_pagina_500(): void
+    {
+        $this->enrutador->agregar('GET', '/falla', static function (): Respuesta {
+            throw new \RuntimeException('x');
+        });
+        $aplicacion = new Aplicacion($this->enrutador, new Vista(dirname(__DIR__, 3) . '/vistas'), new Configuracion([]));
+        $anterior = ini_set('error_log', sys_get_temp_dir() . '/br_prueba_error.log');
+
+        $respuesta = $aplicacion->ejecutar($this->peticion('GET', '/falla'));
+
+        ini_set('error_log', (string) $anterior);
+        $this->assertSame(500, $respuesta->codigo());
+    }
+
+    public function test_si_falla_la_vista_500_responde_texto_simple(): void
+    {
+        $this->enrutador->agregar('GET', '/falla', static function (): Respuesta {
+            throw new \RuntimeException('x');
+        });
+        $vistaRota = new Vista(sys_get_temp_dir() . '/br_sin_vistas_' . bin2hex(random_bytes(4)));
+        $aplicacion = new Aplicacion($this->enrutador, $vistaRota, new Configuracion([]));
+        $anterior = ini_set('error_log', sys_get_temp_dir() . '/br_prueba_error.log');
+
+        $respuesta = $aplicacion->ejecutar($this->peticion('GET', '/falla'));
+
+        ini_set('error_log', (string) $anterior);
+        $this->assertSame(500, $respuesta->codigo());
+        $this->assertSame('Error del servidor', $respuesta->cuerpo());
+    }
+
     public function test_excepcion_da_500_sin_detalle_si_no_hay_depuracion(): void
     {
         $this->enrutador->agregar('GET', '/falla', static function (): Respuesta {
