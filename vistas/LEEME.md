@@ -126,5 +126,7 @@ Sin `panel`, la campanita queda cerrada.
 - Todo botón y campo tiene contorno de foco visible (`:focus-visible`) definido en el CSS común.
 - Textos en español con tildes y ñ; nombres colombianos inventados, `$ 180.000`, fechas «15 nov 2026». Nunca nombres reales del equipo.
 - El aprendiz solo puede postularse desde `01-mi-proceso/convocatoria-abierta` y dentro de `09-postulacion` (CA-3). En las demás vistas del aprendiz no hay botones ni enlaces para postularse.
-- Los documentos de identidad se escriben solo con el número (`1.032.118.904`), sin «CC» ni «TI»: la base de datos no guarda el tipo.
+- Los documentos de identidad se escriben solo con el número (`1032118904`), sin «CC» ni «TI»: la base de datos no guarda el tipo.
+- Los números de documento (y de cuenta) se escriben solo con dígitos, sin puntos ni espacios, para que el administrador pueda copiarlos y pegarlos. Los montos de dinero sí llevan puntos (`$ 180.000`).
+- En `00-existentes` (la tabla de postulaciones de Samuel) también se quitaron los puntos de los documentos (2026-11-09). `verificar.js` no revisa esa carpeta.
 - Cada persona de ejemplo es la misma en todas las vistas (nombre, documento, ficha, programa y correo). La aprendiz es Luisa Fernanda Ríos Cárdenas.
