@@ -8,6 +8,7 @@ $buscador = PhpCsFixer\Finder::create()
     ->append([__DIR__ . '/rutas.php']);
 
 return (new PhpCsFixer\Config())
+    ->setRiskyAllowed(true)
     ->setRules([
         '@PSR12' => true,
         'declare_strict_types' => true,
