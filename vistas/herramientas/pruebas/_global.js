@@ -211,6 +211,15 @@ module.exports = [
   },
   {
     estado: '*',
+    nombre: 'ningún nombre del equipo (Samuel, Santiago, Mariana, Dylan) en el texto visible',
+    prueba: async (page) => {
+      const t = await page.$eval('body', (el) => el.innerText);
+      const m = t.match(/\b(Samuel|Santiago|Mariana|Dylan)\b/i);
+      if (m) throw new Error(`nombre del equipo en los datos de ejemplo: «${m[0]}»`);
+    },
+  },
+  {
+    estado: '*',
     nombre: 'los enlaces relativos apuntan a archivos que existen',
     sinPagina: true,
     prueba: async (page, ctx) => {
