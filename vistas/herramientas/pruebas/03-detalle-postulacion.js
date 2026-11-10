@@ -94,7 +94,7 @@ module.exports = [
     nombre: 'datos del formulario a la vista (nombre, documento, ficha, programa, dirección, EPS)',
     prueba: async (page) => {
       const t = await texto(page, '[data-prueba=datos]');
-      for (const dato of [NOMBRE, 'TI 1.034.567.218', '2879415', 'Gestión Administrativa', 'Dirección', 'EPS']) {
+      for (const dato of [NOMBRE, '1.034.567.218', '2879415', 'Gestión Administrativa', 'Dirección', 'EPS']) {
         exige(t.includes(dato), `falta «${dato}» en los datos: «${t}»`);
       }
     },
@@ -181,8 +181,34 @@ module.exports = [
     nombre: 'resumen de la asignación creada',
     prueba: async (page) => {
       const t = await texto(page, '[data-prueba=asignacion]');
-      exige(t.includes('$ 180.000'), `falta el valor: «${t}»`);
-      exige(t.includes('Alimentación 2026-2'), `falta la convocatoria: «${t}»`);
+      exige(t.includes('$ 90.000'), `falta el valor: «${t}»`);
+      exige(t.includes('Tarjeta cívica 2026-2'), `falta la convocatoria: «${t}»`);
+    },
+  },
+  // Coherencia con 07-convocatorias: Tarjeta cívica 2026-2 es 0 de 30, 4 pagos de $ 90.000
+  ...['pendiente', 'documento-pedido', 'documento-recibido', 'pedir-documento', 'validada', 'rechazada', 'confirmar-accion'].map((estado) => ({
+    estado,
+    nombre: 'cupos de Tarjeta cívica 2026-2: 0 de 30 usados (como en la vista 07)',
+    prueba: async (page) => {
+      const c = await texto(page, '[data-prueba=cupos]');
+      exige(c.includes('Cupos: 0 de 30 usados'), `contador: «${c}»`);
+      exige(!/Alimentación/.test(await texto(page, 'main')), 'sigue hablando de Alimentación 2026-2');
+    },
+  })),
+  {
+    estado: 'aprobada',
+    nombre: 'cupos tras aprobar: 1 de 30 usados',
+    prueba: async (page) => {
+      const c = await texto(page, '[data-prueba=cupos]');
+      exige(c.includes('Cupos: 1 de 30 usados'), `contador: «${c}»`);
+    },
+  },
+  {
+    estado: 'confirmar-accion',
+    nombre: 'el diálogo resume 4 pagos de $ 90.000 y cupos 1 de 30',
+    prueba: async (page) => {
+      const t = await texto(page, '[role=dialog]');
+      exige(t.includes('4 pagos de $ 90.000') && t.includes('1 de 30 usados'), `diálogo: «${t}»`);
     },
   },
   {

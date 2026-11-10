@@ -40,6 +40,14 @@ const dialogo = (page) => page.evaluate(() => {
 });
 
 module.exports = [
+  // Daniela Mosquera Palacios postula a Tarjeta cívica (vista 03); no cobra Alimentación 2026-2
+  ...CON_TABLA.map((estado) => ({
+    estado,
+    nombre: 'no aparece Daniela Mosquera Palacios (su postulación es de otra convocatoria)',
+    prueba: async (page) => {
+      exige(!/Daniela/.test(await texto(page, 'body')), 'aparece Daniela en los pagos');
+    },
+  })),
   // Migas y título de la página en todos los estados
   ...ESTADOS.map((estado) => ({
     estado,

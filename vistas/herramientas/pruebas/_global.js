@@ -17,6 +17,9 @@ const PALETA = [
 // CA-3: texto de un enlace o botón que invita a postularse (con o sin tilde). No debe chocar con «Postulaciones» ni «postulación».
 const PATRON_POSTULARSE = /post[uú]la(r|te|rse|me)|inscr[ií]b/i;
 
+// Elementos que cuentan como «botón o enlace» para CA-3.
+const SELECTOR_ACCIONES = 'a, button';
+
 const ANCHOS = [1440, 390];
 const MENU_ADMIN = ['Dashboard', 'Convocatorias', 'Postulaciones', 'Pagos', 'Usuarios'];
 
@@ -173,13 +176,54 @@ module.exports = [
       // Cambio del 2026-11-09: solo se permite en 01-mi-proceso/convocatoria-abierta y dentro del formulario (09-postulacion).
       if (ctx.vista === '09-postulacion') return;
       if (ctx.vista === '01-mi-proceso' && ctx.estado === 'convocatoria-abierta') return;
-      const malos = await page.evaluate(({ fuente, banderas }) => {
+      const malos = await page.evaluate(({ fuente, banderas, selector }) => {
         const re = new RegExp(fuente, banderas);
-        return [...document.querySelectorAll('a, button')]
-          .map((e) => `${e.innerText} ${e.getAttribute('aria-label') || ''}`.trim())
+        return [...document.querySelectorAll(selector)]
+          .map((e) => `${e.innerText || ''} ${e.getAttribute('aria-label') || ''} ${e.tagName === 'INPUT' ? e.value : ''}`.trim())
           .filter((t) => re.test(t));
-      }, { fuente: PATRON_POSTULARSE.source, banderas: PATRON_POSTULARSE.flags });
+      }, { fuente: PATRON_POSTULARSE.source, banderas: PATRON_POSTULARSE.flags, selector: SELECTOR_ACCIONES });
       if (malos.length) throw new Error(`enlaces o botones para postularse: ${malos.join(' | ')}`);
+    },
+  },
+  {
+    estado: '*',
+    nombre: 'CA-3 el selector también revisa input[type=submit|button] y [role=button]',
+    prueba: async (page) => {
+      const n = await page.evaluate((selector) => {
+        const d = document.createElement('div');
+        d.innerHTML = '<input type="submit" value="Postularme"><input type="button" value="Inscríbete"><span role="button">Postúlate</span>';
+        document.body.appendChild(d);
+        const r = d.querySelectorAll(selector).length;
+        d.remove();
+        return r;
+      }, SELECTOR_ACCIONES);
+      if (n < 3) throw new Error(`el selector de CA-3 solo atrapa ${n} de 3 botones disfrazados (input submit, input button, [role=button])`);
+    },
+  },
+  {
+    estado: '*',
+    nombre: 'el documento va sin tipo (la BD no guarda CC/TI): ningún «CC 1.» ni «TI 1.»',
+    prueba: async (page) => {
+      const t = await page.$eval('body', (el) => el.innerText);
+      const m = t.match(/\b(CC|TI) 1\.\d/);
+      if (m) throw new Error(`prefijo de tipo de documento: «${m[0]}»`);
+    },
+  },
+  {
+    estado: '*',
+    nombre: 'los enlaces relativos apuntan a archivos que existen',
+    sinPagina: true,
+    prueba: async (page, ctx) => {
+      if (!fs.existsSync(ctx.archivo)) return;
+      const html = fs.readFileSync(ctx.archivo, 'utf8');
+      const rotos = [];
+      for (const m of html.matchAll(/\bhref="([^"]+)"/g)) {
+        const h = m[1];
+        if (/^(https?:|mailto:|tel:|#|data:|javascript:)/i.test(h)) continue;
+        const destino = path.resolve(path.dirname(ctx.archivo), h.split('#')[0].split('?')[0]);
+        if (!fs.existsSync(destino)) rotos.push(h);
+      }
+      if (rotos.length) throw new Error(`enlaces rotos: ${[...new Set(rotos)].join(' | ')}`);
     },
   },
   {

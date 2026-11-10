@@ -106,11 +106,11 @@ module.exports = [
   },
   {
     estado: 'recuperar-solicitud',
-    nombre: 'campo de correo con label, correo largo sin desbordar y aviso de que el enlace vence',
+    nombre: 'campo de correo con label, correo sin desbordar y aviso de que el enlace vence',
     prueba: async (page) => {
       const r = await page.$eval('input[type=email]', (i) => ({ label: i.labels.length > 0, valor: i.value }));
       exige(r.label, 'el campo de correo no tiene <label>');
-      exige(/@soy\.sena\.edu\.co$/.test(r.valor) && r.valor.length >= 35, `usa un correo largo de @soy.sena.edu.co: «${r.valor}»`);
+      exige(/@soy\.sena\.edu\.co$/.test(r.valor) && r.valor === 'luisa.rios@soy.sena.edu.co', `usa el correo de Luisa Fernanda Ríos Cárdenas de @soy.sena.edu.co: «${r.valor}»`);
       const t = await texto(page, 'main');
       exige(/vence en 1 hora/.test(t), `falta «vence en 1 hora» (la BD guarda fecha_expiracion): «${t}»`);
       await page.setViewportSize({ width: 390, height: 844 });
@@ -119,6 +119,28 @@ module.exports = [
         return [...card.querySelectorAll('input, p, span, a, button')].filter((e) => e.getBoundingClientRect().right > c.right + 0.5).map((e) => e.tagName);
       });
       exige(d.length === 0, `elementos que se salen de la tarjeta a 390: ${d.join(', ')}`);
+    },
+  },
+  {
+    estado: 'primer-ingreso',
+    nombre: 'el texto largo («Hola, nombre · correo») no se sale de la tarjeta a 390 px',
+    prueba: async (page) => {
+      await page.setViewportSize({ width: 390, height: 844 });
+      const t = await texto(page, '.br-acceso__cuenta');
+      exige(t.includes('Luisa Fernanda Ríos Cárdenas') && t.includes('luisa.rios@soy.sena.edu.co'), `datos de la cuenta: «${t}»`);
+      const d = await page.$eval('[data-prueba=tarjeta]', (card) => {
+        const c = card.getBoundingClientRect();
+        return [...card.querySelectorAll('.br-acceso__cuenta')].filter((e) => e.getBoundingClientRect().right > c.right + 0.5).length;
+      });
+      exige(d === 0, 'el texto de la cuenta se sale de la tarjeta');
+    },
+  },
+  {
+    estado: 'recuperar-nueva',
+    nombre: 'no promete un historial de contraseñas que la BD no guarda',
+    prueba: async (page) => {
+      const t = await texto(page, 'main');
+      exige(!/usado antes/.test(t), `texto: «${t}»`);
     },
   },
   {
