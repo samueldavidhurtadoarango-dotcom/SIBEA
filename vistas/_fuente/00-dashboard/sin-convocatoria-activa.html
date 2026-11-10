@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dashboard · Sin convocatoria activa</title>
+  <link rel="stylesheet" href="../../_comun/estilo.css">
+</head>
+<body>
+<!-- Vista 0 · Administrador: dashboard (inicio). Estado: sin-convocatoria-activa. La cifra de cupos se reemplaza por un estado claro con una acción para crear una. -->
+<div class="br-admin">
+  <!-- incluir:menu-admin activo="Dashboard" -->
+  <main>
+    <div class="br-encabezado">
+      <div class="br-encabezado__titulo">
+        <h1>Dashboard</h1>
+        <p class="br-encabezado__sub">Lo que necesita tu atención hoy, 20 nov 2026.</p>
+      </div>
+    </div>
+    <section class="br-tarjeta" aria-labelledby="titulo-pendientes" data-prueba="pendientes">
+      <h2 id="titulo-pendientes">Tareas pendientes</h2>
+      <div class="br-al-dia">
+        <span class="br-al-dia__marca" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><path d="m5 12.5 4.5 4.5L19 7.5"></path></svg></span>
+        <p class="br-al-dia__texto"><strong>No hay convocatorias abiertas</strong><span class="br-suave">Crea una para que los aprendices puedan postularse.</span></p>
+      </div>
+    </section>
+    <section aria-labelledby="titulo-cifras">
+      <h2 id="titulo-cifras" class="br-solo-lectores">Cifras</h2>
+      <ul class="br-cifras">
+        <li class="br-medida" data-prueba="cifra">
+          <span class="br-medida__etiqueta">Postulaciones por revisar</span>
+          <span class="br-medida__valor">0</span>
+          <span class="br-medida__nota">Sin postulaciones nuevas</span>
+        </li>
+        <li class="br-medida br-medida--vacia" data-prueba="cifra">
+          <span class="br-medida__etiqueta">Cupos usados</span>
+          <span class="br-medida__valor">Sin convocatoria abierta</span>
+          <a href="../../07-convocatorias/html/crear-editar.html" class="br-boton br-boton--primario br-boton--chico">Crear convocatoria</a>
+        </li>
+        <li class="br-medida" data-prueba="cifra">
+          <span class="br-medida__etiqueta">Pagos registrados este mes</span>
+          <span class="br-medida__valor">2</span>
+          <span class="br-medida__nota">$ 360.000 en noviembre</span>
+        </li>
+        <li class="br-medida" data-prueba="cifra">
+          <span class="br-medida__etiqueta">Pagos retrasados</span>
+          <span class="br-medida__valor">0</span>
+          <span class="br-medida__nota">Ninguno por ahora</span>
+        </li>
+      </ul>
+    </section>
+  </main>
+</div>
+</body>
+</html>

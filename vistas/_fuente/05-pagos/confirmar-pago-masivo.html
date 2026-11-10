@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pagos · Confirmar 23 pagos</title>
+  <link rel="stylesheet" href="../../_comun/estilo.css">
+</head>
+<body>
+<!-- Vista 5 · Administrador: pagos. Estado: confirmar-pago-masivo. Diálogo de «Marcar como pagados» sobre la selección de los 23.
+     Datos de ejemplo: hoy es el 20 nov 2026; Alimentación 2026-2 tiene 25 pagos en noviembre. -->
+<div class="br-admin">
+  <!-- incluir:menu-admin activo="Pagos" -->
+  <main>
+    <div class="br-encabezado">
+      <div class="br-encabezado__titulo">
+        <h1>Pagos</h1>
+        <p class="br-encabezado__sub">Registra los pagos del beneficio, varios a la vez, y avisa cuando uno se retrase.</p>
+      </div>
+      <div class="br-cupos" data-prueba="avance-mes">
+        <div class="br-cupos__fila">
+          <span class="br-cupos__cifra">Noviembre: 2 de 25 pagados</span>
+          <span class="br-cupos__resto">Faltan 23</span>
+        </div>
+        <progress class="br-progreso br-progreso--fina" value="2" max="25" aria-label="Pagos de noviembre registrados en Alimentación 2026-2">2 de 25</progress>
+      </div>
+    </div>
+    <nav class="br-pestanas" aria-label="Filtrar por estado">
+      <a href="#" aria-current="page">Todos <span class="br-contador">25</span></a>
+      <a href="#">Pendientes <span class="br-contador">20</span></a>
+      <a href="#">Retrasados <span class="br-contador br-contador--aviso">3</span></a>
+      <a href="#">Pagados <span class="br-contador">2</span></a>
+    </nav>
+    <section class="br-tarjeta br-listado" aria-label="Lista de pagos">
+      <div class="br-listado__herramientas">
+          <div class="br-filtros">
+            <div class="br-buscador">
+              <label for="buscar" class="br-solo-lectores">Buscar por nombre o documento</label>
+              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+              <input id="buscar" class="br-entrada" type="search" placeholder="Nombre o documento">
+            </div>
+            <label for="filtro-convocatoria" class="br-solo-lectores">Convocatoria</label>
+            <select id="filtro-convocatoria" class="br-entrada">
+              <option selected>Alimentación 2026-2</option>
+              <option>Plan de datos 2026-2</option>
+              <option>Tarjeta cívica 2026-2</option>
+              <option>Todas las convocatorias</option>
+            </select>
+            <label for="filtro-mes" class="br-solo-lectores">Mes</label>
+            <select id="filtro-mes" class="br-entrada">
+              <option>Septiembre 2026</option>
+              <option>Octubre 2026</option>
+              <option selected>Noviembre 2026</option>
+              <option>Diciembre 2026</option>
+              <option>Enero 2027</option>
+              <option>Febrero 2027</option>
+            </select>
+          </div>
+          <div class="br-listado__resumen">
+            <span>Mostrando 10 de 25 pagos · los más antiguos primero</span>
+            <button type="button" class="br-boton br-boton--secundario br-boton--chico">Seleccionar todos los retrasados <span class="br-contador br-contador--aviso">3</span></button>
+          </div>
+      </div>
+        <div class="br-seleccion" data-prueba="barra-seleccion" role="region" aria-label="Pagos seleccionados">
+          <div class="br-seleccion__texto">
+            <span class="br-seleccion__cifra">23 pagos seleccionados · $ 4.140.000</span>
+            <span class="br-seleccion__detalle">Todos los pagos sin registrar de noviembre en Alimentación 2026-2 (en 3 páginas). Incluye 3 retrasados.</span>
+          </div>
+          <div class="br-seleccion__acciones">
+            <button type="button" class="br-boton br-boton--primario">Marcar como pagados</button>
+            <button type="button" class="br-boton br-boton--secundario">Avisar retraso</button>
+            <button type="button" class="br-enlace-claro">Quitar selección</button>
+          </div>
+        </div>
+        <div class="br-tabla-envoltura">
+          <table class="br-tabla br-tabla--listado br-tabla--fichas" data-prueba="tabla-pagos" aria-label="Pagos de noviembre 2026 de Alimentación 2026-2">
+            <thead><tr>
+              <th scope="col" class="br-tabla__seleccion"><label class="br-casilla"><input type="checkbox" checked><span class="br-solo-lectores">Seleccionar los pagos sin registrar de esta página</span></label></th>
+              <th scope="col">Aprendiz</th><th scope="col">Beneficio</th><th scope="col">Pago</th><th scope="col" class="br-num">Valor</th><th scope="col">Fecha esperada</th><th scope="col">Estado</th><th scope="col"><span class="br-solo-lectores">Acciones</span></th>
+            </tr></thead>
+            <tbody>
+            <tr class="br-fila--elegida">
+              <td class="br-tabla__seleccion"><label class="br-casilla"><input type="checkbox" checked><span class="br-solo-lectores">Seleccionar el pago de Ximena Arboleda Posada</span></label></td>
+              <td class="br-tabla__titulo"><span class="br-tabla__principal">Ximena Arboleda Posada</span><span class="br-tabla__sub">1.037.442.915</span></td>
+              <td data-etiqueta="Beneficio">Apoyo de alimentación<span class="br-tabla__sub br-ocultar-celular">Alimentación <span class="br-sin-corte">2026-2</span></span></td>
+              <td data-etiqueta="Pago" class="br-cifra">1 de 6</td>
+              <td data-etiqueta="Valor" class="br-num">$ 180.000</td>
+              <td data-etiqueta="Fecha esperada">15 nov 2026</td>
+              <td class="br-tabla__estado"><span class="br-etiqueta br-etiqueta--aviso">Retrasado</span><span class="br-retraso">5 días de retraso</span></td>
+              <td class="br-tabla__acciones"><div class="br-tabla__acciones-dentro"><button type="button" class="br-boton br-boton--secundario br-boton--chico">Registrar pago<span class="br-solo-lectores"> de Ximena Arboleda Posada</span></button><details class="br-menu-acciones"><summary aria-label="Más acciones para Ximena Arboleda Posada"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><circle cx="5" cy="12" r="1.25"></circle><circle cx="12" cy="12" r="1.25"></circle><circle cx="19" cy="12" r="1.25"></circle></svg></summary><div class="br-menu-acciones__lista"><button type="button" class="br-menu-acciones__item">Avisar retraso<span class="br-suave">Le llega un aviso con el motivo</span></button><button type="button" class="br-menu-acciones__item">Registrar novedad<span class="br-suave">Retraso de pago, Suspensión, Reactivación, Cancelación u Otra</span></button></div></details></div></td>
+            </tr>
+            <tr class="br-fila--elegida">
+              <td class="br-tabla__seleccion"><label class="br-casilla"><input type="checkbox" checked><span class="br-solo-lectores">Seleccionar el pago de Luisa Fernanda Ríos Cárdenas</span></label></td>
+              <td class="br-tabla__titulo"><span class="br-tabla__principal">Luisa Fernanda Ríos Cárdenas</span><span class="br-tabla__sub">1.032.118.904</span></td>
+              <td data-etiqueta="Beneficio">Apoyo de alimentación<span class="br-tabla__sub br-ocultar-celular">Alimentación <span class="br-sin-corte">2026-2</span></span></td>
+              <td data-etiqueta="Pago" class="br-cifra">3 de 6</td>
+              <td data-etiqueta="Valor" class="br-num">$ 180.000</td>
+              <td data-etiqueta="Fecha esperada">15 nov 2026</td>
+              <td class="br-tabla__estado"><span class="br-etiqueta br-etiqueta--aviso">Retrasado</span><span class="br-retraso">5 días de retraso</span></td>
+              <td class="br-tabla__acciones"><div class="br-tabla__acciones-dentro"><button type="button" class="br-boton br-boton--secundario br-boton--chico">Registrar pago<span class="br-solo-lectores"> de Luisa Fernanda Ríos Cárdenas</span></button><details class="br-menu-acciones"><summary aria-label="Más acciones para Luisa Fernanda Ríos Cárdenas"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><circle cx="5" cy="12" r="1.25"></circle><circle cx="12" cy="12" r="1.25"></circle><circle cx="19" cy="12" r="1.25"></circle></svg></summary><div class="br-menu-acciones__lista"><button type="button" class="br-menu-acciones__item">Avisar retraso<span class="br-suave">Le llega un aviso con el motivo</span></button><button type="button" class="br-menu-acciones__item">Registrar novedad<span class="br-suave">Retraso de pago, Suspensión, Reactivación, Cancelación u Otra</span></button></div></details></div></td>
+            </tr>
+            <tr>
+              <td class="br-tabla__seleccion"><label class="br-casilla"><input type="checkbox" disabled><span class="br-solo-lectores">Ya está pagado: Sara Lucía Zuluaga</span></label></td>
+              <td class="br-tabla__titulo"><span class="br-tabla__principal">Sara Lucía Zuluaga</span><span class="br-tabla__sub">1.000.876.543</span></td>
+              <td data-etiqueta="Beneficio">Apoyo de alimentación<span class="br-tabla__sub br-ocultar-celular">Alimentación <span class="br-sin-corte">2026-2</span></span></td>
+              <td data-etiqueta="Pago" class="br-cifra">3 de 6</td>
+              <td data-etiqueta="Valor" class="br-num">$ 180.000</td>
+              <td data-etiqueta="Fecha esperada">15 nov 2026</td>
+              <td class="br-tabla__estado"><span class="br-etiqueta br-etiqueta--ok">Pagado</span><span class="br-tabla__sub">el 13 nov 2026</span></td>
+              <td class="br-tabla__acciones"><div class="br-tabla__acciones-dentro"><details class="br-menu-acciones"><summary aria-label="Más acciones para Sara Lucía Zuluaga"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><circle cx="5" cy="12" r="1.25"></circle><circle cx="12" cy="12" r="1.25"></circle><circle cx="19" cy="12" r="1.25"></circle></svg></summary><div class="br-menu-acciones__lista"><button type="button" class="br-menu-acciones__item">Ver detalle del pago<span class="br-suave">Fecha, quién lo registró y la observación</span></button><button type="button" class="br-menu-acciones__item">Registrar novedad<span class="br-suave">Retraso de pago, Suspensión, Reactivación, Cancelación u Otra</span></button><div class="br-menu-acciones__separador" role="presentation"></div><div class="br-menu-acciones__peligro"><button type="button" class="br-boton br-boton--peligro br-boton--chico" aria-describedby="nota-anular-1000876543">Anular pago</button><p class="br-suave" id="nota-anular-1000876543">Te pedimos el motivo. No se borra nada: el pago queda anulado en el historial.</p></div></div></details></div></td>
+            </tr>
+            <tr class="br-fila--elegida">
+              <td class="br-tabla__seleccion"><label class="br-casilla"><input type="checkbox" checked><span class="br-solo-lectores">Seleccionar el pago de Jhon Fredy Asprilla</span></label></td>
+              <td class="br-tabla__titulo"><span class="br-tabla__principal">Jhon Fredy Asprilla</span><span class="br-tabla__sub">1.152.468.903</span></td>
+              <td data-etiqueta="Beneficio">Apoyo de alimentación<span class="br-tabla__sub br-ocultar-celular">Alimentación <span class="br-sin-corte">2026-2</span></span></td>
+              <td data-etiqueta="Pago" class="br-cifra">2 de 6</td>
+              <td data-etiqueta="Valor" class="br-num">$ 180.000</td>
+              <td data-etiqueta="Fecha esperada">18 nov 2026</td>
+              <td class="br-tabla__estado"><span class="br-etiqueta br-etiqueta--aviso">Retrasado</span><span class="br-retraso">2 días de retraso</span><span class="br-tabla__sub">Avisado el 19 nov</span></td>
+              <td class="br-tabla__acciones"><div class="br-tabla__acciones-dentro"><button type="button" class="br-boton br-boton--secundario br-boton--chico">Registrar pago<span class="br-solo-lectores"> de Jhon Fredy Asprilla</span></button><details class="br-menu-acciones"><summary aria-label="Más acciones para Jhon Fredy Asprilla"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><circle cx="5" cy="12" r="1.25"></circle><circle cx="12" cy="12" r="1.25"></circle><circle cx="19" cy="12" r="1.25"></circle></svg></summary><div class="br-menu-acciones__lista"><button type="button" class="br-menu-acciones__item">Avisar retraso<span class="br-suave">Le llega un aviso con el motivo</span></button><button type="button" class="br-menu-acciones__item">Registrar novedad<span class="br-suave">Retraso de pago, Suspensión, Reactivación, Cancelación u Otra</span></button></div></details></div></td>
+            </tr>
+            <tr>
+              <td class="br-tabla__seleccion"><label class="br-casilla"><input type="checkbox" disabled><span class="br-solo-lectores">Ya está pagado: Cristian Camilo Rendón</span></label></td>
+              <td class="br-tabla__titulo"><span class="br-tabla__principal">Cristian Camilo Rendón</span><span class="br-tabla__sub">1.040.321.765</span></td>
+              <td data-etiqueta="Beneficio">Apoyo de alimentación<span class="br-tabla__sub br-ocultar-celular">Alimentación <span class="br-sin-corte">2026-2</span></span></td>
+              <td data-etiqueta="Pago" class="br-cifra">3 de 6</td>
+              <td data-etiqueta="Valor" class="br-num">$ 180.000</td>
+              <td data-etiqueta="Fecha esperada">20 nov 2026</td>
+              <td class="br-tabla__estado"><span class="br-etiqueta br-etiqueta--ok">Pagado</span><span class="br-tabla__sub">el 19 nov 2026</span></td>
+              <td class="br-tabla__acciones"><div class="br-tabla__acciones-dentro"><details class="br-menu-acciones"><summary aria-label="Más acciones para Cristian Camilo Rendón"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><circle cx="5" cy="12" r="1.25"></circle><circle cx="12" cy="12" r="1.25"></circle><circle cx="19" cy="12" r="1.25"></circle></svg></summary><div class="br-menu-acciones__lista"><button type="button" class="br-menu-acciones__item">Ver detalle del pago<span class="br-suave">Fecha, quién lo registró y la observación</span></button><button type="button" class="br-menu-acciones__item">Registrar novedad<span class="br-suave">Retraso de pago, Suspensión, Reactivación, Cancelación u Otra</span></button><div class="br-menu-acciones__separador" role="presentation"></div><div class="br-menu-acciones__peligro"><button type="button" class="br-boton br-boton--peligro br-boton--chico" aria-describedby="nota-anular-1040321765">Anular pago</button><p class="br-suave" id="nota-anular-1040321765">Te pedimos el motivo. No se borra nada: el pago queda anulado en el historial.</p></div></div></details></div></td>
+            </tr>
+            <tr class="br-fila--elegida">
+              <td class="br-tabla__seleccion"><label class="br-casilla"><input type="checkbox" checked><span class="br-solo-lectores">Seleccionar el pago de Brayan Stiven Cardona</span></label></td>
+              <td class="br-tabla__titulo"><span class="br-tabla__principal">Brayan Stiven Cardona</span><span class="br-tabla__sub">1.017.234.561</span></td>
+              <td data-etiqueta="Beneficio">Apoyo de alimentación<span class="br-tabla__sub br-ocultar-celular">Alimentación <span class="br-sin-corte">2026-2</span></span></td>
+              <td data-etiqueta="Pago" class="br-cifra">3 de 6</td>
+              <td data-etiqueta="Valor" class="br-num">$ 180.000</td>
+              <td data-etiqueta="Fecha esperada">25 nov 2026</td>
+              <td class="br-tabla__estado"><span class="br-etiqueta br-etiqueta--neutra">Pendiente</span></td>
+              <td class="br-tabla__acciones"><div class="br-tabla__acciones-dentro"><button type="button" class="br-boton br-boton--secundario br-boton--chico">Registrar pago<span class="br-solo-lectores"> de Brayan Stiven Cardona</span></button><details class="br-menu-acciones"><summary aria-label="Más acciones para Brayan Stiven Cardona"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><circle cx="5" cy="12" r="1.25"></circle><circle cx="12" cy="12" r="1.25"></circle><circle cx="19" cy="12" r="1.25"></circle></svg></summary><div class="br-menu-acciones__lista"><button type="button" class="br-menu-acciones__item">Registrar novedad<span class="br-suave">Retraso de pago, Suspensión, Reactivación, Cancelación u Otra</span></button></div></details></div></td>
+            </tr>
+            <tr class="br-fila--elegida">
+              <td class="br-tabla__seleccion"><label class="br-casilla"><input type="checkbox" checked><span class="br-solo-lectores">Seleccionar el pago de Manuela Echeverri Gil</span></label></td>
+              <td class="br-tabla__titulo"><span class="br-tabla__principal">Manuela Echeverri Gil</span><span class="br-tabla__sub">1.025.643.987</span></td>
+              <td data-etiqueta="Beneficio">Apoyo de alimentación<span class="br-tabla__sub br-ocultar-celular">Alimentación <span class="br-sin-corte">2026-2</span></span></td>
+              <td data-etiqueta="Pago" class="br-cifra">2 de 5</td>
+              <td data-etiqueta="Valor" class="br-num">$ 180.000</td>
+              <td data-etiqueta="Fecha esperada">25 nov 2026</td>
+              <td class="br-tabla__estado"><span class="br-etiqueta br-etiqueta--neutra">Pendiente</span></td>
+              <td class="br-tabla__acciones"><div class="br-tabla__acciones-dentro"><button type="button" class="br-boton br-boton--secundario br-boton--chico">Registrar pago<span class="br-solo-lectores"> de Manuela Echeverri Gil</span></button><details class="br-menu-acciones"><summary aria-label="Más acciones para Manuela Echeverri Gil"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><circle cx="5" cy="12" r="1.25"></circle><circle cx="12" cy="12" r="1.25"></circle><circle cx="19" cy="12" r="1.25"></circle></svg></summary><div class="br-menu-acciones__lista"><button type="button" class="br-menu-acciones__item">Registrar novedad<span class="br-suave">Retraso de pago, Suspensión, Reactivación, Cancelación u Otra</span></button></div></details></div></td>
+            </tr>
+            <tr class="br-fila--elegida">
+              <td class="br-tabla__seleccion"><label class="br-casilla"><input type="checkbox" checked><span class="br-solo-lectores">Seleccionar el pago de Yuliana Marcela Pino</span></label></td>
+              <td class="br-tabla__titulo"><span class="br-tabla__principal">Yuliana Marcela Pino</span><span class="br-tabla__sub">1.036.789.012</span></td>
+              <td data-etiqueta="Beneficio">Apoyo de alimentación<span class="br-tabla__sub br-ocultar-celular">Alimentación <span class="br-sin-corte">2026-2</span></span></td>
+              <td data-etiqueta="Pago" class="br-cifra">3 de 6</td>
+              <td data-etiqueta="Valor" class="br-num">$ 180.000</td>
+              <td data-etiqueta="Fecha esperada">30 nov 2026</td>
+              <td class="br-tabla__estado"><span class="br-etiqueta br-etiqueta--neutra">Pendiente</span></td>
+              <td class="br-tabla__acciones"><div class="br-tabla__acciones-dentro"><button type="button" class="br-boton br-boton--secundario br-boton--chico">Registrar pago<span class="br-solo-lectores"> de Yuliana Marcela Pino</span></button><details class="br-menu-acciones"><summary aria-label="Más acciones para Yuliana Marcela Pino"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><circle cx="5" cy="12" r="1.25"></circle><circle cx="12" cy="12" r="1.25"></circle><circle cx="19" cy="12" r="1.25"></circle></svg></summary><div class="br-menu-acciones__lista"><button type="button" class="br-menu-acciones__item">Registrar novedad<span class="br-suave">Retraso de pago, Suspensión, Reactivación, Cancelación u Otra</span></button></div></details></div></td>
+            </tr>
+            <tr class="br-fila--elegida">
+              <td class="br-tabla__seleccion"><label class="br-casilla"><input type="checkbox" checked><span class="br-solo-lectores">Seleccionar el pago de Isabella Henao Ramírez</span></label></td>
+              <td class="br-tabla__titulo"><span class="br-tabla__principal">Isabella Henao Ramírez</span><span class="br-tabla__sub">1.001.234.876</span></td>
+              <td data-etiqueta="Beneficio">Apoyo de alimentación<span class="br-tabla__sub br-ocultar-celular">Alimentación <span class="br-sin-corte">2026-2</span></span></td>
+              <td data-etiqueta="Pago" class="br-cifra">3 de 6</td>
+              <td data-etiqueta="Valor" class="br-num">$ 180.000</td>
+              <td data-etiqueta="Fecha esperada">30 nov 2026</td>
+              <td class="br-tabla__estado"><span class="br-etiqueta br-etiqueta--neutra">Pendiente</span></td>
+              <td class="br-tabla__acciones"><div class="br-tabla__acciones-dentro"><button type="button" class="br-boton br-boton--secundario br-boton--chico">Registrar pago<span class="br-solo-lectores"> de Isabella Henao Ramírez</span></button><details class="br-menu-acciones"><summary aria-label="Más acciones para Isabella Henao Ramírez"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><circle cx="5" cy="12" r="1.25"></circle><circle cx="12" cy="12" r="1.25"></circle><circle cx="19" cy="12" r="1.25"></circle></svg></summary><div class="br-menu-acciones__lista"><button type="button" class="br-menu-acciones__item">Registrar novedad<span class="br-suave">Retraso de pago, Suspensión, Reactivación, Cancelación u Otra</span></button></div></details></div></td>
+            </tr>
+            <tr class="br-fila--elegida">
+              <td class="br-tabla__seleccion"><label class="br-casilla"><input type="checkbox" checked><span class="br-solo-lectores">Seleccionar el pago de Emanuel Córdoba Rentería</span></label></td>
+              <td class="br-tabla__titulo"><span class="br-tabla__principal">Emanuel Córdoba Rentería</span><span class="br-tabla__sub">1.077.456.123</span></td>
+              <td data-etiqueta="Beneficio">Apoyo de alimentación<span class="br-tabla__sub br-ocultar-celular">Alimentación <span class="br-sin-corte">2026-2</span></span></td>
+              <td data-etiqueta="Pago" class="br-cifra">2 de 6</td>
+              <td data-etiqueta="Valor" class="br-num">$ 180.000</td>
+              <td data-etiqueta="Fecha esperada">30 nov 2026</td>
+              <td class="br-tabla__estado"><span class="br-etiqueta br-etiqueta--neutra">Pendiente</span></td>
+              <td class="br-tabla__acciones"><div class="br-tabla__acciones-dentro"><button type="button" class="br-boton br-boton--secundario br-boton--chico">Registrar pago<span class="br-solo-lectores"> de Emanuel Córdoba Rentería</span></button><details class="br-menu-acciones"><summary aria-label="Más acciones para Emanuel Córdoba Rentería"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><circle cx="5" cy="12" r="1.25"></circle><circle cx="12" cy="12" r="1.25"></circle><circle cx="19" cy="12" r="1.25"></circle></svg></summary><div class="br-menu-acciones__lista"><button type="button" class="br-menu-acciones__item">Registrar novedad<span class="br-suave">Retraso de pago, Suspensión, Reactivación, Cancelación u Otra</span></button></div></details></div></td>
+            </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="br-listado__pie">
+          <span>Página 1 de 3</span>
+          <nav class="br-paginacion" aria-label="Páginas">
+            <span aria-disabled="true"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="m15 6-6 6 6 6"></path></svg>Anterior</span>
+            <span aria-current="page" class="br-paginacion__numero">1</span>
+            <a href="#" class="br-paginacion__numero">2</a>
+            <a href="#" class="br-paginacion__numero">3</a>
+            <a href="#">Siguiente<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="m9 6 6 6-6 6"></path></svg></a>
+          </nav>
+        </div>
+    </section>
+  </main>
+</div>
+  <div class="br-dialogo-capa">
+    <div class="br-dialogo br-dialogo--ancho" role="dialog" aria-modal="true" aria-labelledby="dialogo-titulo">
+      <h2 id="dialogo-titulo">Marcar como pagados</h2>
+      <p class="br-dialogo__sub">Apoyo de alimentación · Alimentación <span class="br-sin-corte">2026-2</span> · pagos de noviembre</p>
+      <div class="br-resumen" data-prueba="resumen">
+        <p class="br-resumen__cifra">Vas a registrar 23 pagos por $ 4.140.000</p>
+        <p class="br-resumen__partes"><span><span class="br-resumen__punto" aria-hidden="true"></span>20 a tiempo</span><span><span class="br-resumen__punto br-resumen__punto--aviso" aria-hidden="true"></span>3 con retraso</span></p>
+      </div>
+      <div class="br-campo">
+        <label for="fecha-pago">Fecha de pago</label>
+        <input id="fecha-pago" type="date" value="2026-11-20" aria-describedby="ayuda-fecha">
+        <p class="br-ayuda" id="ayuda-fecha">La misma para los 23: el día en que el banco hizo los pagos.</p>
+      </div>
+      <div class="br-campo">
+        <label for="observacion">Observación <span class="br-suave">(opcional)</span></label>
+        <textarea id="observacion" placeholder="Por ejemplo: lote de transferencias de noviembre"></textarea>
+      </div>
+      <div class="br-aviso br-aviso--naranja br-aviso--grande">
+        <svg aria-hidden="true" class="br-aviso__icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>
+        <div class="br-aviso__cuerpo">
+          <p class="br-aviso__titulo">3 de estos pagos van con retraso.</p>
+          <p class="br-aviso__detalle">Su fecha esperada ya pasó. En el siguiente paso te pedimos el motivo.</p>
+        </div>
+      </div>
+      <p class="br-suave">Cada aprendiz recibe un aviso de su pago en BenefitRack.</p>
+      <div class="br-dialogo__acciones">
+        <button type="button" class="br-boton br-boton--secundario">Cancelar</button>
+        <button type="button" class="br-boton br-boton--primario">Continuar</button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

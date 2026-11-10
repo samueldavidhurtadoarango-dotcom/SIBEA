@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Revisa tu contraseña · BenefitRack</title>
+  <link rel="stylesheet" href="../../_comun/estilo.css">
+</head>
+<body>
+  <main class="br-acceso">
+    <div class="br-acceso__marca">
+      <div class="br-acceso__logo" data-prueba="logo">Logo SENA</div>
+      <span class="br-acceso__nombre">BenefitRack</span>
+    </div>
+    <section class="br-acceso__tarjeta" data-prueba="tarjeta" aria-labelledby="titulo">
+      <div class="br-acceso__encabezado">
+        <h1 id="titulo">Crea tu contraseña</h1>
+        <p>Entraste con la contraseña que te dio Bienestar al Aprendiz. Por seguridad, debes cambiarla antes de continuar.</p>
+      </div>
+      <div class="br-resumen-errores" role="alert">
+        <h2>Revisa 2 cosas para continuar</h2>
+        <ul>
+          <li><a href="#nueva">Tu contraseña no tiene una letra mayúscula</a></li>
+          <li><a href="#confirmar">Las contraseñas no coinciden</a></li>
+        </ul>
+      </div>
+      <form class="br-acceso__formulario" action="#" novalidate>
+        <div class="br-campo">
+          <label for="nueva">Contraseña nueva</label>
+          <div class="br-campo__clave">
+            <input id="nueva" type="password" autocomplete="new-password" value="luisa1234" aria-invalid="true" aria-describedby="nueva-error reglas-titulo">
+            <button type="button" class="br-campo__ojo" aria-label="Mostrar contraseña"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>
+          </div>
+          <p class="br-error-campo" id="nueva-error"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v5M12 16h.01"></path></svg><span>Aún no cumple todas las reglas: le falta una letra mayúscula.</span></p>
+        </div>
+        <div class="br-campo">
+          <label for="confirmar">Confirma tu contraseña nueva</label>
+          <div class="br-campo__clave">
+            <input id="confirmar" type="password" autocomplete="new-password" value="luisa123" aria-invalid="true" aria-describedby="confirmar-error">
+            <button type="button" class="br-campo__ojo" aria-label="Mostrar contraseña"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>
+          </div>
+          <p class="br-error-campo" id="confirmar-error"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v5M12 16h.01"></path></svg><span>Las contraseñas no coinciden. Escribe la misma en los dos campos.</span></p>
+        </div>
+        <div class="br-reglas-caja">
+          <p id="reglas-titulo">Tu contraseña debe tener:</p>
+          <ul class="br-reglas" data-prueba="reglas" aria-labelledby="reglas-titulo">
+            <li data-estado="cumplida"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="m8 12.5 3 3 5-6"></path></svg><span><span class="br-solo-lectores">Cumplida: </span>Mínimo 8 caracteres</span></li>
+            <li data-estado="incumplida"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="m15 9-6 6M9 9l6 6"></path></svg><span><span class="br-solo-lectores">No se cumple: </span>Una letra mayúscula</span></li>
+            <li data-estado="cumplida"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="m8 12.5 3 3 5-6"></path></svg><span><span class="br-solo-lectores">Cumplida: </span>Una letra minúscula</span></li>
+            <li data-estado="cumplida"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="m8 12.5 3 3 5-6"></path></svg><span><span class="br-solo-lectores">Cumplida: </span>Un número</span></li>
+          </ul>
+        </div>
+        <button type="submit" class="br-boton br-boton--primario br-boton--ancho">Guardar contraseña</button>
+      </form>
+      <p class="br-acceso__pie"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v5M12 8h.01"></path></svg><span>¿Problemas para cambiarla? Comunícate con Bienestar al Aprendiz de tu centro de formación.</span></p>
+    </section>
+  </main>
+</body>
+</html>

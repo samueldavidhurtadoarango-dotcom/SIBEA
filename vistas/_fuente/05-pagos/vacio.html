@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pagos · Sin pagos</title>
+  <link rel="stylesheet" href="../../_comun/estilo.css">
+</head>
+<body>
+<!-- Vista 5 · Administrador: pagos. Estado: vacio. Convocatoria sin aprendices aprobados todavía.
+     Datos de ejemplo: hoy es el 20 nov 2026; Alimentación 2026-2 tiene 25 pagos en noviembre. -->
+<div class="br-admin">
+  <!-- incluir:menu-admin activo="Pagos" -->
+  <main>
+    <div class="br-encabezado">
+      <div class="br-encabezado__titulo">
+        <h1>Pagos</h1>
+        <p class="br-encabezado__sub">Registra los pagos del beneficio, varios a la vez, y avisa cuando uno se retrase.</p>
+      </div>
+
+    </div>
+    <nav class="br-pestanas" aria-label="Filtrar por estado">
+      <a href="#" aria-current="page">Todos <span class="br-contador">0</span></a>
+      <a href="#">Pendientes <span class="br-contador">0</span></a>
+      <a href="#">Retrasados <span class="br-contador">0</span></a>
+      <a href="#">Pagados <span class="br-contador">0</span></a>
+    </nav>
+    <section class="br-tarjeta br-listado" aria-label="Lista de pagos">
+      <div class="br-listado__herramientas">
+          <div class="br-filtros">
+            <div class="br-buscador">
+              <label for="buscar" class="br-solo-lectores">Buscar por nombre o documento</label>
+              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+              <input id="buscar" class="br-entrada" type="search" placeholder="Nombre o documento">
+            </div>
+            <label for="filtro-convocatoria" class="br-solo-lectores">Convocatoria</label>
+            <select id="filtro-convocatoria" class="br-entrada">
+              <option>Alimentación 2026-2</option>
+              <option>Plan de datos 2026-2</option>
+              <option selected>Tarjeta cívica 2026-2</option>
+              <option>Todas las convocatorias</option>
+            </select>
+            <label for="filtro-mes" class="br-solo-lectores">Mes</label>
+            <select id="filtro-mes" class="br-entrada">
+              <option>Septiembre 2026</option>
+              <option>Octubre 2026</option>
+              <option selected>Noviembre 2026</option>
+              <option>Diciembre 2026</option>
+              <option>Enero 2027</option>
+              <option>Febrero 2027</option>
+            </select>
+          </div>
+      </div>
+      <div class="br-vacio">
+        <span class="br-vacio__icono" aria-hidden="true"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="26" height="26"><rect x="3" y="6" width="18" height="14" rx="2"></rect><path d="M3 10h18M16 15h2"></path></svg></span>
+        <h2>No hay pagos de Tarjeta cívica <span class="br-sin-corte">2026-2</span> en noviembre</h2>
+        <p>Los pagos aparecen cuando apruebas postulaciones de esta convocatoria. Ahora tiene 12 postulaciones pendientes de revisar.</p>
+        <div class="br-fila"><a href="#" class="br-boton br-boton--primario">Revisar postulaciones</a></div>
+      </div>
+    </section>
+  </main>
+</div>
+</body>
+</html>

@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Subir documento · Error</title>
+  <link rel="stylesheet" href="../../_comun/estilo.css">
+</head>
+<body>
+  <!-- incluir:barra-aprendiz nombre="Luisa Fernanda" avisos="1" -->
+  <main class="br-pagina">
+    <div class="br-aviso br-aviso--azul br-aviso--grande" data-prueba="pedido">
+      <svg aria-hidden="true" class="br-aviso__icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M9 13h6"></path><path d="M9 17h4"></path></svg>
+      <div class="br-aviso__cuerpo">
+        <p class="br-aviso__titulo">Bienestar te pidió: Certificado de EPS.</p>
+        <p class="br-aviso__detalle">«El certificado que enviaste no se alcanza a leer. Súbelo de nuevo en PDF o en una foto clara, por favor.»</p>
+        <p class="br-suave">Lo pidió el 10 ago 2026 · Apoyo de alimentación, convocatoria <span class="br-sin-corte">2026-2</span></p>
+      </div>
+    </div>
+    <section class="br-tarjeta" aria-labelledby="titulo-error">
+      <h1 id="titulo-error">No pudimos recibir tu archivo</h1>
+      <div class="br-archivo br-archivo--error">
+        <svg aria-hidden="true" class="br-archivo__icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg>
+        <div class="br-archivo__texto">
+          <span class="br-archivo__nombre">foto-certificado-eps-luisa-fernanda-rios.jpg</span>
+          <span class="br-suave">JPG · 8,4 MB</span>
+        </div>
+      </div>
+      <div class="br-mensaje-error" role="alert">
+        <strong>El archivo pesa demasiado.</strong>
+        <span>Pesa 8,4 MB y el máximo es 5 MB. Toma la foto de nuevo con menos calidad o envía el certificado en PDF.</span>
+      </div>
+      <p class="br-ayuda">Aceptamos PDF, JPG o PNG de hasta 5 MB.</p>
+      <a class="br-boton br-boton--primario" href="elegir-archivo.html">Intentar de nuevo</a>
+    </section>
+    <a class="br-volver" href="../../01-mi-proceso/html/documento-pedido.html">Volver a Mi proceso</a>
+  </main>
+</body>
+</html>

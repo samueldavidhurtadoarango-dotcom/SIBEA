@@ -1,3 +1,6 @@
 *.tmp
 ~$*
 base-de-datos/pruebas/concurrencia/*.out
+
+# Bocetos de la sesión de brainstorming
+.superpowers/

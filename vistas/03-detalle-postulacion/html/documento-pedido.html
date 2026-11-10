@@ -1,0 +1,1442 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Postulación de Daniela Mosquera Palacios · Documento pedido</title>
+  <style>
+/* BenefitRack · estilo común de las vistas (spec 002, sección 2).
+   Letra y colores salen del inicio de sesión de Samuel. NO agregar colores fuera de esta lista
+   sin anotarlos antes en la spec y en vistas/herramientas/pruebas/_global.js. */
+@import url('https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700&display=swap');
+
+:root {
+  --br-azul: #00304D;
+  --br-verde: #007832;
+  --br-verde-hover: #00632A;
+  --br-lima: #6BD11F;
+  --br-enlace: #0B6CB8;
+  --br-gris: #556776;        /* texto secundario (el que pasa el contraste AA) */
+  --br-gris-medio: #6B7C88;  /* solo texto grande o decorativo: no llega a 4.5:1 sobre blanco */
+  --br-gris-claro: #7D8E9A;  /* bordes de campos y adornos */
+  --br-fondo: #F5F7F9;
+  --br-fondo-2: #F0F4F6;
+  --br-fondo-3: #EEF2F4;
+  --br-borde: #E3E8EC;
+  --br-blanco: #FFFFFF;
+  /* avisos (boceto aprobado) */
+  --br-aviso-fondo: #FFF3E0;
+  --br-aviso-texto: #A35200;
+  --br-aviso-borde: #F5C98B;
+  --br-aviso-oscuro: #7A3E00;
+  --br-verde-claro: #E6F4EC;
+  /* estados del panel de postulaciones aprobado (00-existentes/postulaciones) */
+  --br-rojo: #C2392F;           /* documento no válido, acciones destructivas */
+  --br-rojo-texto: #9E3A34;
+  --br-rojo-fondo: #FCEBEA;
+  --br-pendiente-fondo: #FFF0B8; /* insignia «Pendiente» */
+  --br-pendiente-texto: #5C4400;
+  --br-pendiente-punto: #E0A800;
+  --br-antiguedad-fondo: #FFF4D1; /* chip «hace N días» */
+  --br-antiguedad-texto: #6E5200;
+  --br-validada-fondo: #E2F2FB;  /* insignia «Validada» */
+  --br-validada-texto: #0B5180;
+  --br-doc-ok-fondo: #E6F4DD;    /* documento válido */
+  --br-doc-ok-texto: #22610A;
+  --br-doc-ok-marca: #2E7D12;
+  --br-doc-neutro-fondo: #EEF2F5; /* documento sin revisar (la marca gris es #7D8E9A) */
+  --br-chip-fondo: #EEF4F8;      /* chip «Doc. adicional» */
+  --br-chip-borde: #C9DCEA;
+
+  --br-radio: 12px;
+  --br-fuente: 'Work Sans', Inter, system-ui, sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { color: var(--br-azul); background: var(--br-fondo); }
+
+body {
+  margin: 0;
+  position: relative; /* las capas de diálogo se apoyan en el body */
+  font-family: var(--br-fuente);
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--br-azul);
+  background: var(--br-fondo);
+  overflow-wrap: break-word;
+}
+
+::selection { background: var(--br-verde-claro); color: var(--br-azul); }
+
+h1, h2, h3, p { margin: 0; }
+h1 { font-size: 26px; font-weight: 600; letter-spacing: -0.015em; line-height: 1.25; }
+h2 { font-size: 18px; font-weight: 600; line-height: 1.3; }
+h3 { font-size: 15px; font-weight: 600; }
+a { color: var(--br-enlace); }
+img { max-width: 100%; }
+button, input, select, textarea { font: inherit; color: inherit; }
+
+/* Foco visible en todo lo que se puede usar con teclado */
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible,
+textarea:focus-visible, summary:focus-visible, [tabindex]:focus-visible {
+  outline: 3px solid var(--br-enlace);
+  outline-offset: 2px;
+}
+.br-barra-aprendiz :focus-visible, .br-lateral :focus-visible, .br-movil :focus-visible {
+  outline-color: var(--br-lima);
+}
+
+.br-solo-lectores {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* ---------- Estructura ---------- */
+.br-pila { display: grid; gap: 16px; }
+.br-fila { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.br-suave { color: var(--br-gris); font-size: 13px; }
+.br-lista { margin: 0; padding-left: 22px; display: grid; gap: 6px; }
+.br-lista li::marker { color: var(--br-gris); font-weight: 600; }
+.br-texto { max-width: 62ch; }
+.br-sin-corte { white-space: nowrap; } /* p. ej. «2026-2»: que no se parta en el guion */
+.br-pagina { width: 100%; max-width: 760px; margin: 0 auto; padding-block: 20px 48px; padding-inline: 16px; }
+.br-pagina > * + * { margin-top: 16px; }
+
+/* ---------- Barra del aprendiz ---------- */
+.br-barra-aprendiz { background: var(--br-azul); color: var(--br-blanco); }
+/* Marca a la izquierda; saludo, campanita y «Salir» a la derecha.
+   En celular el saludo baja debajo de la marca para que un nombre largo no empuje nada. */
+.br-barra-aprendiz__dentro {
+  position: relative; /* el panel de avisos se apoya aquí */
+  max-width: 760px; margin: 0 auto; padding: 10px 16px;
+  display: grid; align-items: center; column-gap: 12px;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  grid-template-areas: "marca saludo campana salir";
+}
+.br-barra-aprendiz__marca { grid-area: marca; font-size: 18px; font-weight: 700; letter-spacing: -0.01em; }
+.br-barra-aprendiz__saludo {
+  grid-area: saludo; justify-self: end; min-width: 0; max-width: 100%;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: 14px; color: var(--br-fondo-2);
+}
+.br-barra-aprendiz__salir {
+  grid-area: salir; display: inline-flex; align-items: center; min-height: 44px; padding: 0 8px;
+  color: var(--br-blanco); font-size: 14px; font-weight: 500; text-underline-offset: 3px;
+}
+.br-campanita-caja { grid-area: campana; }
+@media (max-width: 480px) {
+  .br-barra-aprendiz__dentro {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-areas: "marca campana salir" "saludo campana salir";
+    row-gap: 0; padding-block: 8px;
+  }
+  .br-barra-aprendiz__marca { line-height: 1.3; }
+  .br-barra-aprendiz__saludo { justify-self: start; font-size: 13px; line-height: 1.4; }
+}
+.br-campanita {
+  position: relative; display: inline-flex; align-items: center; justify-content: center;
+  width: 44px; height: 44px; padding: 0; cursor: pointer;
+  background: var(--br-azul); color: var(--br-blanco);
+  border: 1px solid var(--br-gris); border-radius: 10px;
+}
+.br-campanita:hover { border-color: var(--br-gris-claro); }
+.br-campanita[aria-expanded="true"] { background: var(--br-gris); border-color: var(--br-gris-claro); }
+.br-campanita__contador {
+  position: absolute; top: -6px; right: -6px; min-width: 20px; height: 20px; padding: 0 5px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--br-lima); color: var(--br-azul);
+  border: 2px solid var(--br-azul); border-radius: 999px; font-size: 12px; font-weight: 700;
+}
+
+/* ---------- Estructura del administrador: menú lateral + cabecera + contenido ---------- */
+.br-admin {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 248px minmax(0, 1fr);
+  grid-template-rows: auto auto 1fr;
+  grid-template-areas: "lateral movil" "lateral cabecera" "lateral contenido";
+}
+.br-admin > .br-lateral { grid-area: lateral; }
+.br-admin > .br-movil { grid-area: movil; display: none; }
+.br-admin > .br-cabecera { grid-area: cabecera; }
+.br-admin > main { grid-area: contenido; padding: 28px 32px 48px; display: grid; gap: 20px; align-content: start; min-width: 0; }
+
+.br-lateral {
+  background: var(--br-azul); color: var(--br-blanco);
+  padding: 24px 16px; display: flex; flex-direction: column; gap: 28px;
+}
+.br-lateral__marca { display: grid; gap: 14px; padding: 0 8px; }
+.br-logo-sena {
+  height: 64px; display: flex; align-items: center; justify-content: center;
+  border: 1.5px dashed var(--br-gris-claro); border-radius: 12px;
+  font-size: 14px; color: var(--br-fondo-2);
+}
+.br-lateral__nombre { display: block; font-size: 18px; font-weight: 700; letter-spacing: -0.01em; }
+.br-lateral__sub { display: block; font-size: 14px; color: var(--br-fondo-2); }
+.br-lateral__lista { display: grid; gap: 4px; }
+.br-lateral__enlace {
+  position: relative; display: flex; align-items: center; gap: 12px; min-height: 44px;
+  padding: 0 12px; border-radius: 10px; color: var(--br-fondo-2);
+  text-decoration: none; font-size: 15px; font-weight: 500;
+}
+.br-lateral__enlace:hover { background: var(--br-gris); color: var(--br-blanco); }
+.br-lateral__enlace[aria-current="page"] { background: var(--br-verde); color: var(--br-blanco); font-weight: 600; }
+.br-lateral__enlace[aria-current="page"]::before {
+  content: ''; position: absolute; left: 0; top: 10px; bottom: 10px; width: 3px;
+  border-radius: 3px; background: var(--br-lima);
+}
+.br-lateral__nota {
+  margin-top: auto; padding: 14px; border-radius: 12px;
+  background: var(--br-gris); color: var(--br-blanco); font-size: 14px; line-height: 1.45;
+}
+
+.br-movil {
+  align-items: center; justify-content: space-between; gap: 12px; position: relative;
+  background: var(--br-azul); color: var(--br-blanco); padding: 10px 16px;
+}
+.br-movil__marca { display: flex; align-items: center; gap: 10px; font-size: 17px; font-weight: 700; }
+.br-movil__logo {
+  width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
+  border: 1.5px dashed var(--br-gris-claro); border-radius: 8px; font-size: 11px; font-weight: 400; color: var(--br-fondo-2);
+}
+.br-movil details { position: relative; }
+.br-movil summary {
+  list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  width: 44px; height: 44px; border-radius: 10px; border: 1px solid var(--br-gris);
+}
+.br-movil summary::-webkit-details-marker { display: none; }
+.br-movil__menu {
+  position: absolute; right: 0; top: 52px; z-index: 10; width: 240px; padding: 8px;
+  display: grid; background: var(--br-blanco); border: 1px solid var(--br-borde);
+  border-radius: 12px; color: var(--br-azul);
+}
+.br-movil__menu a {
+  display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 8px;
+  color: var(--br-azul); text-decoration: none;
+}
+.br-movil__menu a[aria-current="page"] { background: var(--br-verde-claro); color: var(--br-verde); font-weight: 600; }
+
+.br-cabecera {
+  background: var(--br-blanco); border-bottom: 1px solid var(--br-borde);
+  padding: 14px 32px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px;
+}
+.br-migas { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--br-gris); }
+.br-migas a { color: var(--br-gris); text-decoration: none; }
+.br-migas [aria-current="page"] { color: var(--br-azul); font-weight: 600; }
+.br-usuario {
+  display: flex; align-items: center; gap: 10px; padding: 4px 12px 4px 4px;
+  border: 1px solid var(--br-borde); border-radius: 12px; background: var(--br-blanco);
+}
+.br-usuario__inicial {
+  width: 36px; height: 36px; border-radius: 999px; display: flex; align-items: center; justify-content: center;
+  background: var(--br-fondo-2); color: var(--br-azul); font-size: 14px; font-weight: 600;
+}
+.br-usuario__texto { display: grid; line-height: 1.25; }
+.br-usuario__nombre { font-size: 14px; font-weight: 600; }
+.br-usuario__rol { font-size: 13px; color: var(--br-gris); }
+
+@media (max-width: 860px) {
+  .br-admin { grid-template-columns: minmax(0, 1fr); grid-template-areas: "movil" "cabecera" "contenido"; }
+  .br-admin > .br-lateral { display: none; }
+  .br-admin > .br-movil { display: flex; }
+  .br-admin > main { padding: 20px 16px 40px; }
+  .br-cabecera { padding: 12px 16px; }
+  .br-usuario__texto { display: none; }
+  .br-usuario { padding: 4px; }
+}
+
+/* ---------- Tarjeta ---------- */
+.br-tarjeta {
+  background: var(--br-blanco); border: 1px solid var(--br-borde);
+  border-radius: var(--br-radio); padding: 20px; min-width: 0;
+}
+.br-tarjeta > * + * { margin-top: 12px; }
+
+/* datos clave / valor en rejilla */
+.br-datos { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 14px; }
+.br-datos__clave { font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--br-gris); }
+.br-datos__valor { font-size: 17px; font-weight: 600; overflow-wrap: anywhere; }
+
+/* ---------- Etiquetas ---------- */
+.br-etiqueta {
+  display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px; border-radius: 999px;
+  font-size: 12px; font-weight: 600; line-height: 1.6; white-space: nowrap;
+}
+.br-etiqueta svg { flex: none; width: 13px; height: 13px; }
+.br-etiqueta--grande { padding: 4px 12px; font-size: 13px; }
+.br-etiqueta--ok { background: var(--br-verde-claro); color: var(--br-verde); }
+.br-etiqueta--aviso { background: var(--br-aviso-fondo); color: var(--br-aviso-texto); }
+.br-etiqueta--info { background: var(--br-fondo-3); color: var(--br-enlace); }
+.br-etiqueta--neutra { background: var(--br-fondo-2); color: var(--br-gris); }
+
+/* estados del panel de postulaciones */
+.br-etiqueta--peligro { background: var(--br-rojo-fondo); color: var(--br-rojo-texto); }
+.br-etiqueta--pendiente { background: var(--br-pendiente-fondo); color: var(--br-pendiente-texto); }
+.br-etiqueta--pendiente::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--br-pendiente-punto); }
+.br-etiqueta--validada { background: var(--br-validada-fondo); color: var(--br-validada-texto); }
+
+/* ---------- Avisos ---------- */
+.br-aviso { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 12px 16px; border-radius: 10px; border: 1px solid; font-size: 14px; }
+.br-aviso__texto { flex: 1 1 220px; min-width: 0; }
+.br-aviso--naranja { background: var(--br-aviso-fondo); border-color: var(--br-aviso-borde); color: var(--br-aviso-oscuro); }
+.br-aviso--azul { background: var(--br-fondo-2); border-color: var(--br-enlace); color: var(--br-azul); }
+/* Aviso con ícono, título y detalle (Mi proceso): el ícono va arriba a la izquierda y el texto a su lado */
+.br-aviso--grande { align-items: flex-start; flex-wrap: nowrap; gap: 12px; padding: 14px 16px; font-size: 15px; }
+.br-aviso__icono { flex: none; width: 22px; height: 22px; margin-top: 1px; }
+.br-aviso--naranja .br-aviso__icono { color: var(--br-aviso-texto); }
+.br-aviso--azul .br-aviso__icono { color: var(--br-enlace); }
+.br-aviso__cuerpo { flex: 1 1 auto; min-width: 0; display: grid; gap: 4px; }
+.br-aviso__titulo { font-weight: 600; }
+.br-aviso__detalle { font-size: 14px; }
+.br-aviso__cuerpo .br-boton { justify-self: start; margin-top: 8px; }
+
+/* ---------- Panel de avisos de la campanita (vista 01b) ---------- */
+.br-avisos {
+  position: absolute; z-index: 15; top: calc(100% + 6px); right: 16px;
+  width: min(380px, calc(100% - 32px));
+  background: var(--br-blanco); color: var(--br-azul);
+  border-radius: var(--br-radio);
+  /* flota sobre la página: sombra (no borde) hecha con el azul de la marca */
+  box-shadow: 0 2px 6px rgb(0 48 77 / 0.12), 0 18px 36px -12px rgb(0 48 77 / 0.4);
+  overflow: hidden;
+}
+.br-avisos__cabecera {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+  padding: 14px 16px 12px; border-bottom: 1px solid var(--br-borde);
+}
+.br-avisos__cabecera h2 { font-size: 16px; }
+.br-avisos__lista { list-style: none; margin: 0; padding: 0; }
+.br-avisos__item {
+  position: relative; display: grid; gap: 2px; padding: 12px 16px 12px 36px;
+  border-bottom: 1px solid var(--br-fondo-3); font-size: 14px;
+}
+.br-avisos__item:last-child { border-bottom: 0; }
+.br-avisos__item--nuevo { background: var(--br-fondo); }
+.br-avisos__punto {
+  position: absolute; left: 16px; top: 19px; width: 8px; height: 8px; border-radius: 50%;
+  background: var(--br-verde);
+}
+.br-avisos__titulo { font-weight: 500; }
+.br-avisos__item--nuevo .br-avisos__titulo { font-weight: 600; }
+.br-avisos__detalle { color: var(--br-gris); }
+.br-avisos__fecha { color: var(--br-gris); font-size: 13px; }
+.br-avisos__vacio { display: grid; justify-items: center; gap: 6px; padding: 28px 20px 32px; text-align: center; }
+.br-avisos__vacio p { max-width: 32ch; color: var(--br-gris); font-size: 14px; }
+.br-avisos__vacio .br-avisos__titulo { color: var(--br-azul); font-size: 15px; font-weight: 600; }
+.br-avisos__vacio-icono {
+  width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  background: var(--br-fondo-2); color: var(--br-gris); margin-bottom: 4px;
+}
+
+/* ---------- Pasos (Enviada → Validada → Aprobada) ---------- */
+.br-pasos { list-style: none; margin: 0; padding: 0; display: flex; align-items: flex-start; }
+.br-pasos__paso { flex: 1 1 0; min-width: 0; display: grid; justify-items: center; gap: 6px; text-align: center; position: relative; font-size: 13px; }
+.br-pasos__paso + .br-pasos__paso::before {
+  content: ''; position: absolute; top: 13px; right: 50%; width: 100%; height: 2px; background: var(--br-borde);
+}
+.br-pasos__paso--hecho + .br-pasos__paso::before { background: var(--br-lima); }
+.br-pasos__punto {
+  position: relative; z-index: 1; width: 28px; height: 28px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700;
+  background: var(--br-fondo-3); color: var(--br-gris); border: 2px solid var(--br-borde);
+}
+.br-pasos__paso--hecho .br-pasos__punto { background: var(--br-verde); border-color: var(--br-verde); color: var(--br-blanco); }
+.br-pasos__paso--actual .br-pasos__punto { background: var(--br-blanco); border-color: var(--br-enlace); color: var(--br-enlace); }
+.br-pasos__nombre { font-weight: 600; }
+.br-pasos__fecha { color: var(--br-gris); font-size: 12px; }
+.br-pasos__punto svg { width: 14px; height: 14px; }
+.br-tarjeta > .br-pasos { margin-top: 20px; }
+.br-pasos__paso--actual .br-pasos__fecha { color: var(--br-enlace); font-weight: 600; }
+
+/* ---------- Barra de progreso ---------- */
+.br-barra-progreso { height: 10px; background: var(--br-fondo-3); border-radius: 999px; overflow: hidden; }
+.br-barra-progreso > span { display: block; height: 100%; background: var(--br-verde); border-radius: 999px; }
+/* La misma barra con <progress value max> (sin estilos en línea y con su valor para lectores de pantalla) */
+.br-progreso {
+  display: block; width: 100%; height: 10px; border: 0; border-radius: 999px; overflow: hidden;
+  appearance: none; -webkit-appearance: none; background: var(--br-fondo-3); color: var(--br-verde);
+}
+.br-progreso::-webkit-progress-bar { background: var(--br-fondo-3); border-radius: 999px; }
+.br-progreso::-webkit-progress-value { background: var(--br-verde); border-radius: 999px; }
+.br-progreso::-moz-progress-bar { background: var(--br-verde); border-radius: 999px; }
+
+/* Resumen del beneficio: «Pagos recibidos: 2 de 6», la barra y la línea de dinero */
+.br-avance { display: grid; gap: 8px; padding-top: 16px; border-top: 1px solid var(--br-fondo-3); }
+.br-avance__fila { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; font-size: 14px; }
+.br-avance__fila strong { font-weight: 600; }
+.br-cifra { font-variant-numeric: tabular-nums; }
+
+/* ---------- Sección plegable (p. ej. «Postulaciones anteriores») ---------- */
+.br-plegable {
+  background: var(--br-blanco); border: 1px solid var(--br-borde); border-radius: var(--br-radio);
+}
+.br-plegable > summary {
+  list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  min-height: 52px; padding: 12px 20px; font-weight: 600; border-radius: var(--br-radio);
+}
+.br-plegable > summary::-webkit-details-marker { display: none; }
+.br-plegable > summary:hover { background: var(--br-fondo); }
+.br-plegable > summary::after {
+  content: ''; flex: none; width: 8px; height: 8px; margin-right: 4px;
+  border-right: 2px solid var(--br-gris); border-bottom: 2px solid var(--br-gris);
+  transform: translateY(-2px) rotate(45deg);
+}
+.br-plegable[open] > summary::after { transform: translateY(2px) rotate(-135deg); }
+.br-plegable__contenido { padding: 4px 20px 20px; display: grid; gap: 12px; }
+.br-plegable__item { display: grid; gap: 4px; padding-top: 12px; border-top: 1px solid var(--br-fondo-3); }
+
+/* ---------- Esqueleto de carga ---------- */
+.br-esqueleto { display: block; height: 14px; width: 100%; border-radius: 6px; background: var(--br-fondo-3); }
+.br-esqueleto--etiqueta { width: 150px; height: 24px; border-radius: 999px; }
+.br-esqueleto--titulo { width: 60%; height: 28px; }
+.br-esqueleto--corta { width: 40%; }
+.br-esqueleto--media { width: 70%; }
+.br-esqueleto--bloque { height: 56px; border-radius: 10px; }
+.br-esqueleto--barra { height: 10px; border-radius: 999px; }
+@media (prefers-reduced-motion: no-preference) {
+  .br-esqueleto { animation: br-latido 1.6s ease-in-out infinite; }
+  @keyframes br-latido { 50% { opacity: 0.55; } }
+}
+
+/* ---------- Tabla (envolverla en .br-tabla-envoltura para que se desplace sola en celular) ---------- */
+.br-tabla-envoltura { overflow-x: auto; max-width: 100%; }
+.br-tabla { width: 100%; border-collapse: collapse; font-size: 14px; }
+.br-tabla caption { text-align: left; font-weight: 600; padding-bottom: 8px; }
+.br-tabla th { text-align: left; font-size: 12px; font-weight: 600; color: var(--br-gris); padding: 8px 10px; border-bottom: 1px solid var(--br-borde); white-space: nowrap; }
+.br-tabla td { padding: 10px; border-bottom: 1px solid var(--br-fondo-3); vertical-align: middle; }
+.br-tabla tr:last-child td { border-bottom: 0; }
+.br-tabla .br-num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+/* Tabla al ras de la tarjeta: la primera y la última columna se alinean con el texto de la tarjeta */
+.br-tabla--al-ras :is(th, td):first-child { padding-left: 0; }
+.br-tabla--al-ras :is(th, td):last-child { padding-right: 0; }
+/* Tabla que en celular se vuelve lista: cada fila es un bloque de dos renglones
+   (1.ª celda + última arriba, 2.ª + 3.ª abajo). Para tablas de 4 columnas como «Mis pagos». */
+@media (max-width: 480px) {
+  .br-tabla--apilada thead {
+    position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+  }
+  .br-tabla--apilada tbody tr {
+    display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 2px 12px;
+    padding: 12px 0; border-bottom: 1px solid var(--br-fondo-3);
+  }
+  .br-tabla--apilada tbody tr:last-child { border-bottom: 0; padding-bottom: 0; }
+  .br-tabla--apilada tbody td { padding: 0; border: 0; }
+  .br-tabla--apilada tbody td:nth-child(1) { grid-column: 1; grid-row: 1; font-weight: 600; }
+  .br-tabla--apilada tbody td:nth-child(2) { grid-column: 1; grid-row: 2; color: var(--br-gris); font-size: 14px; }
+  .br-tabla--apilada tbody td:nth-child(3) { grid-column: 2; grid-row: 2; justify-self: end; font-size: 14px; }
+  .br-tabla--apilada tbody td:nth-child(4) { grid-column: 2; grid-row: 1; justify-self: end; }
+}
+
+/* ---------- Botones ---------- */
+.br-boton {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 44px; padding: 0 18px; border: 1px solid transparent; border-radius: 10px;
+  font-size: 15px; font-weight: 600; text-decoration: none; cursor: pointer;
+}
+.br-boton--primario { background: var(--br-verde); border-color: var(--br-verde); color: var(--br-blanco); }
+.br-boton--primario:hover { background: var(--br-verde-hover); border-color: var(--br-verde-hover); }
+.br-boton--secundario { background: var(--br-blanco); border-color: var(--br-gris-claro); color: var(--br-azul); }
+.br-boton--secundario:hover { background: var(--br-fondo-2); }
+/* Rojo del panel de postulaciones: blanco sobre #C2392F da 5.4:1 */
+.br-boton--peligro { background: var(--br-rojo); border-color: var(--br-rojo); color: var(--br-blanco); }
+.br-boton--peligro:hover { background: var(--br-rojo-texto); border-color: var(--br-rojo-texto); }
+.br-boton:disabled, .br-boton[aria-disabled="true"] {
+  background: var(--br-fondo-3); border-color: var(--br-borde); color: var(--br-gris); cursor: not-allowed;
+}
+
+/* ---------- Formularios ---------- */
+.br-campo { display: grid; gap: 6px; }
+.br-campo > label { font-size: 14px; font-weight: 600; }
+.br-ayuda { font-size: 13px; color: var(--br-gris); }
+.br-campo input:not([type="checkbox"]):not([type="radio"]):not([type="file"]), .br-campo select, .br-campo textarea,
+.br-entrada {
+  width: 100%; min-height: 44px; padding: 8px 14px; background: var(--br-blanco); color: var(--br-azul);
+  border: 1px solid var(--br-gris-claro); border-radius: 10px;
+}
+.br-campo textarea { min-height: 96px; resize: vertical; }
+.br-campo input::placeholder, .br-campo textarea::placeholder { color: var(--br-gris); opacity: 1; }
+input[type="checkbox"], input[type="radio"] { width: 20px; height: 20px; accent-color: var(--br-verde); }
+
+/* ---------- Diálogo (capa sobre la página; en las maquetas la página queda detrás) ---------- */
+.br-dialogo-capa {
+  position: absolute; inset: 0; min-height: 100vh; z-index: 20;
+  display: flex; align-items: flex-start; justify-content: center; padding: 72px 16px 32px;
+}
+.br-dialogo-capa::before { content: ''; position: absolute; inset: 0; background: var(--br-azul); opacity: 0.55; }
+.br-dialogo {
+  position: relative; width: 100%; max-width: 520px; padding: 24px;
+  background: var(--br-blanco); color: var(--br-azul); border-radius: 14px; border: 1px solid var(--br-borde);
+}
+.br-dialogo > * + * { margin-top: 14px; }
+.br-dialogo__acciones { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; }
+
+/* ---------- Estado vacío ---------- */
+.br-vacio {
+  display: grid; justify-items: center; gap: 10px; text-align: center; padding: 40px 20px;
+  background: var(--br-blanco); border: 1px dashed var(--br-gris-claro); border-radius: var(--br-radio);
+}
+.br-vacio__icono {
+  width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  background: var(--br-fondo-2); color: var(--br-gris); font-size: 24px;
+}
+.br-vacio p { max-width: 42ch; color: var(--br-gris); }
+.br-vacio h1, .br-vacio h2 { color: var(--br-azul); }
+.br-vacio h1 { font-size: 20px; max-width: 28ch; text-wrap: balance; }
+
+@media (max-width: 480px) {
+  h1 { font-size: 22px; }
+  .br-tarjeta { padding: 16px; }
+  .br-datos > .br-datos--completo { grid-column: 1 / -1; }
+  .br-dialogo { padding: 20px; }
+  .br-dialogo__acciones .br-boton { flex: 1 1 100%; }
+}
+
+/* ---------- Subir un archivo (vista 08-subir-documento) ---------- */
+/* Zona para elegir o arrastrar: es un <label> que envuelve el <input type="file"> (oculto pero enfocable). */
+.br-zona {
+  display: grid; justify-items: center; gap: 6px; padding: 28px 16px; text-align: center; cursor: pointer;
+  background: var(--br-fondo); border: 2px dashed var(--br-gris-claro); border-radius: var(--br-radio);
+}
+.br-zona:hover { background: var(--br-fondo-2); border-color: var(--br-enlace); }
+.br-zona:focus-within { outline: 3px solid var(--br-enlace); outline-offset: 2px; }
+.br-zona__icono { width: 36px; height: 36px; color: var(--br-enlace); }
+.br-zona__titulo { font-size: 16px; font-weight: 600; }
+.br-zona__ayuda { font-size: 13px; color: var(--br-gris); }
+.br-zona .br-boton { margin-top: 8px; }
+
+/* Archivo elegido: nombre, tamaño y estado en una fila */
+.br-archivo {
+  display: flex; align-items: center; gap: 12px; padding: 12px 14px;
+  background: var(--br-fondo); border: 1px solid var(--br-borde); border-radius: 10px;
+}
+.br-archivo__icono { flex: none; width: 24px; height: 24px; color: var(--br-enlace); }
+.br-archivo__texto { min-width: 0; display: grid; gap: 2px; }
+.br-archivo__nombre { font-weight: 600; overflow-wrap: anywhere; }
+.br-archivo--error { background: var(--br-rojo-fondo); border-color: var(--br-rojo); }
+.br-archivo--error .br-archivo__icono, .br-archivo--error .br-suave { color: var(--br-rojo-texto); }
+.br-archivo--ok { background: var(--br-verde-claro); border-color: var(--br-verde); }
+.br-archivo--ok .br-archivo__icono { color: var(--br-verde); }
+
+/* Mensaje de error dentro de una tarjeta (rojo del panel de postulaciones) */
+.br-mensaje-error { display: grid; gap: 4px; padding: 12px 14px; background: var(--br-rojo-fondo); border-left: 4px solid var(--br-rojo); border-radius: 8px; color: var(--br-rojo-texto); }
+.br-mensaje-error strong { font-weight: 600; }
+
+/* Enlace discreto de «volver» */
+.br-volver { display: inline-flex; align-items: center; min-height: 44px; color: var(--br-enlace); font-weight: 500; }
+
+/* =====================================================================
+   Administrador: piezas compartidas (vista 03-detalle-postulacion y las que siguen)
+   ===================================================================== */
+
+/* Cabecera: campanita clara + usuaria a la derecha; las migas se encogen antes que ellas */
+.br-cabecera { flex-wrap: nowrap; }
+.br-cabecera__derecha { flex: none; display: flex; align-items: center; gap: 10px; }
+.br-campanita--clara { background: var(--br-blanco); color: var(--br-azul); border-color: var(--br-borde); }
+.br-campanita--clara:hover { background: var(--br-fondo-2); border-color: var(--br-gris-claro); }
+.br-campanita--clara .br-campanita__contador { background: var(--br-rojo); color: var(--br-blanco); border-color: var(--br-blanco); }
+.br-migas { min-width: 0; }
+.br-migas > svg { flex: none; }
+.br-migas a { flex: none; text-underline-offset: 3px; }
+.br-migas a:hover { color: var(--br-azul); text-decoration: underline; }
+.br-migas [aria-current="page"] { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 480px) {
+  /* En un detalle (tres niveles) el celular esconde «Dashboard >»: el nombre ya va en el título */
+  .br-migas > a:first-child:nth-last-of-type(2),
+  .br-migas > a:first-child:nth-last-of-type(2) + svg { display: none; }
+}
+
+/* Encabezado de una página del administrador: volver, título, datos cortos y, a la derecha, un indicador */
+.br-encabezado {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 16px 32px;
+}
+.br-encabezado__titulo { display: grid; gap: 6px; min-width: 0; }
+.br-encabezado__titulo .br-volver { justify-self: start; min-height: 32px; font-size: 14px; gap: 4px; text-decoration: none; }
+.br-encabezado__titulo .br-volver:hover { text-decoration: underline; text-underline-offset: 3px; }
+.br-encabezado__titulo h1 { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+.br-encabezado__meta { display: flex; flex-wrap: wrap; gap: 4px 16px; color: var(--br-gris); font-size: 14px; }
+.br-encabezado__meta span { white-space: nowrap; }
+@media (max-width: 860px) {
+  .br-encabezado { grid-template-columns: minmax(0, 1fr); align-items: start; }
+}
+
+/* Contador de cupos de la convocatoria («Cupos: 18 de 25 usados») */
+.br-cupos {
+  display: grid; gap: 8px; min-width: 260px; padding: 12px 16px;
+  background: var(--br-blanco); border: 1px solid var(--br-borde); border-radius: var(--br-radio);
+}
+.br-cupos__fila { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 12px; }
+.br-cupos__cifra { font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.br-cupos__resto { font-size: 13px; color: var(--br-gris); font-variant-numeric: tabular-nums; }
+.br-cupos--lleno .br-cupos__cifra, .br-cupos--lleno .br-cupos__resto { color: var(--br-rojo-texto); }
+.br-cupos--lleno .br-progreso { color: var(--br-rojo); }
+.br-cupos--lleno .br-progreso::-webkit-progress-value { background: var(--br-rojo); }
+.br-cupos--lleno .br-progreso::-moz-progress-bar { background: var(--br-rojo); }
+.br-progreso--fina { height: 6px; }
+@media (max-width: 860px) { .br-cupos { min-width: 0; } }
+
+/* Detalle: contenido a la izquierda y panel de decisión fijo a la derecha; en pantallas chicas, una columna
+   y el panel de decisión queda al final (las acciones, grandes y a la vista) */
+.br-detalle { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 20px; align-items: start; }
+.br-detalle__principal { display: grid; gap: 20px; min-width: 0; }
+.br-detalle__lateral { display: grid; gap: 20px; position: sticky; top: 20px; min-width: 0; }
+@media (max-width: 1100px) {
+  .br-detalle { grid-template-columns: minmax(0, 1fr); }
+  .br-detalle__lateral { position: static; }
+}
+
+/* Cabecera de tarjeta: título a la izquierda, nota corta a la derecha */
+.br-tarjeta__cabecera { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 16px; }
+
+/* Ficha de datos: etiqueta pequeña y valor debajo, en rejilla que se reacomoda sola */
+.br-ficha-datos { margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 210px), 1fr)); gap: 16px 24px; }
+.br-ficha-datos > div { min-width: 0; display: grid; gap: 2px; align-content: start; }
+.br-ficha-datos dt { font-size: 13px; color: var(--br-gris); }
+.br-ficha-datos dd { margin: 0; font-weight: 500; overflow-wrap: break-word; }
+.br-ficha-datos .br-ficha-datos__ancho { grid-column: 1 / -1; }
+/* __doble: ocupa dos columnas en pantallas anchas (p. ej. correo, dirección) */
+@media (min-width: 641px) { .br-ficha-datos .br-ficha-datos__doble { grid-column: span 2; } }
+/* En celular, dos columnas; __ancho-celular ocupa la fila entera (nombres, correos, direcciones) */
+@media (max-width: 480px) {
+  .br-ficha-datos { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 16px; }
+  .br-ficha-datos .br-ficha-datos__ancho-celular { grid-column: 1 / -1; }
+}
+.br-tarjeta > .br-ficha-datos { margin-top: 16px; }
+
+/* Lista de documentos adjuntos, uno por fila: ícono con su marca, nombre y archivo, y acciones */
+.br-documentos { list-style: none; margin: 0; padding: 0; }
+.br-tarjeta > .br-documentos { margin-top: 4px; }
+.br-documento {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 4px 14px;
+  padding: 14px 0; border-top: 1px solid var(--br-fondo-3);
+}
+.br-documento:first-child { border-top: 0; }
+.br-documento__icono {
+  position: relative; width: 40px; height: 40px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--br-doc-neutro-fondo); color: var(--br-gris);
+}
+.br-documento__icono > svg { width: 20px; height: 20px; }
+.br-documento__marca {
+  position: absolute; right: -4px; bottom: -4px; width: 18px; height: 18px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--br-gris-claro); color: var(--br-blanco); border: 2px solid var(--br-blanco);
+}
+.br-documento__marca svg { width: 10px; height: 10px; }
+.br-documento--valido .br-documento__icono { background: var(--br-doc-ok-fondo); color: var(--br-doc-ok-texto); }
+.br-documento--valido .br-documento__marca { background: var(--br-doc-ok-marca); }
+.br-documento--no-valido .br-documento__icono { background: var(--br-rojo-fondo); color: var(--br-rojo-texto); }
+.br-documento--no-valido .br-documento__marca { background: var(--br-rojo); }
+.br-documento__texto { min-width: 0; display: grid; gap: 2px; }
+.br-documento__titulo { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; font-weight: 600; }
+.br-documento__archivo { font-size: 13px; color: var(--br-gris); overflow-wrap: anywhere; }
+.br-documento__motivo { font-size: 13px; color: var(--br-rojo-texto); }
+.br-documento__motivo strong { font-weight: 600; }
+.br-documento__nota { font-size: 13px; color: var(--br-gris); }
+.br-documento__acciones { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }
+/* Documento nuevo que el aprendiz acaba de subir: se resalta para revisarlo primero */
+.br-documento--nuevo {
+  margin: 4px -12px; padding: 14px 12px;
+  background: var(--br-chip-fondo); border: 1px solid var(--br-chip-borde); border-radius: 10px;
+}
+.br-documento--nuevo + .br-documento { border-top: 0; }
+.br-documento--nuevo .br-documento__icono { background: var(--br-blanco); color: var(--br-enlace); }
+.br-documento--nuevo .br-documento__marca { border-color: var(--br-chip-fondo); }
+@media (max-width: 640px) {
+  .br-documento { grid-template-columns: auto minmax(0, 1fr); }
+  .br-documento__acciones { grid-column: 1 / -1; justify-content: flex-start; padding-top: 8px; }
+  .br-documento { align-items: start; }
+  /* Si solo se puede «Ver» (documentos ya revisados), el botón se queda a la derecha */
+  .br-documento:not(:has(.br-revision)) { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .br-documento:not(:has(.br-revision)) .br-documento__acciones { grid-column: auto; padding-top: 0; }
+}
+
+/* Botón pequeño (acciones dentro de una fila) */
+.br-boton--chico { min-height: 36px; padding: 0 12px; font-size: 14px; border-radius: 8px; }
+@media (max-width: 640px) { .br-boton--chico { min-height: 44px; } }
+
+/* Revisión de un documento: «Válido» / «No válido» como un par de botones con aria-pressed */
+.br-revision { display: inline-flex; border: 1px solid var(--br-gris-claro); border-radius: 8px; overflow: hidden; }
+.br-revision__opcion {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 0 12px;
+  background: var(--br-blanco); color: var(--br-azul); border: 0; font-size: 14px; font-weight: 600; cursor: pointer;
+}
+.br-revision__opcion svg { width: 14px; height: 14px; flex: none; }
+.br-revision__opcion + .br-revision__opcion { border-left: 1px solid var(--br-gris-claro); }
+.br-revision__opcion:hover { background: var(--br-fondo-2); }
+.br-revision__opcion:focus-visible { outline-offset: -3px; }
+.br-revision__opcion--valido[aria-pressed="true"] { background: var(--br-doc-ok-fondo); color: var(--br-doc-ok-texto); }
+.br-revision__opcion--no-valido[aria-pressed="true"] { background: var(--br-rojo-fondo); color: var(--br-rojo-texto); }
+@media (max-width: 640px) { .br-revision__opcion { min-height: 42px; } }
+
+/* Panel de decisión: los dos pasos manuales en orden (1. confirmar datos, 2. aprobar o rechazar) */
+.br-tarjeta.br-decision { padding: 0; }
+.br-decision > * + * { margin-top: 0; }
+.br-decision__cabecera { padding: 18px 20px 14px; border-bottom: 1px solid var(--br-borde); display: grid; gap: 2px; }
+.br-decision__paso { display: grid; gap: 12px; padding: 18px 20px 20px; }
+.br-decision__paso + .br-decision__paso { border-top: 1px solid var(--br-borde); }
+.br-decision__titulo { display: flex; align-items: center; gap: 10px; }
+.br-decision__numero {
+  flex: none; width: 26px; height: 26px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700;
+  background: var(--br-blanco); color: var(--br-enlace); border: 2px solid var(--br-enlace);
+}
+.br-decision__numero svg { width: 14px; height: 14px; }
+.br-decision__paso--hecho .br-decision__numero { background: var(--br-verde); border-color: var(--br-verde); color: var(--br-blanco); }
+.br-decision__paso--bloqueado .br-decision__numero { background: var(--br-fondo-3); border-color: var(--br-borde); color: var(--br-gris); }
+.br-decision__paso--bloqueado h3 { color: var(--br-gris); }
+.br-decision__texto { font-size: 14px; color: var(--br-gris); }
+.br-decision__acciones { display: grid; gap: 8px; }
+.br-decision__acciones .br-boton { width: 100%; }
+.br-decision__separador { height: 1px; margin: 4px 0; background: var(--br-fondo-3); }
+@media (max-width: 1100px) {
+  .br-decision__acciones .br-boton { min-height: 48px; }
+}
+
+/* Por qué un botón está deshabilitado (va justo debajo del botón, enlazado con aria-describedby) */
+.br-motivo { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; color: var(--br-gris); }
+.br-motivo svg { flex: none; width: 16px; height: 16px; margin-top: 2px; }
+.br-motivo--alerta { color: var(--br-rojo-texto); font-weight: 500; }
+
+/* Nota de resultado dentro de una tarjeta (aprobada, rechazada, datos confirmados) */
+.br-nota { display: grid; gap: 4px; padding: 12px 14px; border-radius: 10px; font-size: 14px; background: var(--br-fondo); color: var(--br-azul); }
+.br-nota strong { font-weight: 600; }
+.br-nota--ok { background: var(--br-doc-ok-fondo); color: var(--br-doc-ok-texto); }
+.br-nota--peligro { background: var(--br-rojo-fondo); color: var(--br-rojo-texto); }
+
+/* Historial de estados (tabla historial_estados): lo más reciente arriba */
+.br-historial { list-style: none; margin: 0; padding: 0; }
+.br-tarjeta > .br-historial { margin-top: 16px; }
+.br-historial__item { position: relative; display: grid; gap: 2px; padding: 0 0 16px 26px; font-size: 14px; }
+.br-historial__item:last-child { padding-bottom: 0; }
+.br-historial__item::before {
+  content: ''; position: absolute; left: 4px; top: 6px; width: 10px; height: 10px; border-radius: 50%;
+  background: var(--br-blanco); border: 2px solid var(--br-gris-claro);
+}
+.br-historial__item:first-child::before { background: var(--br-verde); border-color: var(--br-verde); }
+.br-historial__item:not(:last-child)::after {
+  content: ''; position: absolute; left: 9px; top: 20px; bottom: 2px; width: 2px; background: var(--br-borde);
+}
+.br-historial__cambio { font-weight: 600; }
+.br-historial__quien { color: var(--br-gris); }
+.br-decision__paso--rechazado .br-decision__numero { background: var(--br-rojo); border-color: var(--br-rojo); color: var(--br-blanco); }
+.br-vacio > .br-fila { justify-content: center; }
+
+/* =====================================================================
+   Administrador: listados con filtros, selección múltiple y acciones por fila
+   (vista 05-pagos y las que siguen; sale del panel de postulaciones de Samuel)
+   ===================================================================== */
+
+/* Encabezado de un listado: el subtítulo va debajo del título */
+.br-encabezado__sub { color: var(--br-gris); font-size: 15px; }
+
+/* Pestañas con contador (Todos 25, Pendientes 20, Retrasados 3, Pagados 2) */
+.br-pestanas {
+  display: flex; gap: 4px; overflow-x: auto; border-bottom: 1px solid var(--br-borde);
+  scrollbar-width: thin;
+}
+.br-pestanas a {
+  position: relative; flex: none; display: inline-flex; align-items: center; gap: 8px; min-height: 44px;
+  padding: 0 14px; color: var(--br-gris); font-weight: 500; text-decoration: none; white-space: nowrap;
+}
+.br-pestanas a:hover { color: var(--br-azul); }
+.br-pestanas a[aria-current="page"] { color: var(--br-azul); font-weight: 600; }
+.br-pestanas a[aria-current="page"]::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 3px; border-radius: 3px 3px 0 0;
+  background: var(--br-verde);
+}
+.br-pestanas a:focus-visible { outline-offset: -3px; }
+.br-contador {
+  display: inline-flex; align-items: center; justify-content: center; min-width: 24px; padding: 0 7px;
+  border-radius: 999px; font-size: 12px; font-weight: 600; line-height: 20px; font-variant-numeric: tabular-nums;
+  background: var(--br-fondo-3); color: var(--br-gris);
+}
+[aria-current="page"] > .br-contador { background: var(--br-azul); color: var(--br-blanco); }
+.br-contador--aviso { background: var(--br-aviso-fondo); color: var(--br-aviso-texto); }
+
+/* Tarjeta de listado: herramientas arriba, tabla al ras y paginación abajo */
+.br-tarjeta.br-listado { padding: 0; }
+.br-listado > * + * { margin-top: 0; }
+.br-listado__herramientas { display: grid; gap: 12px; padding: 20px 20px 16px; }
+.br-listado__resumen {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px;
+  font-size: 14px; color: var(--br-gris);
+}
+.br-listado__pie {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 14px 20px; border-top: 1px solid var(--br-borde); font-size: 14px; color: var(--br-gris);
+}
+.br-listado .br-tabla-envoltura { border-top: 1px solid var(--br-borde); }
+.br-listado > .br-vacio { margin: 0 20px 20px; }
+
+/* Filtros: buscador y listas desplegables que se reacomodan solos */
+.br-filtros { display: grid; grid-template-columns: minmax(220px, 1.4fr) repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
+.br-buscador { position: relative; }
+.br-buscador svg { position: absolute; left: 14px; top: 50%; width: 18px; height: 18px; transform: translateY(-50%); color: var(--br-gris); pointer-events: none; }
+.br-buscador .br-entrada { padding-left: 42px; }
+.br-entrada::placeholder { color: var(--br-gris); opacity: 1; }
+select.br-entrada { cursor: pointer; }
+@media (max-width: 640px) { .br-filtros { grid-template-columns: minmax(0, 1fr); } }
+
+/* Barra de selección múltiple: aparece sobre la tabla cuando hay filas marcadas */
+.br-seleccion {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; padding: 14px 20px;
+  background: var(--br-azul); color: var(--br-blanco);
+}
+.br-seleccion :focus-visible { outline-color: var(--br-lima); }
+.br-seleccion__texto { flex: 1 1 280px; min-width: 0; display: grid; gap: 2px; }
+.br-seleccion__cifra { font-size: 16px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.br-seleccion__detalle { font-size: 14px; color: var(--br-fondo-2); }
+.br-seleccion__acciones { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.br-seleccion .br-boton--secundario { border-color: var(--br-blanco); }
+.br-enlace-claro {
+  display: inline-flex; align-items: center; min-height: 44px; padding: 0 6px; background: none; border: 0;
+  color: var(--br-blanco); font-size: 14px; font-weight: 500; text-decoration: underline; text-underline-offset: 3px; cursor: pointer;
+}
+@media (max-width: 640px) {
+  .br-seleccion { padding: 14px 16px; }
+  .br-seleccion__acciones { width: 100%; }
+  .br-seleccion__acciones .br-boton { flex: 1 1 100%; }
+  .br-seleccion__acciones .br-enlace-claro { margin: 0 auto; }
+}
+
+/* Casilla de selección con área de toque de 44 px */
+.br-casilla { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin: -12px 0; cursor: pointer; }
+.br-casilla input { margin: 0; cursor: pointer; }
+.br-casilla input:disabled { cursor: not-allowed; }
+
+/* Tabla de listado: filas más altas, encabezado oscuro y celdas con dos renglones */
+.br-tabla--listado th { font-size: 13px; color: var(--br-azul); padding: 12px 10px; }
+.br-tabla--listado td { padding: 14px 10px; border-bottom-color: var(--br-borde); }
+.br-tabla--listado :is(th, td):first-child { padding-left: 20px; }
+.br-tabla--listado :is(th, td):last-child { padding-right: 20px; }
+.br-tabla--listado tbody tr:hover { background: var(--br-fondo); }
+.br-tabla--listado tbody tr.br-fila--elegida { background: var(--br-verde-claro); }
+.br-tabla .br-tabla__seleccion { width: 1%; padding-right: 0; }
+.br-tabla__principal { display: block; font-weight: 600; }
+.br-tabla__sub { display: block; font-size: 13px; color: var(--br-gris); font-variant-numeric: tabular-nums; }
+/* dato que sobra en el celular (p. ej. la convocatoria, que ya está en el filtro) */
+@media (max-width: 640px) { .br-ocultar-celular { display: none !important; } }
+.br-tabla__estado .br-tabla__sub { margin-top: 4px; }
+.br-tabla .br-tabla__acciones { width: 1%; white-space: nowrap; text-align: right; }
+.br-tabla__acciones-dentro { display: inline-flex; align-items: center; justify-content: flex-end; gap: 8px; }
+/* texto de retraso bajo la etiqueta («5 días de retraso») */
+.br-retraso { display: block; margin-top: 4px; font-size: 13px; font-weight: 500; color: var(--br-aviso-texto); }
+
+/* En el celular cada fila es una ficha: casilla a la izquierda, nombre y estado arriba,
+   los datos en dos columnas (cada uno con su etiqueta, sacada de data-etiqueta) y las acciones abajo */
+@media (max-width: 640px) {
+  .br-tabla--fichas thead {
+    position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+  }
+  .br-tabla--fichas, .br-tabla--fichas tbody { display: block; }
+  .br-tabla--fichas tbody tr {
+    display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr); gap: 10px 12px;
+    padding: 16px; border-bottom: 1px solid var(--br-borde);
+  }
+  .br-tabla--fichas tbody tr:last-child { border-bottom: 0; }
+  .br-tabla--fichas tbody td, .br-tabla--fichas tbody td:first-child, .br-tabla--fichas tbody td:last-child { padding: 0; border: 0; }
+  .br-tabla--fichas td.br-tabla__seleccion { grid-column: 1; grid-row: 1 / span 4; width: auto; padding: 0; }
+  .br-tabla--fichas td.br-tabla__seleccion .br-casilla { margin: -12px -8px 0 -12px; }
+  .br-tabla--fichas td.br-tabla__titulo { grid-column: 2; grid-row: 1; }
+  .br-tabla--fichas td.br-tabla__estado { grid-column: 3; grid-row: 1; justify-self: end; text-align: right; }
+  .br-tabla--fichas td[data-etiqueta]::before {
+    content: attr(data-etiqueta); display: block; font-size: 12px; font-weight: 400; color: var(--br-gris);
+  }
+  .br-tabla--fichas td.br-tabla__acciones { grid-column: 2 / -1; width: auto; text-align: left; white-space: normal; }
+  .br-tabla--fichas .br-tabla__acciones-dentro { display: flex; justify-content: flex-start; }
+  .br-tabla--fichas td.br-num { text-align: left; }
+  .br-tabla--fichas tbody tr:hover { background: transparent; }
+  .br-tabla--fichas tbody tr.br-fila--elegida { background: var(--br-verde-claro); }
+}
+
+/* Menú de acciones de una fila («Más acciones»): un <details> con su lista */
+.br-menu-acciones { position: relative; display: inline-block; text-align: left; }
+.br-menu-acciones > summary {
+  list-style: none; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+  width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--br-gris-claro); background: var(--br-blanco); color: var(--br-azul);
+}
+.br-menu-acciones > summary::-webkit-details-marker { display: none; }
+.br-menu-acciones > summary:hover, .br-menu-acciones[open] > summary { background: var(--br-fondo-2); }
+.br-menu-acciones > summary svg { width: 18px; height: 18px; }
+.br-menu-acciones__lista {
+  position: absolute; right: 0; top: calc(100% + 6px); z-index: 12; width: 290px; padding: 6px;
+  display: grid; gap: 2px; background: var(--br-blanco); color: var(--br-azul);
+  border-radius: var(--br-radio); white-space: normal;
+  box-shadow: 0 2px 6px rgb(0 48 77 / 0.12), 0 18px 36px -12px rgb(0 48 77 / 0.4);
+}
+.br-menu-acciones__item {
+  display: grid; gap: 2px; width: 100%; min-height: 44px; padding: 8px 12px; border: 0; border-radius: 8px;
+  background: var(--br-blanco); text-align: left; cursor: pointer; font-size: 14px; font-weight: 500;
+}
+.br-menu-acciones__item:hover { background: var(--br-fondo-2); }
+.br-menu-acciones__item .br-suave { font-weight: 400; }
+.br-menu-acciones__separador { height: 1px; margin: 4px 6px; background: var(--br-borde); }
+.br-menu-acciones__peligro { display: grid; gap: 6px; padding: 6px 6px 4px; }
+.br-menu-acciones__peligro .br-boton { width: 100%; }
+@media (max-width: 640px) {
+  .br-menu-acciones > summary { width: 44px; height: 44px; }
+  .br-menu-acciones__lista { right: auto; left: 0; width: min(290px, calc(100vw - 112px)); }
+}
+
+/* Paginación */
+.br-paginacion { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.br-paginacion a, .br-paginacion span[aria-current], .br-paginacion span[aria-disabled] {
+  display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-width: 40px; min-height: 40px;
+  padding: 0 12px; border: 1px solid var(--br-borde); border-radius: 8px; background: var(--br-blanco);
+  color: var(--br-azul); font-weight: 500; text-decoration: none; font-variant-numeric: tabular-nums;
+}
+.br-paginacion a:hover { background: var(--br-fondo-2); }
+.br-paginacion [aria-current="page"] { background: var(--br-azul); border-color: var(--br-azul); color: var(--br-blanco); font-weight: 600; }
+.br-paginacion [aria-disabled="true"] { color: var(--br-gris); background: var(--br-fondo); }
+.br-paginacion svg { width: 16px; height: 16px; }
+@media (max-width: 640px) {
+  .br-listado__pie { justify-content: center; text-align: center; }
+  .br-paginacion .br-paginacion__numero, .br-paginacion span.br-paginacion__numero[aria-current] { display: none; }
+  .br-paginacion a, .br-paginacion span[aria-disabled] { min-height: 44px; }
+}
+
+/* Aviso verde (algo salió bien) */
+.br-aviso--verde { background: var(--br-verde-claro); border-color: var(--br-verde); color: var(--br-azul); }
+.br-aviso--verde .br-aviso__icono { color: var(--br-verde); }
+
+/* Diálogos con más contenido */
+.br-dialogo--ancho { max-width: 600px; }
+.br-dialogo > .br-dialogo__sub { margin-top: 4px; color: var(--br-gris); font-size: 14px; }
+
+/* Resumen grande dentro de un diálogo («Vas a registrar 23 pagos por $ 4.140.000») */
+.br-resumen { display: grid; gap: 8px; padding: 16px; border-radius: 10px; background: var(--br-fondo); }
+.br-resumen__cifra { font-size: 20px; font-weight: 600; line-height: 1.3; font-variant-numeric: tabular-nums; text-wrap: balance; }
+.br-resumen__partes { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 14px; color: var(--br-gris); }
+.br-resumen__partes span { display: inline-flex; align-items: center; gap: 6px; }
+.br-resumen__punto { width: 8px; height: 8px; border-radius: 50%; background: var(--br-verde); }
+.br-resumen__punto--aviso { background: var(--br-aviso-texto); }
+
+/* Opciones grandes con radio (p. ej. «Mismo motivo para todos» / «Un motivo para cada uno») */
+.br-opciones { margin-inline: 0; margin-bottom: 0; padding: 0; border: 0; min-width: 0; }
+.br-opciones legend { padding: 0; margin-bottom: 8px; font-size: 14px; font-weight: 600; }
+.br-opciones__lista { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+.br-opcion {
+  display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 10px; align-items: start;
+  align-content: start; padding: 12px 14px; border: 1px solid var(--br-gris-claro); border-radius: 10px; cursor: pointer; background: var(--br-blanco);
+}
+.br-opcion:hover { background: var(--br-fondo); }
+.br-opcion input { margin: 1px 0 0; grid-row: 1 / span 2; }
+.br-opcion__titulo { font-weight: 600; font-size: 14px; }
+.br-opcion__ayuda { grid-column: 2; font-size: 13px; color: var(--br-gris); }
+.br-opcion:has(input:checked) { border-color: var(--br-verde); background: var(--br-verde-claro); box-shadow: inset 0 0 0 1px var(--br-verde); }
+.br-opcion:has(input:focus-visible) { outline: 3px solid var(--br-enlace); outline-offset: 2px; }
+
+/* Un motivo por pago: nombre y datos del pago encima de su campo */
+.br-motivos { list-style: none; margin-inline: 0; margin-bottom: 0; padding: 0; display: grid; gap: 14px; }
+.br-motivos .br-campo textarea { min-height: 88px; }
+.br-motivos .br-campo > label { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; }
+.br-motivos .br-campo > label .br-suave { font-weight: 400; }
+
+/* Nombres de las personas a las que llega algo (chips) */
+.br-nombres { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.br-nombres li {
+  padding: 3px 10px; border-radius: 999px; font-size: 13px; font-weight: 500;
+  background: var(--br-chip-fondo); border: 1px solid var(--br-chip-borde); color: var(--br-azul);
+}
+
+/* Campo obligatorio vacío o con error: borde rojo (el mensaje va debajo con .br-motivo--alerta) */
+.br-campo [aria-invalid="true"] { border-color: var(--br-rojo); }
+/* Por qué el botón final de un diálogo está deshabilitado: debajo de los botones, alineado con ellos */
+.br-dialogo > .br-dialogo__nota-final { justify-content: flex-end; margin-top: 10px; }
+@media (max-width: 480px) { .br-dialogo > .br-dialogo__nota-final { justify-content: flex-start; } }
+/* En el celular el menú de una fila se ancla a la celda de acciones (no al botón), para no salirse de la ficha */
+@media (max-width: 640px) {
+  .br-tabla--fichas td.br-tabla__acciones { position: relative; }
+  .br-tabla--fichas .br-menu-acciones { position: static; }
+  .br-tabla--fichas .br-menu-acciones__lista { left: 0; right: auto; width: min(290px, 100%); }
+}
+
+/* =====================================================================
+   Administrador: cuentas de usuarios y carga de archivos (vista 06-usuarios y las que siguen)
+   ===================================================================== */
+
+/* Botones a la derecha del encabezado de una página (p. ej. «Cargar Excel» y «Crear una cuenta») */
+.br-encabezado__acciones { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+@media (max-width: 480px) { .br-encabezado__acciones .br-boton { flex: 1 1 100%; } }
+
+/* Tabla de fichas sin casilla de selección: en el celular, nombre y estado arriba en dos columnas */
+@media (max-width: 640px) {
+  .br-tabla--fichas.br-tabla--sin-seleccion tbody tr { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .br-tabla--sin-seleccion td.br-tabla__titulo { grid-column: 1; }
+  .br-tabla--sin-seleccion td.br-tabla__estado { grid-column: 2; }
+  .br-tabla--sin-seleccion td.br-tabla__acciones { grid-column: 1 / -1; }
+  /* dato largo (correo, motivo): ocupa toda la ficha */
+  .br-tabla--fichas td.br-tabla__ancha { grid-column: 1 / -1; }
+}
+
+/* Columnas que debe tener un archivo: letra de la columna de Excel, nombre y ejemplo */
+.br-columnas { list-style: none; margin: 0; padding: 0; }
+.br-columnas li {
+  display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; gap: 0 12px;
+  padding: 9px 0; border-top: 1px solid var(--br-fondo-3); font-size: 14px;
+}
+.br-columnas li:first-child { border-top: 0; padding-top: 0; }
+.br-columnas li:last-child { padding-bottom: 0; }
+.br-columnas__letra {
+  grid-row: 1 / span 2; display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px;
+  border: 1px solid var(--br-borde); border-radius: 6px; background: var(--br-fondo-2);
+  font-size: 12px; font-weight: 600; color: var(--br-gris); font-variant-numeric: tabular-nums;
+}
+.br-columnas__nombre { font-weight: 600; }
+.br-columnas .br-suave { grid-column: 2; }
+.br-tarjeta > .br-columnas { margin-top: 14px; }
+
+/* Botón que ocupa todo el ancho de su tarjeta (panel lateral) */
+.br-boton--ancho { width: 100%; }
+
+/* Formulario en rejilla: dos columnas en computador, una en el celular */
+.br-formulario { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 20px; }
+.br-formulario .br-formulario__ancho { grid-column: 1 / -1; }
+.br-tarjeta > .br-formulario { margin-top: 18px; }
+@media (max-width: 640px) { .br-formulario { grid-template-columns: minmax(0, 1fr); gap: 16px; } }
+/* Acciones al pie de un formulario o tarjeta: alineadas a la derecha; en el celular, a todo el ancho */
+.br-acciones-pie { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 10px; padding-top: 18px; border-top: 1px solid var(--br-borde); }
+.br-tarjeta > .br-acciones-pie { margin-top: 20px; }
+@media (max-width: 480px) { .br-acciones-pie .br-boton { flex: 1 1 100%; } }
+
+/* Archivo elegido con un enlace para cambiarlo a la derecha */
+.br-archivo__texto { flex: 1 1 auto; }
+.br-archivo > a { flex: none; font-size: 14px; font-weight: 500; text-underline-offset: 3px; }
+@media (max-width: 480px) {
+  .br-archivo:has(> a) { flex-wrap: wrap; }
+  .br-archivo:has(> a) .br-archivo__texto { flex-basis: calc(100% - 36px); }
+  .br-archivo > a { margin-left: 36px; min-height: 32px; display: inline-flex; align-items: center; }
+}
+/* Cada campo del formulario se queda arriba aunque el de al lado tenga ayuda debajo */
+.br-formulario > .br-campo { align-content: start; }
+
+/* =====================================================================
+   Administrador: convocatorias (vista 07-convocatorias y las que siguen)
+   ===================================================================== */
+
+/* Cupos de una fila: «18 de 40», barra fina y lo que queda; en rojo si ya no quedan */
+.br-tabla__cupos { min-width: 128px; }
+.br-tabla__cupos .br-progreso { width: 112px; max-width: 100%; margin: 6px 0 4px; }
+.br-tabla__cupos--lleno .br-cifra, .br-tabla__cupos--lleno .br-tabla__sub { color: var(--br-rojo-texto); }
+.br-tabla__cupos--lleno .br-cifra { font-weight: 600; }
+.br-tabla__cupos--lleno .br-progreso { color: var(--br-rojo); }
+.br-tabla__cupos--lleno .br-progreso::-webkit-progress-value { background: var(--br-rojo); }
+.br-tabla__cupos--lleno .br-progreso::-moz-progress-bar { background: var(--br-rojo); }
+/* Estado con una explicación larga debajo (p. ej. el motivo de un cierre anticipado) */
+.br-tabla__estado--largo .br-tabla__sub { max-width: 26ch; white-space: normal; }
+
+/* Opción del menú de una fila que es un enlace, y la que lleva a una acción delicada (cerrar, anular) */
+a.br-menu-acciones__item { color: var(--br-azul); text-decoration: none; }
+.br-menu-acciones__item--peligro, a.br-menu-acciones__item--peligro { color: var(--br-rojo-texto); }
+.br-menu-acciones__item--peligro:hover { background: var(--br-rojo-fondo); }
+
+/* Casos posibles de una acción y cuál aplica ahora (p. ej. cierre normal o cierre anticipado) */
+.br-casos { list-style: none; margin-inline: 0; margin-bottom: 0; padding: 0; display: grid; gap: 8px; }
+.br-casos__item {
+  display: grid; grid-template-columns: 9.5rem minmax(0, 1fr); align-items: start; gap: 6px 12px;
+  padding: 12px 14px; border: 1px solid var(--br-borde); border-radius: 10px; background: var(--br-fondo);
+}
+.br-casos__item > .br-etiqueta { justify-self: start; margin-top: 1px; }
+.br-casos__item--actual { background: var(--br-blanco); border-color: var(--br-azul); box-shadow: inset 0 0 0 1px var(--br-azul); }
+.br-casos__texto { display: grid; gap: 2px; min-width: 0; }
+.br-casos__titulo { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; font-size: 14px; font-weight: 600; }
+.br-casos__marca {
+  padding: 1px 8px; border-radius: 999px; background: var(--br-azul); color: var(--br-blanco);
+  font-size: 12px; font-weight: 600; line-height: 1.6;
+}
+@media (max-width: 480px) { .br-casos__item { grid-template-columns: minmax(0, 1fr); } }
+/* En el celular: fechas y pagos lado a lado, los cupos con su barra a todo el ancho y el estado largo debajo del nombre */
+@media (max-width: 640px) {
+  .br-tabla--fichas td.br-tabla__cupos { grid-column: 1 / -1; order: 1; min-width: 0; }
+  .br-tabla--fichas tr:has(> .br-tabla__cupos) > td.br-tabla__acciones { order: 2; }
+  .br-tabla--fichas td.br-tabla__estado--largo { grid-column: 1 / -1; grid-row: 2; justify-self: start; text-align: left; }
+  .br-tabla__estado--largo .br-tabla__sub { max-width: none; }
+}
+@media (max-width: 640px) {
+  .br-tabla--fichas tr:has(> .br-tabla__estado--largo) > td.br-tabla__titulo { grid-column: 1 / -1; }
+}
+
+/* ---------- Diálogo con cabecera y grupos de casillas (vista 04-reporte-aprobados, forma del panel «Descargar en Excel») ---------- */
+.br-dialogo__cabecera { display: flex; align-items: flex-start; gap: 14px; }
+.br-dialogo__cabecera-texto { flex: 1 1 auto; min-width: 0; display: grid; gap: 4px; }
+.br-dialogo__cabecera-texto h2 { font-size: 20px; }
+.br-dialogo__cabecera-texto p { margin: 0; }
+.br-dialogo__insignia {
+  flex: none; width: 44px; height: 44px; display: grid; place-items: center;
+  border-radius: 12px; background: var(--br-verde-claro); color: var(--br-verde);
+}
+.br-dialogo__cerrar {
+  flex: none; display: grid; place-items: center; width: 44px; height: 44px; margin: -8px -8px 0 0; padding: 0;
+  background: transparent; border: 0; border-radius: 10px; color: var(--br-azul); cursor: pointer;
+}
+.br-dialogo__cerrar:hover { background: var(--br-fondo-2); }
+.br-dialogo__cerrar svg { width: 20px; height: 20px; }
+
+.br-grupos { display: grid; gap: 18px; }
+.br-grupo { margin: 0; padding: 0; border: 0; min-width: 0; }
+.br-grupo legend { padding: 0; margin-bottom: 8px; font-size: 14px; font-weight: 600; }
+.br-grupo__lista { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.br-grupo__nota { margin-top: 6px; }
+.br-columna {
+  display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 8px 12px;
+  border: 1px solid var(--br-gris-claro); border-radius: 10px; background: var(--br-blanco);
+  font-size: 14px; cursor: pointer;
+}
+.br-columna:hover { background: var(--br-fondo); }
+.br-columna input { flex: none; margin: 0; }
+.br-columna:has(input:checked) { border-color: var(--br-verde); background: var(--br-verde-claro); box-shadow: inset 0 0 0 1px var(--br-verde); }
+.br-columna:has(input:focus-visible) { outline: 3px solid var(--br-enlace); outline-offset: 2px; }
+@media (max-width: 360px) {
+  .br-grupo__lista { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ---------- Dashboard del administrador (vista 00-dashboard) ---------- */
+/* Franja «Tareas pendientes»: cada fila es un enlace a la vista ya filtrada */
+.br-pendientes { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.br-pendiente {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 4px 14px;
+  min-height: 56px; padding: 10px 12px; border-radius: 10px;
+  color: var(--br-azul); text-decoration: none;
+}
+.br-pendiente:hover { background: var(--br-fondo-2); }
+.br-pendiente__numero {
+  min-width: 44px; padding: 6px 10px; border-radius: 10px; text-align: center;
+  background: var(--br-aviso-fondo); color: var(--br-aviso-oscuro);
+  font-size: 20px; font-weight: 700; line-height: 1.2; font-variant-numeric: tabular-nums;
+}
+.br-pendiente__texto { display: grid; gap: 2px; min-width: 0; overflow-wrap: anywhere; font-weight: 600; }
+.br-pendiente__detalle { font-size: 13px; font-weight: 400; color: var(--br-gris); }
+.br-pendiente__flecha { color: var(--br-gris); }
+.br-pendiente:hover .br-pendiente__flecha { color: var(--br-azul); }
+/* Sin pendientes: mensaje tranquilo con marca verde */
+.br-al-dia { display: flex; align-items: center; gap: 14px; padding: 4px 0; }
+.br-al-dia__marca {
+  flex: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px;
+  background: var(--br-verde-claro); color: var(--br-verde);
+}
+.br-al-dia__texto { display: grid; gap: 2px; min-width: 0; }
+.br-al-dia__texto strong { font-size: 16px; }
+
+/* Fila de cifras: 4 tarjetas iguales; en pantallas chicas, 2 y luego 1 por fila */
+.br-cifras { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin: 0; padding: 0; list-style: none; }
+.br-medida {
+  display: grid; align-content: start; gap: 6px; min-width: 0; padding: 16px 20px;
+  background: var(--br-blanco); border: 1px solid var(--br-borde); border-radius: var(--br-radio);
+}
+.br-medida__etiqueta { font-size: 14px; font-weight: 500; color: var(--br-gris); }
+.br-medida__valor { font-size: 32px; font-weight: 700; line-height: 1.15; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.br-medida__valor small { font-size: 16px; font-weight: 500; color: var(--br-gris); }
+.br-medida__nota { font-size: 13px; color: var(--br-gris); overflow-wrap: anywhere; }
+.br-medida__enlace { justify-self: start; font-size: 14px; font-weight: 600; }
+.br-medida--aviso { background: var(--br-aviso-fondo); border-color: var(--br-aviso-borde); }
+.br-medida--aviso .br-medida__etiqueta, .br-medida--aviso .br-medida__nota { color: var(--br-aviso-oscuro); }
+.br-medida--aviso .br-medida__valor { color: var(--br-aviso-oscuro); }
+.br-medida--lleno .br-medida__valor, .br-medida--lleno .br-medida__nota { color: var(--br-rojo-texto); }
+.br-medida--lleno .br-progreso { color: var(--br-rojo); }
+.br-medida--lleno .br-progreso::-webkit-progress-value { background: var(--br-rojo); }
+.br-medida--lleno .br-progreso::-moz-progress-bar { background: var(--br-rojo); }
+.br-medida--vacia { border-style: dashed; border-color: var(--br-gris-claro); }
+.br-medida--vacia .br-medida__valor { font-size: 18px; line-height: 1.3; }
+.br-medida--vacia .br-boton { justify-self: start; margin-top: 4px; }
+@media (max-width: 1180px) { .br-cifras { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 480px) {
+  .br-cifras { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .br-medida__valor { font-size: 28px; }
+  .br-pendiente { grid-template-columns: auto minmax(0, 1fr); }
+  .br-pendiente__flecha { display: none; }
+}
+
+/* =====================================================================
+   Formulario de postulación (vista 09-postulacion)
+   ===================================================================== */
+.br-formulario-largo { display: grid; gap: 16px; }
+.br-formulario-largo > .br-tarjeta > h2 { margin-bottom: 2px; }
+.br-tarjeta > .br-nota { font-size: 14px; color: var(--br-gris); }
+
+/* Requisitos plegables */
+.br-plegable { border: 1px solid var(--br-borde); border-radius: 10px; background: var(--br-fondo); }
+.br-plegable > summary { min-height: 44px; display: flex; align-items: center; padding: 0 14px; font-weight: 600; cursor: pointer; }
+.br-plegable > div { padding: 0 14px 14px; display: grid; gap: 6px; }
+
+/* Casilla con su texto */
+.br-casilla-texto { display: flex; align-items: flex-start; gap: 12px; }
+.br-casilla-texto input { flex: none; margin: 2px 0 0; }
+.br-casilla-texto label { font-size: 15px; }
+
+/* Errores de campo */
+.br-error-campo { display: flex; align-items: flex-start; gap: 6px; color: var(--br-rojo-texto); font-size: 14px; font-weight: 500; }
+.br-error-campo svg { flex: none; width: 16px; height: 16px; margin-top: 3px; }
+.br-campo input[aria-invalid="true"], .br-campo select[aria-invalid="true"], .br-campo textarea[aria-invalid="true"] {
+  border-color: var(--br-rojo); border-width: 2px;
+}
+.br-zona--error { background: var(--br-rojo-fondo); border-color: var(--br-rojo); }
+.br-zona--error:hover { background: var(--br-rojo-fondo); border-color: var(--br-rojo); }
+.br-zona--error .br-zona__icono { color: var(--br-rojo-texto); }
+.br-zona--error .br-zona__ayuda { color: var(--br-rojo-texto); }
+
+/* Resumen de errores arriba del formulario */
+.br-resumen-errores { padding: 14px 16px; background: var(--br-rojo-fondo); border: 1px solid var(--br-rojo); border-left-width: 4px; border-radius: 10px; color: var(--br-rojo-texto); display: grid; gap: 8px; }
+.br-resumen-errores h2 { font-size: 17px; color: var(--br-rojo-texto); }
+.br-resumen-errores ul { margin: 0; padding-left: 20px; display: grid; gap: 2px; }
+.br-resumen-errores a { color: var(--br-rojo-texto); font-weight: 600; display: inline-flex; align-items: center; min-height: 32px; text-underline-offset: 3px; }
+
+/* Botones al pie del formulario */
+.br-acciones-formulario { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 12px 16px; }
+@media (max-width: 480px) { .br-acciones-formulario { flex-direction: column-reverse; align-items: stretch; } .br-acciones-formulario .br-boton { width: 100%; } }
+
+/* Archivo con una acción tipo enlace («Quitar») */
+.br-archivo > button { flex: none; margin-left: auto; min-height: 44px; padding: 0 8px; background: none; border: 0; color: var(--br-enlace); font: inherit; font-size: 14px; font-weight: 500; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+@media (max-width: 480px) {
+  .br-archivo:has(> button) { flex-wrap: wrap; }
+  .br-archivo:has(> button) .br-archivo__texto { flex-basis: calc(100% - 36px); }
+  .br-archivo > button { margin-left: 28px; }
+}
+.br-archivo-fila { display: grid; gap: 8px; }
+.br-archivo-fila > .br-boton { justify-self: start; }
+
+/* Resumen de lo que se va a enviar */
+.br-revision-bloque { display: grid; gap: 10px; padding-top: 16px; border-top: 1px solid var(--br-borde); }
+.br-revision-bloque > h2 { font-size: 16px; }
+.br-revision-bloque .br-archivo-fila { gap: 6px; }
+
+/* Foco visible cuando el botón «Elegir otro archivo» es un <label> que envuelve el input de archivo */
+.br-boton:focus-within { outline: 3px solid var(--br-enlace); outline-offset: 2px; }
+
+/* ---------- Acceso sin sesión (vista 02-contrasena): misma tarjeta centrada del login de Samuel ---------- */
+.br-acceso { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px; padding-block: 40px; padding-inline: 16px; }
+.br-acceso__marca { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.br-acceso__logo { width: 120px; height: 52px; display: flex; align-items: center; justify-content: center; border: 1.5px dashed var(--br-gris-claro); border-radius: 10px; font-size: 13px; color: var(--br-gris); }
+.br-acceso__nombre { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.2; }
+.br-acceso__tarjeta { width: 100%; max-width: 440px; display: grid; gap: 24px; padding: 40px; background: var(--br-blanco); border: 1px solid var(--br-borde); border-radius: 16px; }
+.br-acceso__tarjeta h1 { font-size: 28px; }
+.br-acceso__encabezado { display: grid; gap: 6px; }
+.br-acceso__encabezado p { color: var(--br-gris); line-height: 1.5; }
+.br-acceso__encabezado .br-acceso__cuenta { font-size: 14px; overflow-wrap: anywhere; }
+.br-acceso__formulario { display: grid; gap: 20px; }
+.br-acceso__tarjeta .br-campo > label { font-size: 15px; }
+.br-acceso .br-campo input:not([type="checkbox"]):not([type="radio"]):not([type="file"]) { min-height: 52px; padding-inline: 16px; font-size: 16px; border-width: 1.5px; }
+.br-acceso .br-campo input[type="password"] { padding-right: 56px; }
+.br-acceso .br-campo input[aria-invalid="true"]:not([type="checkbox"]):not([type="radio"]):not([type="file"]) { border-color: var(--br-rojo); border-width: 2px; }
+.br-acceso .br-boton { min-height: 52px; font-size: 16px; border-radius: 10px; }
+.br-acceso__pie { margin: 0; padding-top: 20px; border-top: 1px solid var(--br-fondo-3); display: flex; align-items: flex-start; gap: 10px; font-size: 14px; color: var(--br-gris); }
+.br-acceso__pie svg { flex: none; width: 18px; height: 18px; margin-top: 2px; }
+.br-acceso__enlace { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; color: var(--br-azul); font-size: 14px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+.br-acceso__enlace:hover { color: var(--br-verde); }
+.br-acceso__acciones { display: grid; gap: 4px; justify-items: stretch; }
+.br-acceso__acciones .br-acceso__enlace { justify-self: center; }
+.br-acceso__estado { display: grid; gap: 16px; justify-items: start; }
+.br-acceso__sello { width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--br-verde-claro); color: var(--br-verde); }
+.br-acceso__sello svg { width: 28px; height: 28px; }
+.br-acceso__sello--aviso { background: var(--br-aviso-fondo); color: var(--br-aviso-texto); }
+@media (max-width: 480px) {
+  .br-acceso { justify-content: flex-start; padding-block: 24px; }
+  .br-acceso__tarjeta { padding: 24px 20px; }
+  .br-acceso__tarjeta h1 { font-size: 24px; }
+}
+
+/* Campo de contraseña con botón de mostrar */
+.br-campo__clave { position: relative; }
+.br-campo__ojo { position: absolute; top: 4px; right: 4px; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; padding: 0; border: 0; border-radius: 8px; background: transparent; color: var(--br-azul); cursor: pointer; }
+.br-campo__ojo:hover { background: var(--br-fondo-2); }
+.br-campo__ojo svg { width: 20px; height: 20px; }
+
+/* Reglas de la contraseña: cada una con ícono y texto (cumplida, pendiente o incumplida), no solo color */
+.br-reglas-caja { display: grid; gap: 8px; padding: 12px 14px; background: var(--br-fondo); border: 1px solid var(--br-borde); border-radius: 10px; }
+.br-reglas-caja > p { font-size: 13px; font-weight: 600; }
+.br-reglas { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.br-reglas li { display: flex; align-items: flex-start; gap: 8px; font-size: 14px; color: var(--br-gris); }
+.br-reglas svg { flex: none; width: 18px; height: 18px; margin-top: 2px; }
+.br-reglas li[data-estado="cumplida"] { color: var(--br-doc-ok-texto); }
+.br-reglas li[data-estado="cumplida"] svg { color: var(--br-doc-ok-marca); }
+.br-reglas li[data-estado="incumplida"] { color: var(--br-rojo-texto); font-weight: 500; }
+.br-reglas li[data-estado="incumplida"] svg { color: var(--br-rojo); }
+
+</style>
+</head>
+<body>
+<!-- Vista 3 · Administrador: detalle de una postulación. Estado: documento-pedido. -->
+<div class="br-admin">
+  <nav class="br-lateral" aria-label="Menú principal">
+  <div class="br-lateral__marca">
+    <div class="br-logo-sena">Logo SENA</div>
+    <div>
+      <span class="br-lateral__nombre">BenefitRack</span>
+      <span class="br-lateral__sub">Bienestar al Aprendiz</span>
+    </div>
+  </div>
+  <div class="br-lateral__lista">
+    <a href="#" class="br-lateral__enlace" data-opcion="Dashboard"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"></rect><rect x="14" y="3" width="7" height="5" rx="1.5"></rect><rect x="14" y="12" width="7" height="9" rx="1.5"></rect><rect x="3" y="16" width="7" height="5" rx="1.5"></rect></svg><span>Dashboard</span></a>
+    <a href="#" class="br-lateral__enlace" data-opcion="Convocatorias"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M16 3v4M8 3v4M3 10h18"></path></svg><span>Convocatorias</span></a>
+    <a href="#" class="br-lateral__enlace" data-opcion="Postulaciones" aria-current="page"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"></path><path d="M14 3v5h5M9 14l2 2 4-4"></path></svg><span>Postulaciones</span></a>
+    <a href="#" class="br-lateral__enlace" data-opcion="Pagos"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="14" rx="2"></rect><path d="M3 10h18M16 15h2"></path></svg><span>Pagos</span></a>
+    <a href="#" class="br-lateral__enlace" data-opcion="Usuarios"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"></circle><path d="M2.5 20a6.5 6.5 0 0 1 13 0"></path><path d="M16 4.5a3.5 3.5 0 0 1 0 7M21.5 20a6.5 6.5 0 0 0-4-6"></path></svg><span>Usuarios</span></a>
+  </div>
+  <p class="br-lateral__nota">El sistema solo registra los pagos; no mueve dinero.</p>
+</nav>
+
+<div class="br-movil">
+  <div class="br-movil__marca">
+    <span class="br-movil__logo">SENA</span>
+    <span>BenefitRack</span>
+  </div>
+  <details>
+    <summary aria-label="Abrir menú"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"></path></svg></summary>
+    <nav class="br-movil__menu" aria-label="Menú del celular">
+      <a href="#" data-opcion="Dashboard">Dashboard</a>
+      <a href="#" data-opcion="Convocatorias">Convocatorias</a>
+      <a href="#" data-opcion="Postulaciones" aria-current="page">Postulaciones</a>
+      <a href="#" data-opcion="Pagos">Pagos</a>
+      <a href="#" data-opcion="Usuarios">Usuarios</a>
+    </nav>
+  </details>
+</div>
+
+<header class="br-cabecera">
+  <nav aria-label="Ruta" class="br-migas"><a href="#">Dashboard</a><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"></path></svg><a href="#">Postulaciones</a><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"></path></svg><span aria-current="page">Daniela Mosquera Palacios</span></nav>
+  <div class="br-cabecera__derecha">
+  <button type="button" class="br-campanita br-campanita--clara" aria-label="Avisos, 4 sin leer" aria-haspopup="true" aria-expanded="false">
+    <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg>
+    <span class="br-campanita__contador" aria-hidden="true">4</span>
+  </button>
+  <div class="br-usuario">
+    <span class="br-usuario__inicial" aria-hidden="true">LG</span>
+    <span class="br-usuario__texto">
+      <span class="br-usuario__nombre">Laura Gómez</span>
+      <span class="br-usuario__rol">Administradora</span>
+    </span>
+  </div>
+  </div>
+</header>
+  <main>
+    <div class="br-encabezado">
+      <div class="br-encabezado__titulo">
+        <a href="#" class="br-volver"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="m15 6-6 6 6 6"></path></svg>Volver a postulaciones</a>
+        <h1>Daniela Mosquera Palacios <span class="br-etiqueta br-etiqueta--grande br-etiqueta--pendiente">Pendiente</span></h1>
+        <p class="br-encabezado__meta"><span class="br-cifra">1.034.567.218</span><span>Tarjeta cívica <span class="br-sin-corte">2026-2</span></span><span>Enviada el 27 oct 2026</span></p>
+      </div>
+      <div class="br-cupos" data-prueba="cupos">
+        <div class="br-cupos__fila">
+          <span class="br-cupos__cifra">Cupos: 0 de 30 usados</span>
+          <span class="br-cupos__resto">Quedan 30</span>
+        </div>
+        <progress class="br-progreso br-progreso--fina" value="0" max="30" aria-label="Cupos usados de Tarjeta cívica 2026-2"></progress>
+      </div>
+    </div>
+    <div class="br-aviso br-aviso--naranja br-aviso--grande" data-prueba="solicitud">
+      <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="br-aviso__icono"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>
+      <div class="br-aviso__cuerpo">
+        <p class="br-aviso__titulo">Esperando a que Daniela suba el Certificado de EPS</p>
+        <p class="br-aviso__detalle">Lo pediste el 31 oct 2026 · hace 5 días. Tu mensaje: «El certificado que enviaste no se alcanza a leer. Súbelo de nuevo en PDF o en una foto clara, por favor.»</p>
+      </div>
+    </div>
+    <div class="br-detalle">
+      <div class="br-detalle__principal">
+    <section class="br-tarjeta" aria-labelledby="titulo-datos" data-prueba="datos">
+      <div class="br-tarjeta__cabecera">
+        <h2 id="titulo-datos">Datos del formulario</h2>
+        <p class="br-suave">Compáralos con la base de aprendices del SENA.</p>
+      </div>
+      <dl class="br-ficha-datos">
+        <div class="br-ficha-datos__ancho-celular"><dt>Nombre completo</dt><dd>Daniela Mosquera Palacios</dd></div>
+        <div><dt>Documento</dt><dd class="br-cifra">1.034.567.218</dd></div>
+        <div><dt>Fecha de nacimiento</dt><dd>14 mar 2009</dd></div>
+        <div class="br-ficha-datos__ancho-celular"><dt>Programa de formación</dt><dd>Gestión Administrativa</dd></div>
+        <div><dt>Ficha</dt><dd class="br-cifra">2879415</dd></div>
+        <div><dt>Jornada</dt><dd>Mañana</dd></div>
+        <div class="br-ficha-datos__doble br-ficha-datos__ancho-celular"><dt>Correo</dt><dd>dmosquera41@soy.sena.edu.co</dd></div>
+        <div><dt>Celular</dt><dd class="br-cifra">312 456 7801</dd></div>
+        <div><dt>EPS</dt><dd>Nueva EPS</dd></div>
+        <div class="br-ficha-datos__doble br-ficha-datos__ancho-celular"><dt>Dirección</dt><dd>Carrera 52 # 48-17, barrio Boston, Medellín · estrato 2</dd></div>
+      </dl>
+    </section>
+    <section class="br-tarjeta" aria-labelledby="titulo-documentos">
+      <div class="br-tarjeta__cabecera">
+        <h2 id="titulo-documentos">Documentos adjuntos</h2>
+        <p class="br-suave">Marca cada documento como válido o no válido.</p>
+      </div>
+      <ul class="br-documentos">
+      <li class="br-documento br-documento--valido">
+        <span class="br-documento__icono" aria-hidden="true"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><rect x="3" y="5" width="18" height="14" rx="2"></rect><circle cx="9" cy="11" r="2"></circle><path d="M6 16c.6-1.3 1.7-2 3-2s2.4.7 3 2M14 10h4M14 13h3"></path></svg><span class="br-documento__marca"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="10" height="10" stroke-width="3.5"><path d="m5 12 4.5 4.5L19 7"></path></svg></span></span>
+        <div class="br-documento__texto">
+          <span class="br-documento__titulo">Documento de identidad</span>
+          <span class="br-documento__archivo">tarjeta-identidad-daniela.pdf · <span class="br-sin-corte">PDF · 412 KB</span></span>
+        </div>
+        <div class="br-documento__acciones">
+          <a href="#" class="br-boton br-boton--secundario br-boton--chico"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>Ver<span class="br-solo-lectores"> documento de identidad</span></a>
+          <div class="br-revision" role="group" aria-label="Revisión del documento de identidad">
+            <button type="button" class="br-revision__opcion br-revision__opcion--valido" aria-pressed="true"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="m5 12 4.5 4.5L19 7"></path></svg>Válido</button>
+            <button type="button" class="br-revision__opcion br-revision__opcion--no-valido" aria-pressed="false"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"></path></svg>No válido</button>
+          </div>
+        </div>
+      </li>
+      <li class="br-documento br-documento--valido">
+        <span class="br-documento__icono" aria-hidden="true"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M3 10 12 4l9 6"></path><path d="M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 20h18"></path></svg><span class="br-documento__marca"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="10" height="10" stroke-width="3.5"><path d="m5 12 4.5 4.5L19 7"></path></svg></span></span>
+        <div class="br-documento__texto">
+          <span class="br-documento__titulo">Certificado bancario</span>
+          <span class="br-documento__archivo">certificado-bancolombia.pdf · <span class="br-sin-corte">PDF · 238 KB</span></span>
+        </div>
+        <div class="br-documento__acciones">
+          <a href="#" class="br-boton br-boton--secundario br-boton--chico"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>Ver<span class="br-solo-lectores"> certificado bancario</span></a>
+          <div class="br-revision" role="group" aria-label="Revisión del certificado bancario">
+            <button type="button" class="br-revision__opcion br-revision__opcion--valido" aria-pressed="true"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="m5 12 4.5 4.5L19 7"></path></svg>Válido</button>
+            <button type="button" class="br-revision__opcion br-revision__opcion--no-valido" aria-pressed="false"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"></path></svg>No válido</button>
+          </div>
+        </div>
+      </li>
+      <li class="br-documento br-documento--no-valido" data-prueba="documento-eps">
+        <span class="br-documento__icono" aria-hidden="true"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"></path><path d="M12 10v4M10 12h4"></path></svg><span class="br-documento__marca"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="10" height="10" stroke-width="3.5"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"></path></svg></span></span>
+        <div class="br-documento__texto">
+          <span class="br-documento__titulo">Certificado de EPS<span class="br-etiqueta br-etiqueta--peligro">No válido</span><span class="br-etiqueta br-etiqueta--aviso">Documento pedido</span></span>
+          <span class="br-documento__archivo">certificado-eps-foto.jpg · <span class="br-sin-corte">JPG · 1,2 MB</span></span>
+          <span class="br-documento__motivo"><strong>Motivo:</strong> no se alcanza a leer; la foto está borrosa.</span>
+          <span class="br-documento__nota">Se le pidió uno nuevo a la aprendiz el 31 oct 2026.</span>
+        </div>
+        <div class="br-documento__acciones">
+          <a href="#" class="br-boton br-boton--secundario br-boton--chico"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>Ver<span class="br-solo-lectores"> certificado de EPS</span></a>
+        </div>
+      </li>
+      </ul>
+    </section>
+    <section class="br-tarjeta" aria-labelledby="titulo-historial" data-prueba="historial">
+      <div class="br-tarjeta__cabecera">
+        <h2 id="titulo-historial">Historial</h2>
+        <p class="br-suave">Quién cambió el estado y cuándo</p>
+      </div>
+      <ol class="br-historial">
+        <li class="br-historial__item"><span class="br-historial__cambio">Enviada · queda Pendiente</span><span class="br-historial__quien">Daniela Mosquera Palacios (aprendiz) · <time datetime="2026-10-27T16:12">27 oct 2026, 4:12 p. m.</time></span></li>
+      </ol>
+    </section>
+      </div>
+      <div class="br-detalle__lateral">
+    <section class="br-tarjeta br-decision" aria-labelledby="titulo-decision">
+      <div class="br-decision__cabecera">
+        <h2 id="titulo-decision">Revisión</h2>
+        <p class="br-suave">Dos pasos, en orden: primero confirmar los datos, después decidir.</p>
+      </div>
+      <div class="br-decision__paso">
+        <div class="br-decision__titulo"><span class="br-decision__numero" aria-hidden="true">1</span><h3>Confirmar datos</h3></div>
+        <p class="br-decision__texto">Revisa que los datos y los documentos coincidan con la base de aprendices del SENA.</p>
+        <div class="br-decision__acciones">
+          <button type="button" class="br-boton br-boton--primario" data-prueba="confirmar-datos" disabled aria-describedby="motivo-confirmar">Datos confirmados</button>
+          <p class="br-motivo" id="motivo-confirmar"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v5M12 8h.01"></path></svg><span>Esperando el Certificado de EPS que le pediste a Daniela. Se habilita cuando lo suba y lo marques como válido.</span></p>
+          <button type="button" class="br-boton br-boton--secundario">Pedir otro documento</button>
+          <div class="br-decision__separador" role="presentation"></div>
+          <button type="button" class="br-boton br-boton--peligro" aria-describedby="nota-rechazar">Rechazar</button>
+          <p class="br-suave" id="nota-rechazar">Te pediremos el motivo antes de rechazar.</p>
+        </div>
+      </div>
+      <div class="br-decision__paso br-decision__paso--bloqueado">
+        <div class="br-decision__titulo"><span class="br-decision__numero" aria-hidden="true">2</span><h3>Aprobar o rechazar</h3></div>
+        <div class="br-decision__acciones">
+          <button type="button" class="br-boton br-boton--primario" data-prueba="aprobar" disabled aria-describedby="motivo-aprobar">Aprobar</button>
+          <p class="br-motivo" id="motivo-aprobar" data-prueba="motivo-deshabilitado"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v5M12 8h.01"></path></svg><span>Se habilita cuando la postulación esté Validada (paso 1).</span></p>
+        </div>
+      </div>
+    </section>
+      </div>
+    </div>
+  </main>
+</div>
+</body>
+</html>

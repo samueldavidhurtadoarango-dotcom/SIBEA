@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Convocatorias · Nueva convocatoria</title>
+  <link rel="stylesheet" href="../../_comun/estilo.css">
+</head>
+<body>
+<!-- Vista 7 · Administrador: convocatorias. Estado: crear-editar. Formulario lleno para crear «Alimentación 2027-1».
+     Editar una convocatoria usa el mismo formulario con sus datos; el panel de la derecha explica qué cambia al editar.
+     Campos = columnas de la tabla convocatorias (nombre, id_beneficio, fecha_inicio, fecha_cierre, cupos, requisitos,
+     valor_pago, numero_pagos, duracion_meses) y el estado inicial (una convocatoria nueva nace Activa o Inactiva). -->
+<div class="br-admin">
+  <!-- incluir:menu-admin activo="Convocatorias" pagina="Nueva convocatoria" -->
+  <main>
+    <div class="br-encabezado">
+      <div class="br-encabezado__titulo">
+        <a href="lista.html" class="br-volver"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="m15 6-6 6 6 6"></path></svg>Volver a convocatorias</a>
+        <h1>Nueva convocatoria</h1>
+        <p class="br-encabezado__sub">Define el beneficio, las fechas, los cupos y cuánto recibe cada aprendiz aprobado.</p>
+      </div>
+    </div>
+    <div class="br-detalle">
+      <div class="br-detalle__principal">
+        <form class="br-tarjeta" aria-labelledby="titulo-datos" action="#">
+          <h2 id="titulo-datos">Datos de la convocatoria</h2>
+          <div class="br-formulario">
+            <div class="br-campo">
+              <label for="nombre">Nombre</label>
+              <input id="nombre" name="nombre" autocomplete="off" maxlength="150" value="Alimentación 2027-1" required aria-describedby="ayuda-nombre">
+              <p class="br-ayuda" id="ayuda-nombre">Beneficio y periodo, p. ej. «Plan de datos 2027-1».</p>
+            </div>
+            <div class="br-campo">
+              <label for="beneficio">Beneficio</label>
+              <select id="beneficio" name="id_beneficio" required>
+                <option selected>Apoyo de alimentación</option>
+                <option>Plan de datos</option>
+                <option>Tarjeta cívica</option>
+              </select>
+            </div>
+            <div class="br-campo">
+              <label for="fecha-inicio">Fecha de inicio</label>
+              <input id="fecha-inicio" name="fecha_inicio" type="date" value="2027-02-01" required aria-describedby="ayuda-fecha-inicio">
+              <p class="br-ayuda" id="ayuda-fecha-inicio">Desde este día se reciben postulaciones.</p>
+            </div>
+            <div class="br-campo">
+              <label for="fecha-cierre">Fecha de cierre</label>
+              <input id="fecha-cierre" name="fecha_cierre" type="date" value="2027-03-31" required aria-describedby="ayuda-fecha-cierre">
+              <p class="br-ayuda" id="ayuda-fecha-cierre">Debe ser después de la fecha de inicio.</p>
+            </div>
+            <div class="br-campo">
+              <label for="cupos">Cupos</label>
+              <input id="cupos" name="cupos" type="number" min="1" step="1" value="25" required aria-describedby="ayuda-cupos">
+              <p class="br-ayuda" id="ayuda-cupos">Cuántos aprendices se pueden aprobar.</p>
+            </div>
+            <div class="br-campo">
+              <label for="valor-pago">Valor de cada pago</label>
+              <input id="valor-pago" name="valor_pago" inputmode="numeric" autocomplete="off" value="180000" required aria-describedby="ayuda-valor-pago">
+              <p class="br-ayuda" id="ayuda-valor-pago">En pesos, sin puntos ni signo $.</p>
+            </div>
+            <div class="br-campo">
+              <label for="numero-pagos">Número de pagos</label>
+              <input id="numero-pagos" name="numero_pagos" type="number" min="1" step="1" value="6" required>
+            </div>
+            <div class="br-campo">
+              <label for="duracion-meses">Duración en meses</label>
+              <input id="duracion-meses" name="duracion_meses" type="number" min="1" step="1" value="6" required aria-describedby="ayuda-duracion">
+              <p class="br-ayuda" id="ayuda-duracion">Cuánto dura el beneficio de cada aprendiz.</p>
+            </div>
+            <div class="br-resumen br-formulario__ancho" data-prueba="resumen-pagos">
+              <p class="br-resumen__cifra">Cada aprendiz aprobado recibe 6 pagos de <span class="br-sin-corte">$ 180.000</span>: <span class="br-sin-corte">$ 1.080.000</span> en 6 meses.</p>
+              <p class="br-suave">Con los 25 cupos llenos, son <span class="br-sin-corte">$ 27.000.000</span> en total.</p>
+            </div>
+            <div class="br-campo br-formulario__ancho">
+              <label for="requisitos">Requisitos</label>
+              <textarea id="requisitos" name="requisitos" rows="5" required aria-describedby="ayuda-requisitos">Ser aprendiz con matrícula activa en etapa lectiva.
+Certificado de EPS vigente.
+Certificado bancario a nombre del aprendiz.</textarea>
+              <p class="br-ayuda" id="ayuda-requisitos">Uno por línea.</p>
+            </div>
+            <fieldset class="br-opciones br-formulario__ancho">
+              <legend>¿Recibe postulaciones desde ya?</legend>
+              <div class="br-opciones__lista">
+                <label class="br-opcion">
+                  <input type="radio" name="estado" value="Activa">
+                  <span class="br-opcion__titulo">Activa</span>
+                  <span class="br-opcion__ayuda">Recibe postulaciones entre la fecha de inicio y la de cierre.</span>
+                </label>
+                <label class="br-opcion">
+                  <input type="radio" name="estado" value="Inactiva" checked>
+                  <span class="br-opcion__titulo">Inactiva</span>
+                  <span class="br-opcion__ayuda">Queda guardada y nadie puede postularse. Puedes activarla cuando esté lista.</span>
+                </label>
+              </div>
+            </fieldset>
+          </div>
+          <div class="br-acciones-pie">
+            <a href="lista.html" class="br-boton br-boton--secundario">Cancelar</a>
+            <button type="submit" class="br-boton br-boton--primario">Guardar convocatoria</button>
+          </div>
+        </form>
+      </div>
+      <aside class="br-detalle__lateral">
+        <section class="br-tarjeta" aria-labelledby="titulo-editar">
+          <h2 id="titulo-editar">Al editar una convocatoria</h2>
+          <ul class="br-lista br-texto">
+            <li>Los cupos no pueden quedar por debajo de las postulaciones ya aprobadas.</li>
+            <li>El valor, el número de pagos y la duración se copian a cada aprendiz al aprobarlo. Si los cambias, no afecta a los ya aprobados.</li>
+            <li>Para que nadie más se postule, ciérrala desde la lista con «Cerrar convocatoria».</li>
+          </ul>
+        </section>
+      </aside>
+    </div>
+  </main>
+</div>
+</body>
+</html>

@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Subir documento · Elegir archivo</title>
+  <link rel="stylesheet" href="../../_comun/estilo.css">
+</head>
+<body>
+  <!-- incluir:barra-aprendiz nombre="Luisa Fernanda" avisos="1" -->
+  <main class="br-pagina">
+    <div class="br-aviso br-aviso--azul br-aviso--grande" data-prueba="pedido">
+      <svg aria-hidden="true" class="br-aviso__icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M9 13h6"></path><path d="M9 17h4"></path></svg>
+      <div class="br-aviso__cuerpo">
+        <p class="br-aviso__titulo">Bienestar te pidió: Certificado de EPS.</p>
+        <p class="br-aviso__detalle">«El certificado que enviaste no se alcanza a leer. Súbelo de nuevo en PDF o en una foto clara, por favor.»</p>
+        <p class="br-suave">Lo pidió el 10 ago 2026 · Apoyo de alimentación, convocatoria <span class="br-sin-corte">2026-2</span></p>
+      </div>
+    </div>
+    <section class="br-tarjeta" aria-labelledby="titulo-subir">
+      <h1 id="titulo-subir">Sube tu documento</h1>
+      <p class="br-texto">Este documento completa la postulación que ya enviaste. No tienes que volver a postularte.</p>
+      <div class="br-campo">
+        <span class="br-solo-lectores" id="ayuda-formatos">Formatos permitidos: PDF, JPG o PNG. Tamaño máximo: 5 MB.</span>
+        <label class="br-zona" for="archivo" data-prueba="zona">
+          <svg aria-hidden="true" class="br-zona__icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="m17 8-5-5-5 5"></path><path d="M12 3v12"></path></svg>
+          <span class="br-zona__titulo">Elige un archivo o arrástralo aquí</span>
+          <span class="br-zona__ayuda" aria-hidden="true">PDF, JPG o PNG · máximo 5 MB</span>
+          <span class="br-boton br-boton--secundario" aria-hidden="true">Elegir archivo</span>
+          <input class="br-solo-lectores" type="file" id="archivo" name="archivo" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" aria-describedby="ayuda-formatos">
+        </label>
+      </div>
+      <button type="button" class="br-boton br-boton--primario" disabled>Enviar documento</button>
+      <p class="br-ayuda">El botón se activa cuando eliges un archivo.</p>
+    </section>
+    <a class="br-volver" href="../../01-mi-proceso/html/documento-pedido.html">Volver a Mi proceso</a>
+  </main>
+</body>
+</html>
