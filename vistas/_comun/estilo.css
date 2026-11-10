@@ -1195,3 +1195,52 @@ a.br-menu-acciones__item { color: var(--br-azul); text-decoration: none; }
 
 /* Foco visible cuando el botón «Elegir otro archivo» es un <label> que envuelve el input de archivo */
 .br-boton:focus-within { outline: 3px solid var(--br-enlace); outline-offset: 2px; }
+
+/* ---------- Acceso sin sesión (vista 02-contrasena): misma tarjeta centrada del login de Samuel ---------- */
+.br-acceso { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px; padding-block: 40px; padding-inline: 16px; }
+.br-acceso__marca { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.br-acceso__logo { width: 120px; height: 52px; display: flex; align-items: center; justify-content: center; border: 1.5px dashed var(--br-gris-claro); border-radius: 10px; font-size: 13px; color: var(--br-gris); }
+.br-acceso__nombre { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.2; }
+.br-acceso__tarjeta { width: 100%; max-width: 440px; display: grid; gap: 24px; padding: 40px; background: var(--br-blanco); border: 1px solid var(--br-borde); border-radius: 16px; }
+.br-acceso__tarjeta h1 { font-size: 28px; }
+.br-acceso__encabezado { display: grid; gap: 6px; }
+.br-acceso__encabezado p { color: var(--br-gris); line-height: 1.5; }
+.br-acceso__encabezado .br-acceso__cuenta { font-size: 14px; overflow-wrap: anywhere; }
+.br-acceso__formulario { display: grid; gap: 20px; }
+.br-acceso__tarjeta .br-campo > label { font-size: 15px; }
+.br-acceso .br-campo input:not([type="checkbox"]):not([type="radio"]):not([type="file"]) { min-height: 52px; padding-inline: 16px; font-size: 16px; border-width: 1.5px; }
+.br-acceso .br-campo input[type="password"] { padding-right: 56px; }
+.br-acceso .br-campo input[aria-invalid="true"]:not([type="checkbox"]):not([type="radio"]):not([type="file"]) { border-color: var(--br-rojo); border-width: 2px; }
+.br-acceso .br-boton { min-height: 52px; font-size: 16px; border-radius: 10px; }
+.br-acceso__pie { margin: 0; padding-top: 20px; border-top: 1px solid var(--br-fondo-3); display: flex; align-items: flex-start; gap: 10px; font-size: 14px; color: var(--br-gris); }
+.br-acceso__pie svg { flex: none; width: 18px; height: 18px; margin-top: 2px; }
+.br-acceso__enlace { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; color: var(--br-azul); font-size: 14px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+.br-acceso__enlace:hover { color: var(--br-verde); }
+.br-acceso__acciones { display: grid; gap: 4px; justify-items: stretch; }
+.br-acceso__acciones .br-acceso__enlace { justify-self: center; }
+.br-acceso__estado { display: grid; gap: 16px; justify-items: start; }
+.br-acceso__sello { width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--br-verde-claro); color: var(--br-verde); }
+.br-acceso__sello svg { width: 28px; height: 28px; }
+.br-acceso__sello--aviso { background: var(--br-aviso-fondo); color: var(--br-aviso-texto); }
+@media (max-width: 480px) {
+  .br-acceso { justify-content: flex-start; padding-block: 24px; }
+  .br-acceso__tarjeta { padding: 24px 20px; }
+  .br-acceso__tarjeta h1 { font-size: 24px; }
+}
+
+/* Campo de contraseña con botón de mostrar */
+.br-campo__clave { position: relative; }
+.br-campo__ojo { position: absolute; top: 4px; right: 4px; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; padding: 0; border: 0; border-radius: 8px; background: transparent; color: var(--br-azul); cursor: pointer; }
+.br-campo__ojo:hover { background: var(--br-fondo-2); }
+.br-campo__ojo svg { width: 20px; height: 20px; }
+
+/* Reglas de la contraseña: cada una con ícono y texto (cumplida, pendiente o incumplida), no solo color */
+.br-reglas-caja { display: grid; gap: 8px; padding: 12px 14px; background: var(--br-fondo); border: 1px solid var(--br-borde); border-radius: 10px; }
+.br-reglas-caja > p { font-size: 13px; font-weight: 600; }
+.br-reglas { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.br-reglas li { display: flex; align-items: flex-start; gap: 8px; font-size: 14px; color: var(--br-gris); }
+.br-reglas svg { flex: none; width: 18px; height: 18px; margin-top: 2px; }
+.br-reglas li[data-estado="cumplida"] { color: var(--br-doc-ok-texto); }
+.br-reglas li[data-estado="cumplida"] svg { color: var(--br-doc-ok-marca); }
+.br-reglas li[data-estado="incumplida"] { color: var(--br-rojo-texto); font-weight: 500; }
+.br-reglas li[data-estado="incumplida"] svg { color: var(--br-rojo); }
