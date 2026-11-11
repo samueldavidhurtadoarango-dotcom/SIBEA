@@ -17,4 +17,3 @@ final class AlmacenTemporalDePrueba extends AlmacenTemporal
         return rename($origen, $destino);
     }
 }
-

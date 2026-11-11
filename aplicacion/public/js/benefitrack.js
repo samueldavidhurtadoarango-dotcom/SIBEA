@@ -12,7 +12,8 @@
   // 1. Evitar el doble envío.
   document.addEventListener('submit', function (evento) {
     var formulario = evento.target;
-    if (!(formulario instanceof HTMLFormElement)) {
+    // Si otra parte (la pre-validación de la postulación) ya detuvo el envío, el botón no se desactiva.
+    if (!(formulario instanceof HTMLFormElement) || evento.defaultPrevented) {
       return;
     }
     var boton = formulario.querySelector('button[type="submit"]');
@@ -141,5 +142,67 @@
         menu.removeAttribute('open');
       }
     });
+  });
+
+  // 4. Formulario de postulación (data-prevalidar). Solo AVISA antes de enviar y muestra el nombre del archivo
+  //    elegido. El servidor vuelve a validar todo (ValidadorPostulacion.php): esto se puede saltar, aquello no.
+  var TAMANO_MAXIMO = 5 * 1024 * 1024; // 5 MB, igual que ValidadorArchivo.php
+  var EXTENSIONES = /\.(pdf|jpe?g|png)$/i;
+
+  // Mensaje de un campo obligatorio o de un archivo que no cumple; '' si está bien.
+  function problemaDe(campo) {
+    if (campo.type === 'file') {
+      var archivo = campo.files[0];
+      if (!archivo) { return 'Falta el archivo'; }
+      if (archivo.size > TAMANO_MAXIMO) { return 'El archivo pesa más de 5 MB'; }
+      return EXTENSIONES.test(archivo.name) ? '' : 'Solo se aceptan PDF, JPG o PNG';
+    }
+    if (campo.type === 'checkbox') {
+      return campo.checked ? '' : 'Marca la declaración para continuar';
+    }
+    return campo.value.trim() === '' ? 'Este dato es obligatorio' : '';
+  }
+
+  function mostrarProblema(campo, mensaje) {
+    var caja = campo.closest('.br-campo, .br-casilla-texto');
+    var viejo = caja.querySelector('[data-aviso-js]');
+    if (viejo) { viejo.remove(); }
+    campo.removeAttribute('aria-invalid');
+    if (mensaje === '') { return; }
+    campo.setAttribute('aria-invalid', 'true');
+    var parrafo = document.createElement('p');
+    parrafo.className = 'br-error-campo';
+    parrafo.setAttribute('data-aviso-js', '');
+    parrafo.textContent = mensaje;
+    caja.appendChild(parrafo);
+  }
+
+  // Fase de captura: corre antes que el desactivado del botón (punto 1), que respeta el envío ya detenido.
+  document.addEventListener('submit', function (evento) {
+    var formulario = evento.target;
+    if (!(formulario instanceof HTMLFormElement) || !formulario.hasAttribute('data-prevalidar')) {
+      return;
+    }
+    var primero = null;
+    formulario.querySelectorAll('[data-requerido]').forEach(function (campo) {
+      var mensaje = problemaDe(campo);
+      mostrarProblema(campo, mensaje);
+      if (mensaje !== '' && primero === null) { primero = campo; }
+    });
+    if (primero !== null) {
+      evento.preventDefault();
+      primero.focus();
+    }
+  }, true);
+
+  document.addEventListener('change', function (evento) {
+    var campo = evento.target;
+    if (!(campo instanceof HTMLInputElement) || !campo.hasAttribute('data-archivo')) {
+      return;
+    }
+    var texto = campo.form.querySelector('[data-elegido="' + campo.id + '"]');
+    if (texto) {
+      texto.textContent = campo.files[0] ? campo.files[0].name : '';
+    }
   });
 })();

@@ -245,6 +245,53 @@ final class Sesion
         return $carga;
     }
 
+    /**
+     * @return string El id de la sesión de PHP (nombra la carpeta temporal de sus documentos).
+     */
+    public function idSesion(): string
+    {
+        return session_id() ?: '';
+    }
+
+    /**
+     * Guarda la postulación que ya pasó la validación y espera a que la persona pulse «Enviar» (Ruling R3).
+     * Los documentos no van en la sesión: solo su ruta en la carpeta temporal.
+     *
+     * @param int                                                                                                                  $idConvocatoria Convocatoria a la que se postula.
+     * @param array{datos: array<string, mixed>, archivos: array<string, array{ruta: string, extension: string, nombre_original: string, bytes: int}>} $postulacion
+     * @return void
+     */
+    public function guardarPostulacionPendiente(int $idConvocatoria, array $postulacion): void
+    {
+        $_SESSION['postulacion_pendiente'][$idConvocatoria] = $postulacion;
+    }
+
+    /**
+     * @param int $idConvocatoria La convocatoria.
+     * @return array{datos: array<string, mixed>, archivos: array<string, array{ruta: string, extension: string, nombre_original: string, bytes: int}>}|null
+     *         Lo pendiente de enviar, o null si no hay nada.
+     */
+    public function postulacionPendiente(int $idConvocatoria): ?array
+    {
+        /** @var array{datos: array<string, mixed>, archivos: array<string, array{ruta: string, extension: string, nombre_original: string, bytes: int}>}|null $pendiente */
+        $pendiente = $_SESSION['postulacion_pendiente'][$idConvocatoria] ?? null;
+
+        return $pendiente;
+    }
+
+    /**
+     * Olvida la postulación pendiente de una convocatoria (al enviarla o al reemplazarla).
+     *
+     * @param int $idConvocatoria La convocatoria.
+     * @return void
+     */
+    public function borrarPostulacionPendiente(int $idConvocatoria): void
+    {
+        unset($_SESSION['postulacion_pendiente'][$idConvocatoria]);
+        if (($_SESSION['postulacion_pendiente'] ?? null) === []) {
+            unset($_SESSION['postulacion_pendiente']);
+        }
+    }
     /** ¿La petición llegó por HTTPS? (el servidor lo avisa en $_SERVER['HTTPS']). */
     private function esHttps(): bool
     {

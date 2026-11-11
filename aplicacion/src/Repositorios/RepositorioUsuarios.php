@@ -189,6 +189,29 @@ class RepositorioUsuarios
     }
 
     /**
+     * Los datos de la cuenta de un aprendiz para el formulario de postulación («Tus datos» y el contacto ya guardado).
+     *
+     * @param int $id Id del aprendiz.
+     * @return array<string, mixed>|null nombre, apellido, documento, ficha, correo, programa (su nombre), telefono, direccion,
+     *                                   fecha_nacimiento e id_eps; null si no existe o es administrador.
+     */
+    public function perfilAprendiz(int $id): ?array
+    {
+        $consulta = $this->baseDatos->pdo()->prepare(
+            'SELECT u.nombre, u.apellido, u.documento, u.ficha, u.correo, p.nombre AS programa,
+                    u.telefono, u.direccion, u.fecha_nacimiento, u.id_eps
+               FROM usuarios u
+               JOIN roles r ON r.id_rol = u.id_rol
+               LEFT JOIN programas p ON p.id_programa = u.id_programa
+              WHERE u.id_usuario = ? AND r.nombre = \'Aprendiz\''
+        );
+        $consulta->execute([$id]);
+        $fila = $consulta->fetch();
+
+        return is_array($fila) ? $fila : null;
+    }
+
+    /**
      * Crea la cuenta de un aprendiz. Si el documento o el correo ya existen, la base
      * lanza una PDOException (clave única, código 1062): el servicio la traduce.
      *

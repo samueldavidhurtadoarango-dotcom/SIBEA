@@ -23,6 +23,7 @@ use BenefitRack\Controladores\AccesoControlador;
 use BenefitRack\Controladores\CargaUsuariosControlador;
 use BenefitRack\Controladores\ContrasenaControlador;
 use BenefitRack\Controladores\ConvocatoriasControlador;
+use BenefitRack\Controladores\PostulacionAprendizControlador;
 use BenefitRack\Controladores\UsuariosControlador;
 use BenefitRack\Filtros\FiltroCsrf;
 use BenefitRack\Filtros\FiltroPrimerIngreso;
@@ -32,11 +33,13 @@ use BenefitRack\Repositorios\RepositorioCatalogos;
 use BenefitRack\Repositorios\RepositorioConvocatorias;
 use BenefitRack\Repositorios\RepositorioMigraciones;
 use BenefitRack\Repositorios\RepositorioUsuarios;
+use BenefitRack\Servicios\AlmacenTemporal;
 use BenefitRack\Servicios\ServicioAcceso;
 use BenefitRack\Servicios\ServicioCargaUsuarios;
 use BenefitRack\Servicios\ServicioContrasena;
 use BenefitRack\Servicios\ServicioConvocatorias;
 use BenefitRack\Servicios\ServicioUsuarios;
+use BenefitRack\Validacion\ValidadorPostulacion;
 use InvalidArgumentException;
 
 final class Fabrica
@@ -109,6 +112,17 @@ final class Fabrica
                 $this->vista(),
                 new ServicioConvocatorias(new RepositorioConvocatorias($this->baseDatos())),
                 new RepositorioCatalogos($this->baseDatos())
+            ),
+            // La postulación usa baseDatos(): la base anota a la persona de la sesión (@app_id_usuario) y su trigger
+            // vuelve a comprobar que la convocatoria esté abierta. Los documentos esperan en almacenamiento/temporal (fuera de public/).
+            PostulacionAprendizControlador::class => new PostulacionAprendizControlador(
+                $this->sesion(),
+                $this->vista(),
+                new RepositorioConvocatorias($this->baseDatos()),
+                new RepositorioCatalogos($this->baseDatos()),
+                new RepositorioUsuarios($this->baseDatos()),
+                new ValidadorPostulacion(),
+                new AlmacenTemporal(dirname(__DIR__, 2) . '/almacenamiento/temporal')
             ),
             default => throw new InvalidArgumentException("No sé crear el controlador: $claseControlador"),
         };

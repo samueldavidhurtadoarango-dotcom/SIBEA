@@ -14,7 +14,7 @@ namespace BenefitRack\Repositorios;
 
 use BenefitRack\Nucleo\BaseDatos;
 
-final class RepositorioCatalogos
+class RepositorioCatalogos
 {
     /**
      * @param BaseDatos $baseDatos La conexión de esta petición.

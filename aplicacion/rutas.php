@@ -18,6 +18,7 @@ use BenefitRack\Controladores\AccesoControlador;
 use BenefitRack\Controladores\CargaUsuariosControlador;
 use BenefitRack\Controladores\ContrasenaControlador;
 use BenefitRack\Controladores\ConvocatoriasControlador;
+use BenefitRack\Controladores\PostulacionAprendizControlador;
 use BenefitRack\Controladores\UsuariosControlador;
 use BenefitRack\Nucleo\Enrutador;
 use BenefitRack\Nucleo\Fabrica;
@@ -58,4 +59,9 @@ return static function (Enrutador $enrutador, Fabrica $fabrica): void {
     $enrutador->agregar('GET', '/admin/convocatorias/{id}/editar', [ConvocatoriasControlador::class, 'editar'], $admin);
     $enrutador->agregar('POST', '/admin/convocatorias/{id}/editar', [ConvocatoriasControlador::class, 'guardar'], $adminConCsrf);
     $enrutador->agregar('POST', '/admin/convocatorias/{id}/estado', [ConvocatoriasControlador::class, 'cambiarEstado'], $adminConCsrf);
+
+    // Postulación del aprendiz (M5a): ver el formulario y validarlo. Solo el aprendiz, ya con contraseña propia; el POST lleva CSRF.
+    $aprendiz = [$fabrica->filtroSesion(), $fabrica->filtroRol('Aprendiz'), $fabrica->filtroPrimerIngreso()];
+    $enrutador->agregar('GET', '/convocatorias/{id}/postulacion', [PostulacionAprendizControlador::class, 'formulario'], $aprendiz);
+    $enrutador->agregar('POST', '/convocatorias/{id}/postulacion', [PostulacionAprendizControlador::class, 'revisar'], [...$aprendiz, $fabrica->filtroCsrf()]);
 };

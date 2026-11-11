@@ -148,4 +148,36 @@ class RepositorioConvocatorias
 
         return $consulta->fetchAll();
     }
+
+    /**
+     * ¿Se puede postular hoy a esta convocatoria? Misma regla que abiertasPara() y que el trigger de la base:
+     * estado Activa y la fecha de hoy (la de la base) entre el inicio y el cierre.
+     *
+     * @param int $id Id de la convocatoria.
+     * @return bool true si está abierta; false si está cerrada, inactiva, fuera de fechas o no existe.
+     */
+    public function abierta(int $id): bool
+    {
+        $consulta = $this->baseDatos->pdo()->prepare(
+            "SELECT 1 FROM convocatorias
+              WHERE id_convocatoria = ? AND estado = 'Activa' AND CURDATE() BETWEEN fecha_inicio AND fecha_cierre"
+        );
+        $consulta->execute([$id]);
+
+        return $consulta->fetchColumn() !== false;
+    }
+
+    /**
+     * @param int $idConvocatoria Id de la convocatoria.
+     * @param int $idAprendiz     Id del aprendiz.
+     * @return int|null El id de la postulación del aprendiz a esa convocatoria; null si todavía no se postuló.
+     */
+    public function idPostulacionDe(int $idConvocatoria, int $idAprendiz): ?int
+    {
+        $consulta = $this->baseDatos->pdo()->prepare('SELECT id_postulacion FROM postulaciones WHERE id_convocatoria = ? AND id_usuario = ?');
+        $consulta->execute([$idConvocatoria, $idAprendiz]);
+        $id = $consulta->fetchColumn();
+
+        return $id === false ? null : (int) $id;
+    }
 }
