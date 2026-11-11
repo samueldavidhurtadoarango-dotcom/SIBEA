@@ -21,6 +21,7 @@ use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use RuntimeException;
+use Throwable;
 
 final class ExportadorExcel
 {
@@ -84,8 +85,17 @@ final class ExportadorExcel
             throw new RuntimeException('No se pudo crear el archivo temporal.');
         }
         $ruta = $reservado . '.xlsx';
-        rename($reservado, $ruta);
-        (new Xlsx($libro))->save($ruta);
+        try {
+            if (!rename($reservado, $ruta)) {
+                throw new RuntimeException('No se pudo preparar el archivo temporal.');
+            }
+            (new Xlsx($libro))->save($ruta);
+        } catch (Throwable $error) {
+            // Si algo falla, no se deja ningún archivo (vacío o a medias) en la carpeta temporal.
+            @unlink($reservado);
+            @unlink($ruta);
+            throw $error;
+        }
         $libro->disconnectWorksheets();
 
         return $ruta;

@@ -4,11 +4,12 @@
  * VISTA "usuarios/lista": la lista de aprendices con buscador y páginas de 20.
  * Paso 5 del recorrido (la dibuja UsuariosControlador dentro del marco "admin").
  * Reproduce la maqueta vistas/06-usuarios/html/lista (sin la columna «Último ingreso»: la base no la guarda).
- * Recibe: $buscar (texto buscado), $pagina (filas, total, pagina, paginas, porPagina) y $tokenCsrf.
+ * Recibe: $pendientes (contraseñas por entregar), $buscar (texto buscado), $pagina (filas, total, pagina, paginas, porPagina) y $tokenCsrf.
  * Las acciones de cambiar estado y restablecer son formularios POST dentro de dos ventanas (modales de Bootstrap).
  */
 
 $buscar = $buscar ?? '';
+$pendientes = $pendientes ?? 0;
 $filas = $pagina['filas'];
 $actual = $pagina['pagina'];
 $paginas = $pagina['paginas'];
@@ -29,6 +30,20 @@ $icono = '<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="curren
         <a href="/admin/usuarios/nuevo" class="br-boton br-boton--primario"><?= $icono ?><path d="M12 5v14M5 12h14"></path></svg>Crear una cuenta</a>
     </div>
 </div>
+
+<?php if ($pendientes > 0) : ?>
+    <!-- Contraseñas temporales que aún no se han descargado en el Excel de entrega (viven en la sesión). -->
+    <div class="br-aviso br-aviso--naranja br-aviso--grande" role="status">
+        <div class="br-aviso__cuerpo">
+            <p class="br-aviso__titulo"><?= $pendientes ?> <?= $pendientes === 1 ? 'contraseña pendiente' : 'contraseñas pendientes' ?> de entregar</p>
+            <p class="br-aviso__detalle">Descarga el Excel de entrega y guárdalo en un lugar seguro: el sistema no lo conserva y, al descargarlo, las contraseñas se borran de la sesión.</p>
+            <form method="post" action="/admin/usuarios/entrega">
+                <input type="hidden" name="_csrf" value="<?= e($tokenCsrf) ?>">
+                <button type="submit" class="br-boton br-boton--primario br-boton--chico">Descargar Excel de entrega</button>
+            </form>
+        </div>
+    </div>
+<?php endif; ?>
 
 <section class="br-tarjeta br-listado" aria-label="Lista de aprendices">
     <div class="br-listado__herramientas">

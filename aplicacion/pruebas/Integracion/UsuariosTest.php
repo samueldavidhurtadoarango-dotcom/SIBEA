@@ -348,7 +348,7 @@ final class UsuariosTest extends BaseDePrueba
 
         try {
             // Una fila mal armada hace fallar al exportador a mitad de camino.
-            (new \BenefitRack\Servicios\ExportadorExcel())->entregaContrasenas([['documento' => '1']]); // @phpstan-ignore-line
+            (new \BenefitRack\Servicios\ExportadorExcel())->entregaContrasenas([['documento' => [], 'nombre' => 'A', 'correo' => 'a@b.co', 'contrasena' => 'x']]); // @phpstan-ignore-line
             $this->fail('Debía fallar.');
         } catch (\Throwable) {
             $this->assertSame($antes, $this->archivosTemporales());

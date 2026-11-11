@@ -19,14 +19,12 @@ final class Respuesta
      * @param string                $cuerpo    Contenido que se envía.
      * @param array<string, string> $cabeceras Cabeceras HTTP (nombre => valor).
      * @param string|null           $archivo   Ruta de un archivo a enviar en lugar del cuerpo.
-     * @param bool                  $borrarArchivo true si el archivo es temporal y se borra después de enviarlo.
      */
     private function __construct(
         private readonly int $codigo,
         private readonly string $cuerpo,
         private readonly array $cabeceras,
         private readonly ?string $archivo = null,
-        private readonly bool $borrarArchivo = false,
     ) {
     }
 
@@ -53,10 +51,9 @@ final class Respuesta
      * @param string $ruta           Ruta del archivo en el servidor.
      * @param string $nombreDescarga Nombre con el que lo verá quien descarga.
      * @param string $tipoMime       Tipo del archivo (application/pdf, image/png...).
-     * @param bool   $borrarDespues  true para un archivo temporal (por ejemplo el Excel de entrega): se borra al enviarlo.
      * @return Respuesta Una descarga.
      */
-    public static function archivo(string $ruta, string $nombreDescarga, string $tipoMime, bool $borrarDespues = false): Respuesta
+    public static function archivo(string $ruta, string $nombreDescarga, string $tipoMime): Respuesta
     {
         // Seguridad: se reemplazan comillas, saltos de línea y símbolos raros
         // del nombre para que no puedan colarse otras cabeceras HTTP.
@@ -67,15 +64,48 @@ final class Respuesta
             'Content-Length' => (string) filesize($ruta),
             'Content-Disposition' => 'attachment; filename="' . $nombreSeguro . '"',
             'X-Content-Type-Options' => 'nosniff',
-        ], $ruta, $borrarDespues);
+        ], $ruta);
     }
 
     /**
-     * @return string|null La ruta del archivo si la respuesta es una descarga; si no, null.
+     * Una descarga cuyo contenido ya está en memoria (no hay archivo que pueda quedar en el servidor).
+     *
+     * @param string $contenido      Lo que se descarga.
+     * @param string $nombreDescarga Nombre con el que lo verá quien descarga.
+     * @param string $tipoMime       Tipo del archivo.
+     * @return Respuesta Una descarga.
      */
-    public function rutaArchivo(): ?string
+    public static function descarga(string $contenido, string $nombreDescarga, string $tipoMime): Respuesta
     {
-        return $this->archivo;
+        // Mismo saneo del nombre que en archivo(): nada que pueda colar otras cabeceras.
+        $nombreSeguro = preg_replace('/[^A-Za-z0-9._ -]/', '_', $nombreDescarga);
+
+        return new self(200, $contenido, [
+            'Content-Type' => $tipoMime,
+            'Content-Length' => (string) strlen($contenido),
+            'Content-Disposition' => 'attachment; filename="' . $nombreSeguro . '"',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
+    }
+
+    /**
+     * Copia de esta respuesta que el navegador no debe guardar (páginas y archivos con contraseñas).
+     * Se pide de forma explícita para no depender de la configuración de PHP.
+     *
+     * @return Respuesta La misma respuesta con Cache-Control: no-store y Pragma: no-cache.
+     */
+    public function sinCache(): Respuesta
+    {
+        return new self($this->codigo, $this->cuerpo, ['Cache-Control' => 'no-store', 'Pragma' => 'no-cache'] + $this->cabeceras, $this->archivo);
+    }
+
+    /**
+     * @param string $nombre Nombre de la cabecera HTTP.
+     * @return string|null Su valor, o null si la respuesta no la lleva.
+     */
+    public function cabecera(string $nombre): ?string
+    {
+        return $this->cabeceras[$nombre] ?? null;
     }
 
     /**
@@ -115,10 +145,6 @@ final class Respuesta
         }
         if ($this->archivo !== null) {
             readfile($this->archivo);
-            // Un archivo temporal no debe quedar en el servidor: se borra apenas se envía.
-            if ($this->borrarArchivo) {
-                unlink($this->archivo);
-            }
 
             return;
         }

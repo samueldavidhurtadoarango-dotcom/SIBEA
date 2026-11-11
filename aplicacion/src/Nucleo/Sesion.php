@@ -194,7 +194,9 @@ final class Sesion
      */
     public function agregarEntrega(array $fila): void
     {
-        $_SESSION['entrega_pendiente'][] = $fila;
+        // Se indexa por documento: si a la misma persona se le genera otra contraseña (restablecer dos veces,
+        // o crear y restablecer), queda solo la última, que es la única que sirve.
+        $_SESSION['entrega_pendiente'][$fila['documento']] = $fila;
     }
 
     /**
@@ -205,7 +207,7 @@ final class Sesion
         /** @var list<array{documento: string, nombre: string, correo: string, contrasena: string}> $filas */
         $filas = $_SESSION['entrega_pendiente'] ?? [];
 
-        return $filas;
+        return array_values($filas);
     }
 
     /**

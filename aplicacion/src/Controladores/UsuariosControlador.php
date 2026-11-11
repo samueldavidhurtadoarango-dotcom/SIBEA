@@ -64,7 +64,7 @@ final class UsuariosControlador
         $buscar = $peticion->consulta('q');
         $pagina = $this->servicio->listar($buscar, (int) $peticion->consulta('pagina', '1'));
 
-        return $this->pantalla('usuarios/lista', 'Usuarios', ['buscar' => $buscar, 'pagina' => $pagina]);
+        return $this->pantalla('usuarios/lista', 'Usuarios', ['buscar' => $buscar, 'pagina' => $pagina, 'pendientes' => count($this->sesion->entregaPendiente())]);
     }
 
     /**
@@ -177,12 +177,18 @@ final class UsuariosControlador
             return Respuesta::redirigir(self::RUTA_LISTA);
         }
 
-        // El Excel se arma ahora, en una carpeta temporal, y se borra apenas se envía: no queda guardado en el servidor.
+        // El Excel se arma ahora en una carpeta temporal, se lee a memoria y el archivo se borra SIEMPRE (finally),
+        // incluso si algo falla: así no queda en el servidor, ni aunque el navegador cancele la descarga.
         $ruta = $this->exportador->entregaContrasenas($filas);
+        try {
+            $contenido = (string) file_get_contents($ruta);
+        } finally {
+            @unlink($ruta);
+        }
         // Ya están en el archivo: se olvidan de la sesión para que no queden más tiempo del necesario.
         $this->sesion->borrarEntrega();
 
-        return Respuesta::archivo($ruta, 'entrega-contrasenas-' . date('Y-m-d') . '.xlsx', self::TIPO_EXCEL, true);
+        return Respuesta::descarga($contenido, 'entrega-contrasenas-' . date('Y-m-d') . '.xlsx', self::TIPO_EXCEL)->sinCache();
     }
 
     /**
@@ -207,11 +213,12 @@ final class UsuariosControlador
     {
         $this->sesion->agregarEntrega($entrega);
 
+        // La página lleva una contraseña en claro: el navegador no debe guardarla (ni en caché ni en el historial).
         return $this->pantalla('usuarios/creada', $titulo, [
             'encabezado' => $encabezado,
             'entrega' => $entrega,
             'pendientes' => count($this->sesion->entregaPendiente()),
-        ]);
+        ])->sinCache();
     }
 
     /**
