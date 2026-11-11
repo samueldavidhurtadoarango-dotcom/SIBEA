@@ -68,6 +68,23 @@ final class ValidadorConvocatoriaTest extends TestCase
         }
     }
 
+    public function test_cualquier_beneficio_del_catalogo_es_valido(): void
+    {
+        foreach (['2', '3', '15'] as $id) {
+            $resultado = (new ValidadorConvocatoria())->validar($this->formulario(['id_beneficio' => $id]));
+
+            $this->assertTrue($resultado->esValido(), "El beneficio {$id} debería valer");
+            $this->assertSame((int) $id, $resultado->datos()['id_beneficio']);
+        }
+    }
+
+    public function test_un_signo_de_pesos_en_medio_del_valor_da_error(): void
+    {
+        $resultado = (new ValidadorConvocatoria())->validar($this->formulario(['valor_pago' => '18$0.000']));
+
+        $this->assertArrayHasKey('valor_pago', $resultado->errores());
+    }
+
     public function test_el_cierre_igual_al_inicio_da_error(): void
     {
         $resultado = (new ValidadorConvocatoria())->validar($this->formulario(['fecha_cierre' => '2027-02-01']));

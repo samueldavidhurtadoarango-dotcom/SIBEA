@@ -193,6 +193,36 @@ final class ConvocatoriasTest extends BaseDePrueba
         $this->assertNull($fila['fecha_cierre_real']);
     }
 
+    public function test_crear_con_el_beneficio_2_funciona(): void
+    {
+        $admin = $this->crearAdmin();
+
+        $id = $this->servicio($admin)->crear($this->datosNuevos(['id_beneficio' => 2]));
+
+        $this->assertSame(2, (int) $this->filaDe($id)['id_beneficio']);
+    }
+
+    public function test_no_se_puede_volver_a_cerrar_una_convocatoria_cerrada(): void
+    {
+        $admin = $this->crearAdmin();
+        $servicio = $this->servicio($admin);
+        foreach (['cerrar', 'cerrar-anticipado'] as $primera) {
+            $id = $servicio->crear($this->datosNuevos(['estado' => 'Activa']));
+            $servicio->cambiarEstado($id, $primera, 'Motivo original');
+            $antes = $this->filaDe($id);
+
+            foreach (['cerrar', 'cerrar-anticipado'] as $segunda) {
+                try {
+                    $servicio->cambiarEstado($id, $segunda, 'Otro motivo');
+                    $this->fail("Debió rechazar $primera -> $segunda");
+                } catch (ErrorDeNegocio $error) {
+                    $this->assertStringContainsString('cerrada', $error->getMessage());
+                }
+            }
+            $this->assertSame($antes, $this->filaDe($id));
+        }
+    }
+
     public function test_una_accion_desconocida_lanza_error_de_negocio(): void
     {
         $admin = $this->crearAdmin();
