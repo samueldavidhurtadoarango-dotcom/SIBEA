@@ -23,6 +23,7 @@ use BenefitRack\Controladores\AccesoControlador;
 use BenefitRack\Controladores\CargaUsuariosControlador;
 use BenefitRack\Controladores\ContrasenaControlador;
 use BenefitRack\Controladores\ConvocatoriasControlador;
+use BenefitRack\Controladores\DocumentosControlador;
 use BenefitRack\Controladores\PostulacionAprendizControlador;
 use BenefitRack\Controladores\UsuariosControlador;
 use BenefitRack\Filtros\FiltroCsrf;
@@ -31,13 +32,17 @@ use BenefitRack\Filtros\FiltroRol;
 use BenefitRack\Filtros\FiltroSesion;
 use BenefitRack\Repositorios\RepositorioCatalogos;
 use BenefitRack\Repositorios\RepositorioConvocatorias;
+use BenefitRack\Repositorios\RepositorioDocumentos;
 use BenefitRack\Repositorios\RepositorioMigraciones;
+use BenefitRack\Repositorios\RepositorioPostulaciones;
 use BenefitRack\Repositorios\RepositorioUsuarios;
+use BenefitRack\Servicios\AlmacenDocumentos;
 use BenefitRack\Servicios\AlmacenTemporal;
 use BenefitRack\Servicios\ServicioAcceso;
 use BenefitRack\Servicios\ServicioCargaUsuarios;
 use BenefitRack\Servicios\ServicioContrasena;
 use BenefitRack\Servicios\ServicioConvocatorias;
+use BenefitRack\Servicios\ServicioPostulacion;
 use BenefitRack\Servicios\ServicioUsuarios;
 use BenefitRack\Validacion\ValidadorPostulacion;
 use InvalidArgumentException;
@@ -113,8 +118,9 @@ final class Fabrica
                 new ServicioConvocatorias(new RepositorioConvocatorias($this->baseDatos())),
                 new RepositorioCatalogos($this->baseDatos())
             ),
-            // La postulación usa baseDatos(): la base anota a la persona de la sesión (@app_id_usuario) y su trigger
-            // vuelve a comprobar que la convocatoria esté abierta. Los documentos esperan en almacenamiento/temporal (fuera de public/).
+            // La postulación usa baseDatos(): la base anota a la persona de la sesión (@app_id_usuario), sus triggers
+            // vuelven a comprobar que la convocatoria esté abierta y que todo lo escriba el dueño. Los documentos esperan
+            // en almacenamiento/temporal y, al enviar, pasan a almacenamiento/documentos (los dos fuera de public/).
             PostulacionAprendizControlador::class => new PostulacionAprendizControlador(
                 $this->sesion(),
                 $this->vista(),
@@ -122,7 +128,20 @@ final class Fabrica
                 new RepositorioCatalogos($this->baseDatos()),
                 new RepositorioUsuarios($this->baseDatos()),
                 new ValidadorPostulacion(),
-                new AlmacenTemporal(dirname(__DIR__, 2) . '/almacenamiento/temporal')
+                new AlmacenTemporal($this->carpetaAlmacenamiento() . '/temporal'),
+                new ServicioPostulacion(
+                    new RepositorioPostulaciones($this->baseDatos()),
+                    new RepositorioDocumentos($this->baseDatos()),
+                    new RepositorioUsuarios($this->baseDatos()),
+                    new AlmacenDocumentos($this->carpetaAlmacenamiento())
+                )
+            ),
+            // Los documentos también usan baseDatos(): el dueño de la postulación se compara con la persona de la sesión.
+            DocumentosControlador::class => new DocumentosControlador(
+                $this->sesion(),
+                $this->vista(),
+                new RepositorioDocumentos($this->baseDatos()),
+                new AlmacenDocumentos($this->carpetaAlmacenamiento())
             ),
             default => throw new InvalidArgumentException("No sé crear el controlador: $claseControlador"),
         };
@@ -174,6 +193,12 @@ final class Fabrica
         $conexion->fijarUsuario(null, $this->ip);
 
         return $conexion;
+    }
+
+    /** aplicacion/almacenamiento: fuera de public/, así el navegador no puede pedir los documentos por URL. */
+    private function carpetaAlmacenamiento(): string
+    {
+        return dirname(__DIR__, 2) . '/almacenamiento';
     }
 
     /** Abre la conexión la primera vez y después reutiliza la misma. */

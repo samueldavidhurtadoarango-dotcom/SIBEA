@@ -72,6 +72,23 @@ class AlmacenTemporal
     }
 
     /**
+     * Quita la carpeta de una sesión cuando ya no tiene documentos (al terminar el envío). Si todavía hay
+     * archivos (por ejemplo, la revisión pendiente de otra convocatoria) la deja como está.
+     *
+     * @param string $idSesion Id de la sesión de PHP.
+     * @return void
+     * @throws InvalidArgumentException Si el id de sesión tiene caracteres raros.
+     */
+    public function quitarCarpetaSiVacia(string $idSesion): void
+    {
+        $carpeta = $this->carpetaDe($idSesion);
+        // Solo se borra si no queda ningún archivo: así nunca se pierde un documento que todavía espera.
+        if (is_dir($carpeta) && glob($carpeta . '/*') === []) {
+            rmdir($carpeta);
+        }
+    }
+
+    /**
      * Mueve el archivo subido a su destino. Está aparte para poder cambiarlo en las pruebas: move_uploaded_file()
      * solo funciona con archivos que PHP recibió por una petición HTTP de verdad (lo comprueba para que nadie
      * pueda hacer pasar por «subido» un archivo del servidor); con PHP por consola siempre falla.

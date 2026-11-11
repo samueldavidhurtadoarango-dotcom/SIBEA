@@ -212,6 +212,45 @@ class RepositorioUsuarios
     }
 
     /**
+     * Guarda el contacto y la EPS que el aprendiz escribió al postularse. Lo hace él sobre su propia cuenta:
+     * el trigger tr_usuario_validar solo deja cambiar estos datos a su dueño (@app_id_usuario) o a un administrador.
+     *
+     * @param int    $id              Id del aprendiz.
+     * @param string $telefono        Solo dígitos.
+     * @param string $direccion       Dirección de residencia.
+     * @param string $fechaNacimiento «AAAA-MM-DD».
+     * @param int    $idEps           Id de su EPS.
+     * @return void
+     */
+    public function actualizarContacto(int $id, string $telefono, string $direccion, string $fechaNacimiento, int $idEps): void
+    {
+        $this->baseDatos->pdo()->prepare(
+            'UPDATE usuarios SET telefono = ?, direccion = ?, fecha_nacimiento = ?, id_eps = ? WHERE id_usuario = ?'
+        )->execute([$telefono, $direccion, $fechaNacimiento, $idEps, $id]);
+    }
+
+    /**
+     * Guarda la cuenta donde se le pagan los beneficios: la crea si no tenía una o cambia la que ya tenía
+     * (hay una sola por aprendiz: clave única uk_bancaria_usuario). Los triggers tr_bancaria_* exigen que
+     * la conexión sea la del titular o la de un administrador.
+     *
+     * @param int    $id            Id del aprendiz.
+     * @param int    $idBanco       Entidad bancaria.
+     * @param int    $idTipoCuenta  Ahorros, corriente...
+     * @param string $numeroCuenta  Solo dígitos.
+     * @param string $titular       Nombre del titular.
+     * @return void
+     */
+    public function guardarCuentaBancaria(int $id, int $idBanco, int $idTipoCuenta, string $numeroCuenta, string $titular): void
+    {
+        $this->baseDatos->pdo()->prepare(
+            'INSERT INTO informacion_bancaria (id_usuario, id_banco, id_tipo_cuenta, numero_cuenta, titular)
+             VALUES (?, ?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE id_banco = ?, id_tipo_cuenta = ?, numero_cuenta = ?, titular = ?'
+        )->execute([$id, $idBanco, $idTipoCuenta, $numeroCuenta, $titular, $idBanco, $idTipoCuenta, $numeroCuenta, $titular]);
+    }
+
+    /**
      * Crea la cuenta de un aprendiz. Si el documento o el correo ya existen, la base
      * lanza una PDOException (clave única, código 1062): el servicio la traduce.
      *

@@ -28,6 +28,8 @@ final class ServicioPostulacionTest extends TestCase
     /** @var list<string> Lo que pasó, en orden (para comprobar la secuencia de la transacción). */
     private array $llamadas = [];
 
+    private string|false $logAnterior = false;
+
     protected function setUp(): void
     {
         $this->base = sys_get_temp_dir() . '/br-serv-' . bin2hex(random_bytes(4));
@@ -37,10 +39,16 @@ final class ServicioPostulacionTest extends TestCase
         $this->postulaciones = $this->createMock(RepositorioPostulaciones::class);
         $this->documentos = $this->createMock(RepositorioDocumentos::class);
         $this->usuarios = $this->createMock(RepositorioUsuarios::class);
+        // El servicio deja el detalle técnico en el log del servidor: aquí va a un archivo para no ensuciar la salida.
+        $this->logAnterior = ini_set('error_log', $this->base . '/error.log');
     }
 
     protected function tearDown(): void
     {
+        ini_set('error_log', $this->logAnterior === false ? '' : $this->logAnterior);
+        foreach (glob($this->base . '/error.log') ?: [] as $log) {
+            unlink($log);
+        }
         foreach (['/temporal/s1/*', '/temporal/*', '/documentos/*', '/*'] as $patron) {
             foreach (glob($this->base . $patron) ?: [] as $ruta) {
                 is_dir($ruta) ? rmdir($ruta) : unlink($ruta);

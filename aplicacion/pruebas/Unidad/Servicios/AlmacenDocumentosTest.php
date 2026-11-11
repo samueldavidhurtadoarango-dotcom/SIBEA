@@ -124,7 +124,7 @@ final class AlmacenDocumentosTest extends TestCase
         foreach (['../x.pdf', 'documentos/../../x.pdf', 'documentos/abc.pdf', 'temporal/sesion1/a.pdf', '/etc/passwd', ''] as $mala) {
             try {
                 $this->almacen->rutaAbsoluta($mala);
-                $this->fail("Debía rechazar «$mala».");
+                $this->fail("Debía rechazar «{$mala}».");
             } catch (InvalidArgumentException) {
                 $this->addToAssertionCount(1);
             }

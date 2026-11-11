@@ -112,13 +112,13 @@ final class PostulacionTest extends BaseDePrueba
 
         $bd = $this->baseDatosDeLaApp();
         $bd->fijarUsuario($idAprendiz, '127.0.0.1');
-        $postulacion = $bd->pdo()->query("SELECT estado, datos_formulario FROM postulaciones WHERE id_postulacion = $idPostulacion")?->fetch();
+        $postulacion = $bd->pdo()->query("SELECT estado, datos_formulario FROM postulaciones WHERE id_postulacion = $idPostulacion")->fetch();
         $this->assertSame('Pendiente', $postulacion['estado']);
         $json = json_decode($postulacion['datos_formulario'], true, 512, JSON_THROW_ON_ERROR);
         $this->assertSame('91234567890', $json['numero_cuenta']);
         $this->assertArrayHasKey('fecha_envio', $json);
 
-        $tipos = $bd->pdo()->query("SELECT id_tipo_documento FROM documentos_postulacion WHERE id_postulacion = $idPostulacion ORDER BY id_tipo_documento")?->fetchAll(\PDO::FETCH_COLUMN);
+        $tipos = $bd->pdo()->query("SELECT id_tipo_documento FROM documentos_postulacion WHERE id_postulacion = $idPostulacion ORDER BY id_tipo_documento")->fetchAll(\PDO::FETCH_COLUMN);
         $this->assertSame([1, 2, 4], array_map('intval', $tipos ?: [])); // 4 = Certificado de EPS
         $this->assertCount(3, $this->archivosGuardados());
     }
@@ -135,7 +135,7 @@ final class PostulacionTest extends BaseDePrueba
         $this->assertSame('2002-03-15', $perfil['fecha_nacimiento'] ?? null);
         $this->assertSame(1, (int) ($perfil['id_eps'] ?? 0));
 
-        $cuenta = $bd->pdo()->query("SELECT numero_cuenta, titular FROM informacion_bancaria WHERE id_usuario = $idAprendiz")?->fetch();
+        $cuenta = $bd->pdo()->query("SELECT numero_cuenta, titular FROM informacion_bancaria WHERE id_usuario = $idAprendiz")->fetch();
         $this->assertSame(['numero_cuenta' => '91234567890', 'titular' => 'Luisa Ríos'], $cuenta);
     }
 
@@ -149,7 +149,7 @@ final class PostulacionTest extends BaseDePrueba
 
         $bd = $this->baseDatosDeLaApp();
         $bd->fijarUsuario($idAprendiz, '127.0.0.1');
-        $filas = $bd->pdo()->query("SELECT numero_cuenta FROM informacion_bancaria WHERE id_usuario = $idAprendiz")?->fetchAll(\PDO::FETCH_COLUMN);
+        $filas = $bd->pdo()->query("SELECT numero_cuenta FROM informacion_bancaria WHERE id_usuario = $idAprendiz")->fetchAll(\PDO::FETCH_COLUMN);
         $this->assertSame(['55555555'], $filas);
     }
 
@@ -191,7 +191,7 @@ final class PostulacionTest extends BaseDePrueba
         $bd = $this->baseDatosDeLaApp();
         $bd->fijarUsuario($idAprendiz, '127.0.0.1');
         $this->assertNull((new RepositorioUsuarios($bd))->perfilAprendiz($idAprendiz)['telefono'] ?? null);
-        $this->assertFalse($bd->pdo()->query("SELECT 1 FROM informacion_bancaria WHERE id_usuario = $idAprendiz")?->fetchColumn());
+        $this->assertFalse($bd->pdo()->query("SELECT 1 FROM informacion_bancaria WHERE id_usuario = $idAprendiz")->fetchColumn());
     }
 
     public function test_la_base_rechaza_enviar_a_una_convocatoria_cerrada_y_no_deja_archivos(): void

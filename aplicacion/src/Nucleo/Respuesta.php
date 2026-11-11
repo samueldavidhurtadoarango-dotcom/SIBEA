@@ -51,9 +51,10 @@ final class Respuesta
      * @param string $ruta           Ruta del archivo en el servidor.
      * @param string $nombreDescarga Nombre con el que lo verá quien descarga.
      * @param string $tipoMime       Tipo del archivo (application/pdf, image/png...).
-     * @return Respuesta Una descarga.
+     * @param bool   $enLinea        true para que el navegador lo muestre (PDF e imágenes); false (por defecto) para que lo descargue.
+     * @return Respuesta Una descarga o un archivo para ver en el navegador.
      */
-    public static function archivo(string $ruta, string $nombreDescarga, string $tipoMime): Respuesta
+    public static function archivo(string $ruta, string $nombreDescarga, string $tipoMime, bool $enLinea = false): Respuesta
     {
         // Seguridad: se reemplazan comillas, saltos de línea y símbolos raros
         // del nombre para que no puedan colarse otras cabeceras HTTP.
@@ -62,7 +63,7 @@ final class Respuesta
         return new self(200, '', [
             'Content-Type' => $tipoMime,
             'Content-Length' => (string) filesize($ruta),
-            'Content-Disposition' => 'attachment; filename="' . $nombreSeguro . '"',
+            'Content-Disposition' => ($enLinea ? 'inline' : 'attachment') . '; filename="' . $nombreSeguro . '"',
             'X-Content-Type-Options' => 'nosniff',
         ], $ruta);
     }

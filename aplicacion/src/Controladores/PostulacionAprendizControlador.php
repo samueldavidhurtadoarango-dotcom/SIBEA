@@ -1,11 +1,12 @@
 <?php
 
 /**
- * CONTROLADOR DE LA POSTULACIÓN DEL APRENDIZ (primera parte: mostrar y validar)
+ * CONTROLADOR DE LA POSTULACIÓN DEL APRENDIZ (mostrar, validar y enviar)
  *
  * Paso 4 del recorrido: atiende /convocatorias/{id}/postulacion. El aprendiz ve el formulario, lo envía y, si todo
- * está bien, ve la pantalla «Revisa tu postulación» (el envío definitivo es la tarea siguiente). No tiene SQL ni
- * reglas de negocio: valida con ValidadorPostulacion, guarda los documentos con AlmacenTemporal y elige la pantalla.
+ * está bien, ve la pantalla «Revisa tu postulación»; con «Enviar postulación» (/postulacion/enviar) se guarda de
+ * verdad y ve «Listo, tu postulación fue enviada». No tiene SQL ni reglas de negocio: valida con
+ * ValidadorPostulacion, guarda los documentos con AlmacenTemporal, envía con ServicioPostulacion y elige la pantalla.
  * Los filtros de sesión, rol Aprendiz, primer ingreso y CSRF ya pasaron antes de llegar aquí (ver rutas.php).
  */
 
@@ -13,6 +14,7 @@ declare(strict_types=1);
 
 namespace BenefitRack\Controladores;
 
+use BenefitRack\Nucleo\ErrorDeNegocio;
 use BenefitRack\Nucleo\Peticion;
 use BenefitRack\Nucleo\Respuesta;
 use BenefitRack\Nucleo\Sesion;
@@ -21,6 +23,7 @@ use BenefitRack\Repositorios\RepositorioCatalogos;
 use BenefitRack\Repositorios\RepositorioConvocatorias;
 use BenefitRack\Repositorios\RepositorioUsuarios;
 use BenefitRack\Servicios\AlmacenTemporal;
+use BenefitRack\Servicios\ServicioPostulacion;
 use BenefitRack\Validacion\ValidadorPostulacion;
 
 final class PostulacionAprendizControlador
@@ -39,6 +42,7 @@ final class PostulacionAprendizControlador
      * @param RepositorioUsuarios      $usuarios      Los datos de la cuenta del aprendiz.
      * @param ValidadorPostulacion     $validador     Revisa el formulario y los documentos.
      * @param AlmacenTemporal          $almacen       Guarda los documentos revisados mientras se confirma el envío.
+     * @param ServicioPostulacion      $servicio      Guarda la postulación y los documentos definitivos (todo o nada).
      */
     public function __construct(
         private readonly Sesion $sesion,
@@ -48,6 +52,7 @@ final class PostulacionAprendizControlador
         private readonly RepositorioUsuarios $usuarios,
         private readonly ValidadorPostulacion $validador,
         private readonly AlmacenTemporal $almacen,
+        private readonly ServicioPostulacion $servicio,
     ) {
     }
 
@@ -88,6 +93,9 @@ final class PostulacionAprendizControlador
             return $cerrada;
         }
 
+        // Ruling R16: una revisión anterior ya no vale, aunque este nuevo envío traiga errores. Se descarta antes de validar.
+        $this->descartarPendiente($id);
+
         $valores = $this->valoresDe($peticion);
         $resultado = $this->validador->validar($valores, $this->archivosDe($peticion), $this->listas());
         if (!$resultado->esValido()) {
@@ -100,6 +108,50 @@ final class PostulacionAprendizControlador
     }
 
     /**
+     * POST /convocatorias/{id}/postulacion/enviar : guarda la postulación de verdad con lo que se revisó.
+     * Antes comprueba que la convocatoria siga abierta, que no se haya postulado ya y que haya una revisión
+     * pendiente; la base lo vuelve a comprobar con sus triggers y su clave única.
+     *
+     * @param Peticion $peticion Trae {id} en la URL.
+     * @return Respuesta «Postulación enviada», «cerrada», 404 o una redirección al formulario si no se puede enviar.
+     */
+    public function enviar(Peticion $peticion): Respuesta
+    {
+        $id = (int) $peticion->parametro('id');
+        $convocatoria = $this->convocatorias->buscar($id);
+        if ($convocatoria === null) {
+            return $this->noEncontrada();
+        }
+        if (($cerrada = $this->cerrada($convocatoria)) !== null) {
+            $this->descartarPendiente($id); // ya no se puede enviar: los documentos esperando sobran
+            return $cerrada;
+        }
+        $pendiente = $this->sesion->postulacionPendiente($id);
+        if ($pendiente === null) {
+            return $this->volverAlFormulario($id, 'aviso', 'Tu revisión ya no está disponible. Revisa tus datos y adjunta los documentos otra vez.');
+        }
+
+        try {
+            // El servicio guarda todo en una transacción y mueve los documentos a la carpeta definitiva.
+            $this->servicio->enviar($this->idAprendiz(), $id, $pendiente['datos'], $pendiente['archivos']);
+        } catch (ErrorDeNegocio $error) {
+            $this->descartarPendiente($id); // el servicio ya deshizo todo; los temporales que quedaban no sirven
+            return $this->volverAlFormulario($id, 'error', $error->getMessage() . ' Revisa tus datos y adjunta los documentos otra vez.');
+        }
+        $this->descartarPendiente($id);
+
+        return $this->pantalla('postulacion/enviada', 'Postulación enviada', ['convocatoria' => $convocatoria, 'fechaEnvio' => date('Y-m-d')]);
+    }
+
+    /** Deja un mensaje de una sola vez y manda al formulario de la convocatoria. */
+    private function volverAlFormulario(int $idConvocatoria, string $tipo, string $texto): Respuesta
+    {
+        $this->sesion->mensaje($tipo, $texto);
+
+        return Respuesta::redirigir("/convocatorias/$idConvocatoria/postulacion");
+    }
+
+    /**
      * Pasa los documentos a la carpeta temporal de la sesión y deja lo pendiente en la sesión.
      *
      * @param array<string, mixed> $datosValidados Lo que devolvió el validador (campos limpios + «archivos»).
@@ -107,9 +159,6 @@ final class PostulacionAprendizControlador
      */
     private function guardarPendiente(int $idConvocatoria, array $datosValidados): array
     {
-        // Si había una revisión anterior de esta convocatoria, sus documentos temporales ya no sirven.
-        $this->descartarPendiente($idConvocatoria);
-
         /** @var array<string, array{ruta: string, extension: string, nombre_original: string, bytes: int}> $archivos */
         $archivos = $datosValidados['archivos'];
         unset($datosValidados['archivos']);
@@ -124,12 +173,14 @@ final class PostulacionAprendizControlador
         return $pendiente;
     }
 
+    /** Olvida la revisión pendiente de una convocatoria: borra sus documentos temporales y la carpeta de la sesión si quedó vacía. */
     private function descartarPendiente(int $idConvocatoria): void
     {
         $anterior = $this->sesion->postulacionPendiente($idConvocatoria);
         if ($anterior !== null) {
             $this->almacen->descartar(array_values($anterior['archivos']));
             $this->sesion->borrarPostulacionPendiente($idConvocatoria);
+            $this->almacen->quitarCarpetaSiVacia($this->sesion->idSesion());
         }
     }
 
