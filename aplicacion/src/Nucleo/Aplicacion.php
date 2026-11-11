@@ -25,11 +25,13 @@ final class Aplicacion
      * @param Enrutador     $enrutador     La tabla de rutas ya cargada.
      * @param Vista         $vista         Dibuja las páginas (incluidas las de error).
      * @param Configuracion $configuracion Ajustes de la aplicación (se usa app.depuracion).
+     * @param Fabrica       $fabrica       Arma los controladores con sus dependencias.
      */
     public function __construct(
         private readonly Enrutador $enrutador,
         private readonly Vista $vista,
         private readonly Configuracion $configuracion,
+        private readonly Fabrica $fabrica,
     ) {
     }
 
@@ -47,6 +49,8 @@ final class Aplicacion
                 return Respuesta::html($this->vista->mostrar('errores/404'), 404);
             }
 
+            // El menú del administrador marca el enlace de la página actual.
+            $this->vista->compartir('rutaActual', $peticion->ruta());
             $peticion = $peticion->conParametros($ruta['parametros']);
             foreach ($ruta['filtros'] as $filtro) {
                 $respuesta = $filtro->aplicar($peticion);
@@ -62,8 +66,8 @@ final class Aplicacion
     }
 
     /**
-     * Llama al controlador. Si el destino es [Clase::class, 'metodo'], crea el
-     * controlador y ejecuta el método; si es una función, la ejecuta.
+     * Llama al controlador. Si el destino es [Clase::class, 'metodo'], le pide
+     * el controlador a la Fabrica (con sus dependencias) y ejecuta el método; si es una función, la ejecuta.
      *
      * @param callable|array<int, string> $destino
      */
@@ -71,7 +75,7 @@ final class Aplicacion
     {
         if (is_array($destino) && is_string($destino[0]) && !is_callable($destino)) {
             [$clase, $metodo] = $destino;
-            $destino = [new $clase(), $metodo];
+            $destino = [$this->fabrica->crear($clase), $metodo];
         }
 
         return $destino($peticion);

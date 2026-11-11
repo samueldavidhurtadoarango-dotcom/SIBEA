@@ -7,15 +7,21 @@
 
 declare(strict_types=1);
 
-use BenefitRack\Nucleo\{Aplicacion, Configuracion, Enrutador, Peticion, Vista};
+use BenefitRack\Nucleo\{Aplicacion, Configuracion, Enrutador, Fabrica, Peticion};
 
 $raiz = dirname(__DIR__);
 require $raiz . '/vendor/autoload.php';
 
 $configuracion = Configuracion::desdeArchivo($raiz . '/config/config.local.php');
+$peticion = Peticion::desdeGlobales();
 
+// La fábrica reparte la sesión, la vista, la conexión y los controladores.
+$fabrica = new Fabrica($configuracion, $raiz . '/vistas', $peticion->ip());
+$fabrica->sesion()->iniciar();
+
+// La tabla de rutas usa la fábrica para pedir sus filtros (sesión, rol, CSRF...).
 $enrutador = new Enrutador();
-(require $raiz . '/rutas.php')($enrutador);
+(require $raiz . '/rutas.php')($enrutador, $fabrica);
 
-$aplicacion = new Aplicacion($enrutador, new Vista($raiz . '/vistas'), $configuracion);
-$aplicacion->ejecutar(Peticion::desdeGlobales())->enviar();
+$aplicacion = new Aplicacion($enrutador, $fabrica->vista(), $configuracion, $fabrica);
+$aplicacion->ejecutar($peticion)->enviar();

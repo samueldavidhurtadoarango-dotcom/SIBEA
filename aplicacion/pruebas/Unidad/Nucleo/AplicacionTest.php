@@ -8,6 +8,7 @@ use BenefitRack\Filtros\Filtro;
 use BenefitRack\Nucleo\Aplicacion;
 use BenefitRack\Nucleo\Configuracion;
 use BenefitRack\Nucleo\Enrutador;
+use BenefitRack\Nucleo\Fabrica;
 use BenefitRack\Nucleo\Peticion;
 use BenefitRack\Nucleo\Respuesta;
 use BenefitRack\Nucleo\Vista;

@@ -11,6 +11,19 @@ use PHPUnit\Framework\TestCase;
 
 final class TraductorErroresBdTest extends TestCase
 {
+    private string|false $logAnterior = false;
+
+    protected function setUp(): void
+    {
+        // El traductor anota el error técnico en el log: se desvía a un archivo temporal para no ensuciar la salida.
+        $this->logAnterior = ini_set('error_log', sys_get_temp_dir() . '/br_prueba_error.log');
+    }
+
+    protected function tearDown(): void
+    {
+        ini_set('error_log', (string) $this->logAnterior);
+    }
+
     /** Arma una PDOException como la que lanza PDO: errorInfo = [SQLSTATE, código del motor, mensaje]. */
     private function excepcion(string $estado, int $codigo, string $mensaje): PDOException
     {

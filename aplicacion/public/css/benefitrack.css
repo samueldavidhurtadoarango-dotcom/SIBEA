@@ -1,0 +1,321 @@
+/* BenefitRack · estilos propios (se cargan DESPUÉS de bootstrap.min.css).
+   1) Redefine las variables de Bootstrap con los colores y la letra de la maqueta aprobada.
+   2) Trae las piezas de la maqueta (vistas/_comun/estilo.css): barra del aprendiz,
+      menú lateral del administrador, cabecera y tarjeta.
+   3) Agrega la pantalla pública (tarjeta centrada del login), las alertas y las páginas de error.
+   Los colores salen de la spec 002, sección 2: no agregar otros sin anotarlos allí. */
+
+/* ---------- 1. Variables de Bootstrap ---------- */
+:root {
+  --bs-primary: #00304D;
+  --bs-primary-rgb: 0, 48, 77;
+  --bs-success: #007832;
+  --bs-success-rgb: 0, 120, 50;
+  --bs-danger: #C2392F;
+  --bs-danger-rgb: 194, 57, 47;
+  --bs-link-color: #0B6CB8;
+  --bs-link-color-rgb: 11, 108, 184;
+  --bs-link-hover-color: #00304D;
+  --bs-link-hover-color-rgb: 0, 48, 77;
+  --bs-body-color: #00304D;
+  --bs-body-color-rgb: 0, 48, 77;
+  --bs-body-bg: #F5F7F9;
+  --bs-body-bg-rgb: 245, 247, 249;
+  --bs-body-font-size: 0.9375rem; /* 15 px, como la maqueta */
+  --bs-font-sans-serif: 'Work Sans', Inter, system-ui, sans-serif;
+  --bs-body-font-family: var(--bs-font-sans-serif);
+  --bs-border-color: #E3E8EC;
+}
+
+/* Botón principal verde de la maqueta (el «Ingresar»). */
+.btn-primary {
+  --bs-btn-bg: #007832; --bs-btn-border-color: #007832; --bs-btn-color: #fff;
+  --bs-btn-hover-bg: #00632A; --bs-btn-hover-border-color: #00632A; --bs-btn-hover-color: #fff;
+  --bs-btn-active-bg: #00632A; --bs-btn-active-border-color: #00632A; --bs-btn-active-color: #fff;
+  --bs-btn-disabled-bg: #007832; --bs-btn-disabled-border-color: #007832;
+  --bs-btn-focus-shadow-rgb: 11, 108, 184;
+  min-height: 44px; font-weight: 600;
+}
+
+/* ---------- 2. Piezas de la maqueta ---------- */
+:root {
+  --br-azul: #00304D;
+  --br-verde: #007832;
+  --br-verde-hover: #00632A;
+  --br-lima: #6BD11F;
+  --br-enlace: #0B6CB8;
+  --br-gris: #556776;        /* texto secundario (el que pasa el contraste AA) */
+  --br-gris-medio: #6B7C88;  /* solo texto grande o decorativo: no llega a 4.5:1 sobre blanco */
+  --br-gris-claro: #7D8E9A;  /* bordes de campos y adornos */
+  --br-fondo: #F5F7F9;
+  --br-fondo-2: #F0F4F6;
+  --br-fondo-3: #EEF2F4;
+  --br-borde: #E3E8EC;
+  --br-blanco: #FFFFFF;
+  /* avisos (boceto aprobado) */
+  --br-aviso-fondo: #FFF3E0;
+  --br-aviso-texto: #A35200;
+  --br-aviso-borde: #F5C98B;
+  --br-aviso-oscuro: #7A3E00;
+  --br-verde-claro: #E6F4EC;
+  /* estados del panel de postulaciones aprobado (00-existentes/postulaciones) */
+  --br-rojo: #C2392F;           /* documento no válido, acciones destructivas */
+  --br-rojo-texto: #9E3A34;
+  --br-rojo-fondo: #FCEBEA;
+  --br-pendiente-fondo: #FFF0B8; /* insignia «Pendiente» */
+  --br-pendiente-texto: #5C4400;
+  --br-pendiente-punto: #E0A800;
+  --br-antiguedad-fondo: #FFF4D1; /* chip «hace N días» */
+  --br-antiguedad-texto: #6E5200;
+  --br-validada-fondo: #E2F2FB;  /* insignia «Validada» */
+  --br-validada-texto: #0B5180;
+  --br-doc-ok-fondo: #E6F4DD;    /* documento válido */
+  --br-doc-ok-texto: #22610A;
+  --br-doc-ok-marca: #2E7D12;
+  --br-doc-neutro-fondo: #EEF2F5; /* documento sin revisar (la marca gris es #7D8E9A) */
+  --br-chip-fondo: #EEF4F8;      /* chip «Doc. adicional» */
+  --br-chip-borde: #C9DCEA;
+
+  --br-radio: 12px;
+  --br-fuente: 'Work Sans', Inter, system-ui, sans-serif;
+
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { color: var(--br-azul); background: var(--br-fondo); }
+
+body {
+  margin: 0;
+  position: relative; /* las capas de diálogo se apoyan en el body */
+  font-family: var(--br-fuente);
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--br-azul);
+  background: var(--br-fondo);
+  overflow-wrap: break-word;
+}
+
+::selection { background: var(--br-verde-claro); color: var(--br-azul); }
+
+h1, h2, h3, p { margin: 0; }
+h1 { font-size: 26px; font-weight: 600; letter-spacing: -0.015em; line-height: 1.25; }
+h2 { font-size: 18px; font-weight: 600; line-height: 1.3; }
+h3 { font-size: 15px; font-weight: 600; }
+a { color: var(--br-enlace); }
+img { max-width: 100%; }
+button, input, select, textarea { font: inherit; color: inherit; }
+
+/* Foco visible en todo lo que se puede usar con teclado */
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible,
+textarea:focus-visible, summary:focus-visible, [tabindex]:focus-visible {
+  outline: 3px solid var(--br-enlace);
+  outline-offset: 2px;
+}
+.br-barra-aprendiz :focus-visible, .br-lateral :focus-visible, .br-movil :focus-visible {
+  outline-color: var(--br-lima);
+}
+
+.br-solo-lectores {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* ---------- Estructura ---------- */
+.br-pila { display: grid; gap: 16px; }
+.br-fila { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.br-suave { color: var(--br-gris); font-size: 13px; }
+.br-lista { margin: 0; padding-left: 22px; display: grid; gap: 6px; }
+.br-lista li::marker { color: var(--br-gris); font-weight: 600; }
+.br-texto { max-width: 62ch; }
+
+.br-pagina { width: 100%; max-width: 760px; margin: 0 auto; padding-block: 20px 48px; padding-inline: 16px; }
+.br-pagina > * + * { margin-top: 16px; }
+
+/* ---------- Barra del aprendiz ---------- */
+.br-barra-aprendiz { background: var(--br-azul); color: var(--br-blanco); }
+/* Marca a la izquierda; saludo, campanita y «Salir» a la derecha.
+   En celular el saludo baja debajo de la marca para que un nombre largo no empuje nada. */
+.br-barra-aprendiz__dentro {
+  position: relative; /* el panel de avisos se apoya aquí */
+  max-width: 760px; margin: 0 auto; padding: 10px 16px;
+  display: grid; align-items: center; column-gap: 12px;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  grid-template-areas: "marca saludo campana salir";
+}
+.br-barra-aprendiz__marca { grid-area: marca; font-size: 18px; font-weight: 700; letter-spacing: -0.01em; }
+.br-barra-aprendiz__saludo {
+  grid-area: saludo; justify-self: end; min-width: 0; max-width: 100%;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: 14px; color: var(--br-fondo-2);
+}
+.br-barra-aprendiz__salir {
+  grid-area: salir; display: inline-flex; align-items: center; min-height: 44px; padding: 0 8px;
+  color: var(--br-blanco); font-size: 14px; font-weight: 500; text-underline-offset: 3px;
+}
+
+
+/* ---------- Estructura del administrador: menú lateral + cabecera + contenido ---------- */
+.br-admin {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 248px minmax(0, 1fr);
+  grid-template-rows: auto auto 1fr;
+  grid-template-areas: "lateral movil" "lateral cabecera" "lateral contenido";
+}
+.br-admin > .br-lateral { grid-area: lateral; }
+.br-admin > .br-movil { grid-area: movil; display: none; }
+.br-admin > .br-cabecera { grid-area: cabecera; }
+.br-admin > main { grid-area: contenido; padding: 28px 32px 48px; display: grid; gap: 20px; align-content: start; min-width: 0; }
+
+.br-lateral {
+  background: var(--br-azul); color: var(--br-blanco);
+  padding: 24px 16px; display: flex; flex-direction: column; gap: 28px;
+}
+.br-lateral__marca { display: grid; gap: 14px; padding: 0 8px; }
+.br-logo-sena {
+  height: 64px; display: flex; align-items: center; justify-content: center;
+  border: 1.5px dashed var(--br-gris-claro); border-radius: 12px;
+  font-size: 14px; color: var(--br-fondo-2);
+}
+.br-lateral__nombre { display: block; font-size: 18px; font-weight: 700; letter-spacing: -0.01em; }
+.br-lateral__sub { display: block; font-size: 14px; color: var(--br-fondo-2); }
+.br-lateral__lista { display: grid; gap: 4px; }
+.br-lateral__enlace {
+  position: relative; display: flex; align-items: center; gap: 12px; min-height: 44px;
+  padding: 0 12px; border-radius: 10px; color: var(--br-fondo-2);
+  text-decoration: none; font-size: 15px; font-weight: 500;
+}
+.br-lateral__enlace:hover { background: var(--br-gris); color: var(--br-blanco); }
+.br-lateral__enlace[aria-current="page"] { background: var(--br-verde); color: var(--br-blanco); font-weight: 600; }
+.br-lateral__enlace[aria-current="page"]::before {
+  content: ''; position: absolute; left: 0; top: 10px; bottom: 10px; width: 3px;
+  border-radius: 3px; background: var(--br-lima);
+}
+.br-lateral__nota {
+  margin-top: auto; padding: 14px; border-radius: 12px;
+  background: var(--br-gris); color: var(--br-blanco); font-size: 14px; line-height: 1.45;
+}
+
+.br-movil {
+  align-items: center; justify-content: space-between; gap: 12px; position: relative;
+  background: var(--br-azul); color: var(--br-blanco); padding: 10px 16px;
+}
+.br-movil__marca { display: flex; align-items: center; gap: 10px; font-size: 17px; font-weight: 700; }
+.br-movil__logo {
+  width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
+  border: 1.5px dashed var(--br-gris-claro); border-radius: 8px; font-size: 11px; font-weight: 400; color: var(--br-fondo-2);
+}
+.br-movil details { position: relative; }
+.br-movil summary {
+  list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  width: 44px; height: 44px; border-radius: 10px; border: 1px solid var(--br-gris);
+}
+.br-movil summary::-webkit-details-marker { display: none; }
+.br-movil__menu {
+  position: absolute; right: 0; top: 52px; z-index: 10; width: 240px; padding: 8px;
+  display: grid; background: var(--br-blanco); border: 1px solid var(--br-borde);
+  border-radius: 12px; color: var(--br-azul);
+}
+.br-movil__menu a {
+  display: flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 8px;
+  color: var(--br-azul); text-decoration: none;
+}
+.br-movil__menu a[aria-current="page"] { background: var(--br-verde-claro); color: var(--br-verde); font-weight: 600; }
+
+.br-cabecera {
+  background: var(--br-blanco); border-bottom: 1px solid var(--br-borde);
+  padding: 14px 32px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px;
+}
+.br-migas { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--br-gris); }
+.br-migas a { color: var(--br-gris); text-decoration: none; }
+.br-migas [aria-current="page"] { color: var(--br-azul); font-weight: 600; }
+.br-usuario {
+  display: flex; align-items: center; gap: 10px; padding: 4px 12px 4px 4px;
+  border: 1px solid var(--br-borde); border-radius: 12px; background: var(--br-blanco);
+}
+.br-usuario__inicial {
+  width: 36px; height: 36px; border-radius: 999px; display: flex; align-items: center; justify-content: center;
+  background: var(--br-fondo-2); color: var(--br-azul); font-size: 14px; font-weight: 600;
+}
+.br-usuario__texto { display: grid; line-height: 1.25; }
+.br-usuario__nombre { font-size: 14px; font-weight: 600; }
+.br-usuario__rol { font-size: 13px; color: var(--br-gris); }
+
+@media (max-width: 860px) {
+  .br-admin { grid-template-columns: minmax(0, 1fr); grid-template-areas: "movil" "cabecera" "contenido"; }
+  .br-admin > .br-lateral { display: none; }
+  .br-admin > .br-movil { display: flex; }
+  .br-admin > main { padding: 20px 16px 40px; }
+  .br-cabecera { padding: 12px 16px; }
+  .br-usuario__texto { display: none; }
+  .br-usuario { padding: 4px; }
+}
+
+/* ---------- Tarjeta ---------- */
+.br-tarjeta {
+  background: var(--br-blanco); border: 1px solid var(--br-borde);
+  border-radius: var(--br-radio); padding: 20px; min-width: 0;
+}
+.br-tarjeta > * + * { margin-top: 12px; }
+
+/* ---------- 3. Pantalla pública (login y páginas de error) ---------- */
+/* Misma estructura que vistas/00-existentes/login: panel de marca + tarjeta centrada. */
+.br-acceso { min-height: 100vh; display: flex; flex-wrap: wrap; align-items: stretch; background: var(--br-fondo); }
+.br-acceso__marca {
+  flex: 1 1 380px; padding: 56px 64px; display: flex; flex-direction: column; gap: 48px;
+  background: var(--br-azul); color: var(--br-blanco);
+}
+.br-acceso__marca-centro { margin-block: auto; display: grid; gap: 40px; max-width: 480px; }
+.br-acceso__logo {
+  width: 160px; height: 72px; margin-bottom: 12px; display: flex; align-items: center; justify-content: center;
+  border: 1.5px dashed rgba(255, 255, 255, 0.35); border-radius: 12px; font-size: 14px; color: rgba(255, 255, 255, 0.75);
+}
+.br-acceso__nombre { display: block; font-size: 44px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; }
+.br-acceso__lema { margin-top: 16px; font-size: 20px; line-height: 1.5; color: rgba(255, 255, 255, 0.86); }
+.br-acceso__beneficios { display: grid; gap: 24px; margin: 0; padding: 0; list-style: none; }
+.br-acceso__beneficios li { display: flex; gap: 16px; align-items: flex-start; }
+.br-acceso__icono {
+  flex: 0 0 48px; width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center;
+  background: rgba(255, 255, 255, 0.14); border: 1px solid rgba(255, 255, 255, 0.12); color: var(--br-lima);
+}
+.br-acceso__beneficios strong { display: block; font-size: 17px; font-weight: 600; }
+.br-acceso__beneficios span { font-size: 15px; line-height: 1.45; color: rgba(255, 255, 255, 0.78); }
+.br-acceso__pie { font-size: 14px; color: rgba(255, 255, 255, 0.72); }
+.br-acceso__lado { flex: 1 1 420px; min-width: 0; padding: 48px 32px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px; }
+.br-acceso__movil { display: none; flex-direction: column; align-items: center; gap: 12px; }
+.br-acceso__movil .br-acceso__logo {
+  width: 120px; height: 52px; margin: 0; font-size: 13px; color: var(--br-gris); border-color: var(--br-gris-claro); border-radius: 10px;
+}
+.br-acceso__movil-nombre { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
+.br-acceso__tarjeta {
+  width: 100%; max-width: 440px; padding: 40px; display: grid; gap: 20px;
+  background: var(--br-blanco); border: 1px solid var(--br-borde); border-radius: 16px;
+  box-shadow: 0 1px 2px rgba(0, 48, 77, 0.04), 0 8px 24px rgba(0, 48, 77, 0.04);
+}
+@media (max-width: 860px) {
+  .br-acceso__marca { display: none; }
+  .br-acceso__movil { display: flex; }
+  .br-acceso__lado { flex-basis: 100%; padding: 32px 16px; }
+  .br-acceso__tarjeta { padding: 24px 20px; }
+}
+
+/* ---------- Alertas (mensajes de una sola vez) ---------- */
+.br-alertas { display: grid; gap: 10px; }
+.br-alerta { display: block; padding: 12px 14px; border-left: 4px solid; border-radius: 8px; }
+.br-alerta--exito { background: var(--br-verde-claro); border-color: var(--br-verde); color: var(--br-doc-ok-texto); }
+.br-alerta--error { background: var(--br-rojo-fondo); border-color: var(--br-rojo); color: var(--br-rojo-texto); }
+.br-alerta--aviso { background: var(--br-aviso-fondo); border-color: var(--br-aviso-borde); color: var(--br-aviso-oscuro); }
+
+/* ---------- Botón «Salir» (es un formulario POST con CSRF, se ve como el enlace de la maqueta) ---------- */
+.br-salir-formulario { display: contents; }
+.br-boton-enlace {
+  display: inline-flex; align-items: center; min-height: 44px; padding: 0 8px; border: 0; background: none;
+  color: inherit; font-size: 14px; font-weight: 500; text-decoration: underline; text-underline-offset: 3px; cursor: pointer;
+}
+.br-lateral .br-boton-enlace { color: var(--br-fondo-2); padding: 0 12px; }
+.br-lateral .br-boton-enlace:hover { color: var(--br-blanco); }
+
+/* ---------- Páginas de error ---------- */
+.br-error { display: grid; gap: 12px; }
+.br-error__codigo { font-size: 14px; font-weight: 600; color: var(--br-gris); letter-spacing: 0.04em; }
+.br-error__detalle { padding: 10px 12px; border-radius: 8px; background: var(--br-fondo-3); font-size: 13px; overflow-x: auto; }

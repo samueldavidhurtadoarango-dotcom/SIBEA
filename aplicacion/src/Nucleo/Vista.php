@@ -16,9 +16,28 @@ namespace BenefitRack\Nucleo;
 
 final class Vista
 {
-    /** @param string $carpeta Carpeta donde están las vistas (aplicacion/vistas). */
-    public function __construct(private readonly string $carpeta)
+    /** @var array<string, mixed> Datos que ven TODAS las páginas (por ejemplo la ruta actual, para marcar el menú). */
+    private array $compartidos = [];
+
+    /**
+     * @param string      $carpeta Carpeta donde están las vistas (aplicacion/vistas).
+     * @param Sesion|null $sesion  Si se entrega, las páginas reciben los mensajes de una sola vez,
+     *                             el nombre de quien ingresó y su rol.
+     */
+    public function __construct(private readonly string $carpeta, private readonly ?Sesion $sesion = null)
     {
+    }
+
+    /**
+     * Agrega un dato que verán todas las páginas, sin que cada controlador lo pase.
+     *
+     * @param string $nombre Nombre de la variable en la plantilla.
+     * @param mixed  $valor  Su valor.
+     * @return void
+     */
+    public function compartir(string $nombre, mixed $valor): void
+    {
+        $this->compartidos[$nombre] = $valor;
     }
 
     /**
@@ -31,9 +50,26 @@ final class Vista
      */
     public function mostrar(string $plantilla, array $datos = [], string $marco = 'publica'): string
     {
+        // Los formularios de la página necesitan el token CSRF: se entrega a todas las vistas.
+        $datos += $this->compartidos + ['tokenCsrf' => Csrf::token()];
         $contenido = $this->renderizar($plantilla, $datos);
 
-        return $this->renderizar('plantillas/' . $marco, $datos + ['contenido' => $contenido]);
+        // Los mensajes se toman DESPUÉS de dibujar la página y solo los muestra el marco.
+        return $this->renderizar('plantillas/' . $marco, $datos + $this->datosDeSesion() + ['contenido' => $contenido]);
+    }
+
+    /**
+     * Datos de la sesión para el marco: mensajes de una sola vez, nombre y rol.
+     *
+     * @return array<string, mixed>
+     */
+    private function datosDeSesion(): array
+    {
+        return [
+            'mensajes' => $this->sesion?->tomarMensajes() ?? [],
+            'usuarioNombre' => $this->sesion?->nombre() ?? '',
+            'usuarioRol' => $this->sesion?->rol() ?? '',
+        ];
     }
 
     /**
