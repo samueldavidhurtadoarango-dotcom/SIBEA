@@ -55,3 +55,24 @@ php vendor/bin/php-cs-fixer fix --dry-run --diff
 Las pruebas de integración solo corren si existen las variables `BR_PRUEBA_BD_PUERTO` (por ejemplo
 `3398`) y `BR_PRUEBA_MYSQL` (ruta de `mysql.exe`) y apuntan a una MariaDB **temporal**, nunca a
 la base real de XAMPP. Sin ellas se saltan y la prueba dice por qué.
+
+## Crear el primer administrador (herramienta de consola)
+
+La base no trae usuarios, y crear un administrador exige que ya exista otro. El primero se crea con:
+
+```
+php herramientas/crear_administrador.php
+```
+
+Pide documento, nombre, apellido, correo y contraseña (mínimo 8 caracteres) y la clave de `root` de
+MariaDB (en XAMPP suele estar vacía: Enter). Usa host, puerto y base de `config/config.local.php`.
+Se conecta como `root` con `@app_id_usuario = NULL` (el único caso en que la base lo permite) y guarda
+solo el hash de la contraseña, con `debe_cambiar_contrasena = 0`. Después de eso el administrador
+entra en `/ingresar` y crea las demás cuentas desde la aplicación.
+
+## Iniciar y cerrar sesión
+
+- `/ingresar` (GET y POST, con token CSRF): correo y contraseña. 3 intentos fallidos bloquean la cuenta
+  15 minutos y la base la desbloquea sola; lo hace la base de datos, no la aplicación.
+- `/salir` (POST con CSRF): cierra la sesión. `/` manda a cada rol a su pantalla de inicio.
+- Si la contraseña es temporal (`debe_cambiar_contrasena = 1`), después de entrar se va a `/contrasena/nueva`.

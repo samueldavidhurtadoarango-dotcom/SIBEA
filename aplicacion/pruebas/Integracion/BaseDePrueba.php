@@ -99,7 +99,7 @@ abstract class BaseDePrueba extends TestCase
      */
     protected function crearAprendiz(array $datos = []): int
     {
-        return $this->insertarUsuario(2, ['debe_cambiar_contrasena' => 0] + $datos);
+        return $this->insertarUsuario(2, $datos + ['debe_cambiar_contrasena' => 0]);
     }
 
     /**

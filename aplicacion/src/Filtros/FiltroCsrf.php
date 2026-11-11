@@ -15,14 +15,19 @@ namespace BenefitRack\Filtros;
 use BenefitRack\Nucleo\Csrf;
 use BenefitRack\Nucleo\Peticion;
 use BenefitRack\Nucleo\Respuesta;
+use BenefitRack\Nucleo\Sesion;
 use BenefitRack\Nucleo\Vista;
 
 final class FiltroCsrf implements Filtro
 {
+    /** Única ruta donde un token vencido se perdona con un aviso: la sesión pudo caducar mientras la persona escribía. */
+    private const RUTA_DE_INGRESO = '/ingresar';
+
     /**
-     * @param Vista $vista Para dibujar la página 403.
+     * @param Vista       $vista  Para dibujar la página 403.
+     * @param Sesion|null $sesion Si se entrega, en /ingresar un token vencido vuelve al formulario con un aviso (en vez de 403).
      */
-    public function __construct(private readonly Vista $vista)
+    public function __construct(private readonly Vista $vista, private readonly ?Sesion $sesion = null)
     {
     }
 
@@ -38,6 +43,13 @@ final class FiltroCsrf implements Filtro
         }
         if (Csrf::esValido($peticion->campo('_csrf'))) {
             return null;
+        }
+
+        // En el formulario de ingreso lo normal es que la sesión haya caducado: se explica y se vuelve a empezar.
+        if ($this->sesion !== null && $peticion->ruta() === self::RUTA_DE_INGRESO) {
+            $this->sesion->mensaje('aviso', 'Tu sesión terminó. Vuelve a intentarlo.');
+
+            return Respuesta::redirigir(self::RUTA_DE_INGRESO);
         }
 
         $mensaje = 'No pudimos comprobar que el envío vino de esta página. Vuelve atrás, recarga e intenta de nuevo.';

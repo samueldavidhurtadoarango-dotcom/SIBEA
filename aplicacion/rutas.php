@@ -14,11 +14,15 @@
 
 declare(strict_types=1);
 
+use BenefitRack\Controladores\AccesoControlador;
 use BenefitRack\Nucleo\Enrutador;
 use BenefitRack\Nucleo\Fabrica;
-use BenefitRack\Nucleo\Respuesta;
 
 return static function (Enrutador $enrutador, Fabrica $fabrica): void {
-    // Provisional: se reemplaza cuando exista el inicio de sesión.
-    $enrutador->agregar('GET', '/', static fn (): Respuesta => Respuesta::html('BenefitRack'));
+    // Acceso (M1). Ni /ingresar ni /salir llevan el filtro de primer ingreso: son la salida del bucle.
+    $enrutador->agregar('GET', '/', [AccesoControlador::class, 'inicio']);
+    $enrutador->agregar('GET', '/ingresar', [AccesoControlador::class, 'formulario']);
+    // Ruling R2: el POST de ingreso también exige token CSRF (si venció, el filtro vuelve al formulario con un aviso).
+    $enrutador->agregar('POST', '/ingresar', [AccesoControlador::class, 'ingresar'], [$fabrica->filtroCsrf()]);
+    $enrutador->agregar('POST', '/salir', [AccesoControlador::class, 'salir'], [$fabrica->filtroSesion(), $fabrica->filtroCsrf()]);
 };

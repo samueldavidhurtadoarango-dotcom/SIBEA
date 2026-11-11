@@ -19,13 +19,52 @@
     if (boton) {
       // Se desactiva un instante después, para no impedir el envío mismo.
       setTimeout(function () { boton.disabled = true; }, 0);
+      if (formulario.hasAttribute('data-cargando')) {
+        mostrarCargando(formulario, boton);
+      }
     }
   });
 
+  // Estado «cargando» del inicio de sesión: botón con giro y texto «Ingresando…», campos de solo lectura
+  // (readonly y no disabled: los campos disabled no se envían).
+  function mostrarCargando(formulario, boton) {
+    boton.dataset.textoOriginal = boton.textContent;
+    boton.setAttribute('aria-busy', 'true');
+    boton.innerHTML = '<span class="br-boton-ingresar__giro" aria-hidden="true"></span>';
+    boton.append(boton.dataset.textoCargando || 'Cargando…');
+    formulario.querySelectorAll('input:not([type=hidden])').forEach(function (campo) { campo.readOnly = true; });
+  }
+
+  function quitarCargando(formulario, boton) {
+    if (boton.dataset.textoOriginal) {
+      boton.textContent = boton.dataset.textoOriginal;
+    }
+    boton.removeAttribute('aria-busy');
+    formulario.querySelectorAll('input:not([type=hidden])').forEach(function (campo) { campo.readOnly = false; });
+  }
+
   // Si la persona vuelve con el botón «Atrás», la página puede venir de la memoria del navegador:
-  // se reactivan los botones.
+  // se reactivan los botones y se quita el estado «cargando».
   window.addEventListener("pageshow", function () {
-    document.querySelectorAll("button[type=submit]").forEach(function (boton) { boton.disabled = false; });
+    document.querySelectorAll("button[type=submit]").forEach(function (boton) {
+      boton.disabled = false;
+      if (boton.form && boton.form.hasAttribute('data-cargando')) {
+        quitarCargando(boton.form, boton);
+      }
+    });
+  });
+
+  // Ojo de la contraseña: alterna entre ocultarla y mostrarla.
+  document.addEventListener('click', function (evento) {
+    var ojo = evento.target instanceof Element ? evento.target.closest('[data-mostrar-clave]') : null;
+    if (!ojo) {
+      return;
+    }
+    var campo = ojo.parentElement.querySelector('input');
+    var visible = campo.type === 'password';
+    campo.type = visible ? 'text' : 'password';
+    ojo.setAttribute('aria-pressed', visible ? 'true' : 'false');
+    ojo.setAttribute('aria-label', visible ? 'Ocultar contraseña' : 'Mostrar contraseña');
   });
 
   // 2. Los avisos de éxito se ocultan a los 6 segundos.

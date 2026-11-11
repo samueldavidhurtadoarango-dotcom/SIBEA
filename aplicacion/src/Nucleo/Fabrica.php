@@ -19,10 +19,13 @@ declare(strict_types=1);
 
 namespace BenefitRack\Nucleo;
 
+use BenefitRack\Controladores\AccesoControlador;
 use BenefitRack\Filtros\FiltroCsrf;
 use BenefitRack\Filtros\FiltroPrimerIngreso;
 use BenefitRack\Filtros\FiltroRol;
 use BenefitRack\Filtros\FiltroSesion;
+use BenefitRack\Repositorios\RepositorioUsuarios;
+use BenefitRack\Servicios\ServicioAcceso;
 use InvalidArgumentException;
 
 final class Fabrica
@@ -47,7 +50,7 @@ final class Fabrica
      * Crea un controlador con todo lo que necesita.
      *
      * Ejemplo de cómo se agrega uno (las tareas siguientes añaden su línea):
-     *   AccesoControlador::class => new AccesoControlador($this->sesion(), $this->vista(), new UsuarioRepositorio($this->baseDatos())),
+     *   ClaseControlador::class => new ClaseControlador($this->sesion(), $this->vista(), new Servicio(new Repositorio($this->baseDatos()))),
      *
      * @param string $claseControlador Nombre completo de la clase (Clase::class).
      * @return object El controlador listo para usar.
@@ -56,6 +59,12 @@ final class Fabrica
     public function crear(string $claseControlador): object
     {
         return match ($claseControlador) {
+            // El ingreso usa baseDatosParaIngreso(): @app_id_usuario SIEMPRE en NULL (bloqueo y desbloqueo automáticos de la base).
+            AccesoControlador::class => new AccesoControlador(
+                $this->sesion(),
+                $this->vista(),
+                new ServicioAcceso(new RepositorioUsuarios($this->baseDatosParaIngreso()))
+            ),
             default => throw new InvalidArgumentException("No sé crear el controlador: $claseControlador"),
         };
     }
@@ -136,7 +145,7 @@ final class Fabrica
      */
     public function filtroCsrf(): FiltroCsrf
     {
-        return new FiltroCsrf($this->vista());
+        return new FiltroCsrf($this->vista(), $this->sesion());
     }
 
     /**
