@@ -102,4 +102,30 @@
   document.querySelectorAll('.br-alerta--exito').forEach(function (alerta) {
     setTimeout(function () { alerta.hidden = true; }, 6000);
   });
+
+  // 3. Ventanas (modales) de la lista de usuarios: al abrirse, toman de la fila que las abrió
+  //    a dónde se envía el formulario (data-accion), el estado nuevo (data-estado), el nombre y el título.
+  document.querySelectorAll('.modal').forEach(function (modal) {
+    modal.addEventListener('show.bs.modal', function (evento) {
+      var origen = evento.relatedTarget;
+      if (!origen) {
+        return;
+      }
+      modal.querySelector('form').action = origen.dataset.accion || '';
+      modal.querySelectorAll('[data-modal-nombre]').forEach(function (el) { el.textContent = origen.dataset.nombre || ''; });
+      var titulo = modal.querySelector('[data-modal-titulo]');
+      if (titulo && origen.dataset.titulo) {
+        titulo.textContent = origen.dataset.titulo;
+      }
+      var estado = modal.querySelector('input[name="estado"]');
+      if (estado) {
+        estado.value = origen.dataset.estado || '';
+      }
+      // El menú «⋯» de la fila se cierra al abrir la ventana.
+      var menu = origen.closest('details');
+      if (menu) {
+        menu.removeAttribute('open');
+      }
+    });
+  });
 })();

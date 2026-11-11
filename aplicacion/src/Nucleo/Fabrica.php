@@ -21,13 +21,16 @@ namespace BenefitRack\Nucleo;
 
 use BenefitRack\Controladores\AccesoControlador;
 use BenefitRack\Controladores\ContrasenaControlador;
+use BenefitRack\Controladores\UsuariosControlador;
 use BenefitRack\Filtros\FiltroCsrf;
 use BenefitRack\Filtros\FiltroPrimerIngreso;
 use BenefitRack\Filtros\FiltroRol;
 use BenefitRack\Filtros\FiltroSesion;
+use BenefitRack\Repositorios\RepositorioCatalogos;
 use BenefitRack\Repositorios\RepositorioUsuarios;
 use BenefitRack\Servicios\ServicioAcceso;
 use BenefitRack\Servicios\ServicioContrasena;
+use BenefitRack\Servicios\ServicioUsuarios;
 use InvalidArgumentException;
 
 final class Fabrica
@@ -73,6 +76,14 @@ final class Fabrica
                 $this->sesion(),
                 $this->vista(),
                 new ServicioContrasena(new RepositorioUsuarios($this->baseDatos()))
+            ),
+            // La gestión de usuarios usa baseDatos(): la base anota al administrador (@app_id_usuario) en la
+            // auditoría de cada cambio de estado y sabe que la contraseña restablecida la cambió OTRA persona.
+            UsuariosControlador::class => new UsuariosControlador(
+                $this->sesion(),
+                $this->vista(),
+                new ServicioUsuarios(new RepositorioUsuarios($this->baseDatos())),
+                new RepositorioCatalogos($this->baseDatos())
             ),
             default => throw new InvalidArgumentException("No sé crear el controlador: $claseControlador"),
         };

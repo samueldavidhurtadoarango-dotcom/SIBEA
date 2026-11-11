@@ -3,9 +3,9 @@
 /**
  * REPOSITORIO DE USUARIOS
  *
- * Paso 4 del recorrido: aquí vive el SQL de la tabla "usuarios". Por ahora solo lo
- * que necesita el inicio de sesión (buscar por correo, contar intentos fallidos y
- * desbloquear). Las tareas siguientes agregan más métodos.
+ * Paso 4 del recorrido: aquí vive el SQL de la tabla "usuarios": lo del inicio de sesión
+ * (buscar por correo, contar intentos fallidos y desbloquear) y lo de la gestión de
+ * aprendices (lista, crear, restablecer contraseña y cambiar estado).
  *
  * IMPORTANTE: el bloqueo tras 3 intentos y el desbloqueo a los 15 minutos los hace
  * la BASE DE DATOS (README de base-de-datos, sección 3), siempre que la conexión
@@ -19,9 +19,13 @@ declare(strict_types=1);
 namespace BenefitRack\Repositorios;
 
 use BenefitRack\Nucleo\BaseDatos;
+use PDO;
 
 class RepositorioUsuarios
 {
+    /** Condición de búsqueda: nombre completo, documento o correo (tres marcas ? con el mismo patrón). */
+    private const FILTRO_BUSQUEDA = "(CONCAT(u.nombre, ' ', u.apellido) LIKE ? OR u.documento LIKE ? OR u.correo LIKE ?)";
+
     /**
      * @param BaseDatos $baseDatos La conexión de esta petición (en el ingreso, con @app_id_usuario NULL).
      */
@@ -115,5 +119,140 @@ class RepositorioUsuarios
     public function cambiarContrasena(int $id, string $hash): void
     {
         $this->baseDatos->pdo()->prepare('UPDATE usuarios SET password_hash = ? WHERE id_usuario = ?')->execute([$hash, $id]);
+    }
+
+    /**
+     * Una página de la lista de aprendices (nunca incluye administradores).
+     *
+     * @param string $buscar       Texto a buscar en nombre, documento o correo (vacío = todos).
+     * @param int    $limite       Cuántas filas traer.
+     * @param int    $desplazamiento Cuántas filas saltar (para las páginas siguientes).
+     * @return list<array<string, mixed>> id_usuario, documento, nombre, apellido, correo, estado, ficha y programa.
+     */
+    public function listarAprendices(string $buscar, int $limite, int $desplazamiento): array
+    {
+        $consulta = $this->baseDatos->pdo()->prepare(
+            'SELECT u.id_usuario, u.documento, u.nombre, u.apellido, u.correo, u.estado, u.ficha, p.nombre AS programa
+               FROM usuarios u
+               JOIN roles r ON r.id_rol = u.id_rol
+               LEFT JOIN programas p ON p.id_programa = u.id_programa
+              WHERE r.nombre = \'Aprendiz\' AND ' . self::FILTRO_BUSQUEDA . '
+              ORDER BY u.nombre, u.apellido, u.id_usuario
+              LIMIT ? OFFSET ?'
+        );
+        // Los números se enlazan como enteros: así llegan al LIMIT sin comillas.
+        $patron = $this->patronDeBusqueda($buscar);
+        $consulta->bindValue(1, $patron);
+        $consulta->bindValue(2, $patron);
+        $consulta->bindValue(3, $patron);
+        $consulta->bindValue(4, $limite, PDO::PARAM_INT);
+        $consulta->bindValue(5, $desplazamiento, PDO::PARAM_INT);
+        $consulta->execute();
+
+        return $consulta->fetchAll();
+    }
+
+    /**
+     * @param string $buscar El mismo texto de listarAprendices().
+     * @return int Cuántos aprendices coinciden (para calcular las páginas).
+     */
+    public function contarAprendices(string $buscar): int
+    {
+        $consulta = $this->baseDatos->pdo()->prepare(
+            'SELECT COUNT(*)
+               FROM usuarios u
+               JOIN roles r ON r.id_rol = u.id_rol
+              WHERE r.nombre = \'Aprendiz\' AND ' . self::FILTRO_BUSQUEDA
+        );
+        $patron = $this->patronDeBusqueda($buscar);
+        $consulta->execute([$patron, $patron, $patron]);
+
+        return (int) $consulta->fetchColumn();
+    }
+
+    /**
+     * @param int $id Id del usuario.
+     * @return array<string, mixed>|null id_usuario, nombre, apellido, documento y estado si es un aprendiz; null si no existe o es administrador.
+     */
+    public function buscarAprendiz(int $id): ?array
+    {
+        $consulta = $this->baseDatos->pdo()->prepare(
+            'SELECT u.id_usuario, u.nombre, u.apellido, u.documento, u.correo, u.estado
+               FROM usuarios u
+               JOIN roles r ON r.id_rol = u.id_rol
+              WHERE u.id_usuario = ? AND r.nombre = \'Aprendiz\''
+        );
+        $consulta->execute([$id]);
+        $fila = $consulta->fetch();
+
+        return is_array($fila) ? $fila : null;
+    }
+
+    /**
+     * Crea la cuenta de un aprendiz. Si el documento o el correo ya existen, la base
+     * lanza una PDOException (clave única, código 1062): el servicio la traduce.
+     *
+     * @param array<string, mixed> $datos documento, nombre, apellido, correo, id_programa y ficha (ya validados).
+     * @param string               $hash  El hash de la contraseña temporal (nunca la contraseña).
+     * @return int El id de la cuenta nueva.
+     */
+    public function crear(array $datos, string $hash): int
+    {
+        // debe_cambiar_contrasena = 1: la persona tiene que elegir su propia clave al primer ingreso.
+        $this->baseDatos->pdo()->prepare(
+            'INSERT INTO usuarios (documento, nombre, apellido, correo, password_hash, id_rol, id_programa, ficha, debe_cambiar_contrasena)
+             VALUES (?, ?, ?, ?, ?, (SELECT id_rol FROM roles WHERE nombre = \'Aprendiz\'), ?, ?, 1)'
+        )->execute([
+            $datos['documento'], $datos['nombre'], $datos['apellido'], $datos['correo'], $hash, $datos['id_programa'], $datos['ficha'],
+        ]);
+
+        return (int) $this->baseDatos->pdo()->lastInsertId();
+    }
+
+    /**
+     * Cambia la contraseña de un APRENDIZ por la que genera el sistema.
+     *
+     * La base sube debe_cambiar_contrasena a 1 sola, porque quien actúa (el administrador de la
+     * conexión) no es el dueño de la cuenta. Con otro administrador como destino no se hace nada.
+     *
+     * @param int    $id   Id del aprendiz.
+     * @param string $hash El hash de la contraseña temporal.
+     * @return bool true si se cambió; false si no existe o no es aprendiz.
+     */
+    public function restablecerContrasena(int $id, string $hash): bool
+    {
+        $consulta = $this->baseDatos->pdo()->prepare(
+            'UPDATE usuarios SET password_hash = ?
+              WHERE id_usuario = ? AND id_rol = (SELECT id_rol FROM roles WHERE nombre = \'Aprendiz\')'
+        );
+        $consulta->execute([$hash, $id]);
+
+        return $consulta->rowCount() === 1;
+    }
+
+    /**
+     * Cambia el estado de una cuenta con el procedimiento de la base (README, sección 3):
+     * la justificación es obligatoria y queda en la auditoría junto con quién lo hizo.
+     *
+     * @param int    $id            Id del usuario.
+     * @param string $estado        Activo o Inactivo.
+     * @param string $justificacion El motivo escrito por el administrador.
+     * @return void
+     */
+    public function cambiarEstado(int $id, string $estado, string $justificacion): void
+    {
+        // conJustificacion pone @app_justificacion y la borra al terminar, pase lo que pase.
+        $this->baseDatos->conJustificacion($justificacion, function () use ($id, $estado, $justificacion): void {
+            $this->baseDatos->pdo()->prepare('CALL pr_cambiar_estado_usuario(?, ?, ?)')->execute([$id, $estado, $justificacion]);
+        });
+    }
+
+    /**
+     * Convierte lo que escribió la persona en un patrón LIKE seguro: los comodines % y _
+     * se escapan para que se busquen como letras normales.
+     */
+    private function patronDeBusqueda(string $buscar): string
+    {
+        return '%' . addcslashes($buscar, '%_\\') . '%';
     }
 }

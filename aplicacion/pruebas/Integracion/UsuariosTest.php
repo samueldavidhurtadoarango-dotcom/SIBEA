@@ -51,6 +51,7 @@ final class UsuariosTest extends BaseDePrueba
         ];
     }
 
+    /** @return array<string, mixed> */
     private function filaDe(int $id): array
     {
         $consulta = $this->baseDatosDeLaApp()->pdo()->query("SELECT * FROM usuarios WHERE id_usuario = $id");
@@ -284,9 +285,10 @@ final class UsuariosTest extends BaseDePrueba
 
     public function test_crear_con_errores_vuelve_al_formulario_sin_crear_nada(): void
     {
+        $fabrica = $this->fabricaDeAdmin(); // primero la sesión: al ingresar se renueva el token CSRF
         $campos = ['correo' => 'no-es-correo'] + $this->camposDelFormulario();
 
-        $respuesta = $this->enviar($this->fabricaDeAdmin(), 'POST', '/admin/usuarios/nuevo', $campos);
+        $respuesta = $this->enviar($fabrica, 'POST', '/admin/usuarios/nuevo', $campos);
 
         $this->assertStringContainsString('Revisa 1 cosa', $respuesta->cuerpo());
         $this->assertArrayNotHasKey('entrega_pendiente', $_SESSION);
@@ -306,10 +308,11 @@ final class UsuariosTest extends BaseDePrueba
 
     public function test_crear_sin_token_es_403(): void
     {
+        $fabrica = $this->fabricaDeAdmin();
         $campos = $this->camposDelFormulario();
         unset($campos['_csrf']);
 
-        $this->assertSame(403, $this->enviar($this->fabricaDeAdmin(), 'POST', '/admin/usuarios/nuevo', $campos)->codigo());
+        $this->assertSame(403, $this->enviar($fabrica, 'POST', '/admin/usuarios/nuevo', $campos)->codigo());
     }
 
     public function test_descargar_la_entrega_entrega_el_excel_y_borra_los_datos_de_la_sesion(): void

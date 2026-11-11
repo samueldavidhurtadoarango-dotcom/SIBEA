@@ -19,12 +19,14 @@ final class Respuesta
      * @param string                $cuerpo    Contenido que se envía.
      * @param array<string, string> $cabeceras Cabeceras HTTP (nombre => valor).
      * @param string|null           $archivo   Ruta de un archivo a enviar en lugar del cuerpo.
+     * @param bool                  $borrarArchivo true si el archivo es temporal y se borra después de enviarlo.
      */
     private function __construct(
         private readonly int $codigo,
         private readonly string $cuerpo,
         private readonly array $cabeceras,
         private readonly ?string $archivo = null,
+        private readonly bool $borrarArchivo = false,
     ) {
     }
 
@@ -51,9 +53,10 @@ final class Respuesta
      * @param string $ruta           Ruta del archivo en el servidor.
      * @param string $nombreDescarga Nombre con el que lo verá quien descarga.
      * @param string $tipoMime       Tipo del archivo (application/pdf, image/png...).
+     * @param bool   $borrarDespues  true para un archivo temporal (por ejemplo el Excel de entrega): se borra al enviarlo.
      * @return Respuesta Una descarga.
      */
-    public static function archivo(string $ruta, string $nombreDescarga, string $tipoMime): Respuesta
+    public static function archivo(string $ruta, string $nombreDescarga, string $tipoMime, bool $borrarDespues = false): Respuesta
     {
         // Seguridad: se reemplazan comillas, saltos de línea y símbolos raros
         // del nombre para que no puedan colarse otras cabeceras HTTP.
@@ -64,7 +67,15 @@ final class Respuesta
             'Content-Length' => (string) filesize($ruta),
             'Content-Disposition' => 'attachment; filename="' . $nombreSeguro . '"',
             'X-Content-Type-Options' => 'nosniff',
-        ], $ruta);
+        ], $ruta, $borrarDespues);
+    }
+
+    /**
+     * @return string|null La ruta del archivo si la respuesta es una descarga; si no, null.
+     */
+    public function rutaArchivo(): ?string
+    {
+        return $this->archivo;
     }
 
     /**
@@ -104,6 +115,10 @@ final class Respuesta
         }
         if ($this->archivo !== null) {
             readfile($this->archivo);
+            // Un archivo temporal no debe quedar en el servidor: se borra apenas se envía.
+            if ($this->borrarArchivo) {
+                unlink($this->archivo);
+            }
 
             return;
         }

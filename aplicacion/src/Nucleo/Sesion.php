@@ -185,6 +185,39 @@ final class Sesion
         return $mensajes;
     }
 
+    /**
+     * Anota una contraseña temporal recién entregada para incluirla en el Excel de entrega.
+     * Vive solo en la sesión del administrador (no se escribe en ningún archivo propio) hasta que descarga el Excel.
+     *
+     * @param array{documento: string, nombre: string, correo: string, contrasena: string} $fila Los datos de un aprendiz.
+     * @return void
+     */
+    public function agregarEntrega(array $fila): void
+    {
+        $_SESSION['entrega_pendiente'][] = $fila;
+    }
+
+    /**
+     * @return list<array{documento: string, nombre: string, correo: string, contrasena: string}> Lo pendiente de entregar.
+     */
+    public function entregaPendiente(): array
+    {
+        /** @var list<array{documento: string, nombre: string, correo: string, contrasena: string}> $filas */
+        $filas = $_SESSION['entrega_pendiente'] ?? [];
+
+        return $filas;
+    }
+
+    /**
+     * Borra las contraseñas pendientes (se llama al descargar el Excel: así no quedan en la sesión).
+     *
+     * @return void
+     */
+    public function borrarEntrega(): void
+    {
+        unset($_SESSION['entrega_pendiente']);
+    }
+
     /** ¿La petición llegó por HTTPS? (el servidor lo avisa en $_SERVER['HTTPS']). */
     private function esHttps(): bool
     {

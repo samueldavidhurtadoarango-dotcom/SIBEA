@@ -21,6 +21,7 @@ final class Peticion
      * @param array<string, array<string, mixed>> $archivos   Archivos subidos ($_FILES).
      * @param string                              $ip         IP de quien pide.
      * @param array<string, string>               $parametros Valores de {id} en la URL (los llena el enrutador).
+     * @param array<string, mixed>                $consulta   Datos de la URL después del "?" ($_GET), por ejemplo ?q=ana.
      */
     public function __construct(
         private readonly string $metodo,
@@ -29,6 +30,7 @@ final class Peticion
         private readonly array $archivos,
         private readonly string $ip,
         private readonly array $parametros = [],
+        private readonly array $consulta = [],
     ) {
     }
 
@@ -49,6 +51,8 @@ final class Peticion
             $_POST,
             $_FILES,
             (string) ($_SERVER['REMOTE_ADDR'] ?? '0.0.0.0'),
+            [],
+            $_GET,
         );
     }
 
@@ -60,7 +64,7 @@ final class Peticion
      */
     public function conParametros(array $parametros): Peticion
     {
-        return new self($this->metodo, $this->ruta, $this->campos, $this->archivos, $this->ip, $parametros);
+        return new self($this->metodo, $this->ruta, $this->campos, $this->archivos, $this->ip, $parametros, $this->consulta);
     }
 
     /**
@@ -89,6 +93,20 @@ final class Peticion
     public function campo(string $nombre, string $porDefecto = ''): string
     {
         $valor = $this->campos[$nombre] ?? $porDefecto;
+
+        return is_string($valor) ? trim($valor) : $porDefecto;
+    }
+
+    /**
+     * Lee un dato de la URL (lo que va después del "?").
+     *
+     * @param string $nombre     Nombre del dato (por ejemplo "q" en ?q=ana).
+     * @param string $porDefecto Valor si no vino o no es texto.
+     * @return string El texto sin espacios al inicio ni al final.
+     */
+    public function consulta(string $nombre, string $porDefecto = ''): string
+    {
+        $valor = $this->consulta[$nombre] ?? $porDefecto;
 
         return is_string($valor) ? trim($valor) : $porDefecto;
     }
