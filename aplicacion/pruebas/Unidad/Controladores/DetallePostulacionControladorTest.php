@@ -81,6 +81,10 @@ final class DetallePostulacionControladorTest extends TestCase
         ];
     }
 
+    /**
+     * @param list<string>         $estadosDeDocumentos
+     * @param array<string, mixed> $cambios
+     */
     private function mostrar(string $estado = 'Pendiente', array $estadosDeDocumentos = ['Pendiente', 'Pendiente', 'Pendiente'], array $cambios = []): string
     {
         $this->revision->method('detalle')->willReturn($this->detalle($estado, $estadosDeDocumentos, $cambios));

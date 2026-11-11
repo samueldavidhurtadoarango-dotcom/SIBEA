@@ -44,6 +44,7 @@ use BenefitRack\Servicios\ServicioCargaUsuarios;
 use BenefitRack\Servicios\ServicioContrasena;
 use BenefitRack\Servicios\ServicioConvocatorias;
 use BenefitRack\Servicios\ServicioPostulacion;
+use BenefitRack\Servicios\ServicioRevision;
 use BenefitRack\Servicios\ServicioUsuarios;
 use BenefitRack\Validacion\ValidadorPostulacion;
 use InvalidArgumentException;
@@ -144,12 +145,15 @@ final class Fabrica
                 new RepositorioDocumentos($this->baseDatos()),
                 new AlmacenDocumentos($this->carpetaAlmacenamiento())
             ),
-            // Las postulaciones del administrador usan baseDatos(): la base sabe qué administrador consulta (@app_id_usuario).
+            // Las postulaciones del administrador usan baseDatos(): la base sabe qué administrador consulta (@app_id_usuario),
+            // y al revisar un documento o decidir una postulación sus triggers exigen que ese usuario sea un administrador
+            // activo y anotan en el historial quién hizo cada cambio.
             PostulacionesAdminControlador::class => new PostulacionesAdminControlador(
                 $this->sesion(),
                 $this->vista(),
                 new RepositorioPostulaciones($this->baseDatos()),
-                new RepositorioCatalogos($this->baseDatos())
+                new RepositorioCatalogos($this->baseDatos()),
+                new ServicioRevision(new RepositorioPostulaciones($this->baseDatos()), new RepositorioDocumentos($this->baseDatos()))
             ),
             default => throw new InvalidArgumentException("No sé crear el controlador: $claseControlador"),
         };

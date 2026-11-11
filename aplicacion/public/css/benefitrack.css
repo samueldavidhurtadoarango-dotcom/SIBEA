@@ -844,3 +844,133 @@ textarea:focus-visible, summary:focus-visible, [tabindex]:focus-visible {
 
 /* Nombre del archivo elegido dentro de la zona (lo escribe el JavaScript) */
 .br-zona__elegido { font-size: 14px; font-weight: 600; color: var(--br-azul); overflow-wrap: anywhere; }
+
+/* ---------- Detalle de una postulación (vista 03): cupos, documentos con su revisión, panel de decisión e historial ---------- */
+/* Contador de cupos de la convocatoria («Cupos: 18 de 25 usados») */
+.br-cupos {
+  display: grid; gap: 8px; min-width: 260px; padding: 12px 16px;
+  background: var(--br-blanco); border: 1px solid var(--br-borde); border-radius: var(--br-radio);
+}
+.br-cupos__fila { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 12px; }
+.br-cupos__cifra { font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.br-cupos__resto { font-size: 13px; color: var(--br-gris); font-variant-numeric: tabular-nums; }
+.br-cupos--lleno .br-cupos__cifra, .br-cupos--lleno .br-cupos__resto { color: var(--br-rojo-texto); }
+.br-cupos--lleno .br-progreso { color: var(--br-rojo); }
+.br-cupos--lleno .br-progreso::-webkit-progress-value { background: var(--br-rojo); }
+.br-cupos--lleno .br-progreso::-moz-progress-bar { background: var(--br-rojo); }
+.br-progreso--fina { height: 6px; }
+@media (max-width: 860px) { .br-cupos { min-width: 0; } }
+
+/* Lista de documentos adjuntos, uno por fila: ícono con su marca, nombre y archivo, y acciones */
+.br-documentos { list-style: none; margin: 0; padding: 0; }
+.br-tarjeta > .br-documentos { margin-top: 4px; }
+.br-documento {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 4px 14px;
+  padding: 14px 0; border-top: 1px solid var(--br-fondo-3);
+}
+.br-documento:first-child { border-top: 0; }
+.br-documento__icono {
+  position: relative; width: 40px; height: 40px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--br-doc-neutro-fondo); color: var(--br-gris);
+}
+.br-documento__icono > svg { width: 20px; height: 20px; }
+.br-documento__marca {
+  position: absolute; right: -4px; bottom: -4px; width: 18px; height: 18px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--br-gris-claro); color: var(--br-blanco); border: 2px solid var(--br-blanco);
+}
+.br-documento__marca svg { width: 10px; height: 10px; }
+.br-documento--valido .br-documento__icono { background: var(--br-doc-ok-fondo); color: var(--br-doc-ok-texto); }
+.br-documento--valido .br-documento__marca { background: var(--br-doc-ok-marca); }
+.br-documento--no-valido .br-documento__icono { background: var(--br-rojo-fondo); color: var(--br-rojo-texto); }
+.br-documento--no-valido .br-documento__marca { background: var(--br-rojo); }
+.br-documento__texto { min-width: 0; display: grid; gap: 2px; }
+.br-documento__titulo { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; font-weight: 600; }
+.br-documento__archivo { font-size: 13px; color: var(--br-gris); overflow-wrap: anywhere; }
+.br-documento__motivo { font-size: 13px; color: var(--br-rojo-texto); }
+.br-documento__motivo strong { font-weight: 600; }
+.br-documento__nota { font-size: 13px; color: var(--br-gris); }
+.br-documento__acciones { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }
+/* Documento nuevo que el aprendiz acaba de subir: se resalta para revisarlo primero */
+.br-documento--nuevo {
+  margin: 4px -12px; padding: 14px 12px;
+  background: var(--br-chip-fondo); border: 1px solid var(--br-chip-borde); border-radius: 10px;
+}
+.br-documento--nuevo + .br-documento { border-top: 0; }
+.br-documento--nuevo .br-documento__icono { background: var(--br-blanco); color: var(--br-enlace); }
+.br-documento--nuevo .br-documento__marca { border-color: var(--br-chip-fondo); }
+@media (max-width: 640px) {
+  .br-documento { grid-template-columns: auto minmax(0, 1fr); }
+  .br-documento__acciones { grid-column: 1 / -1; justify-content: flex-start; padding-top: 8px; }
+  .br-documento { align-items: start; }
+  /* Si solo se puede «Ver» (documentos ya revisados), el botón se queda a la derecha */
+  .br-documento:not(:has(.br-revision)) { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .br-documento:not(:has(.br-revision)) .br-documento__acciones { grid-column: auto; padding-top: 0; }
+}
+
+
+/* Revisión de un documento: «Válido» / «No válido» como dos opciones (radios) con aspecto de botón.
+   El radio real queda encima, invisible: se maneja con teclado y lector de pantalla, y funciona sin JavaScript. */
+.br-revision { display: inline-flex; border: 1px solid var(--br-gris-claro); border-radius: 8px; overflow: hidden; }
+.br-revision__opcion {
+  position: relative; display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 0 12px;
+  background: var(--br-blanco); color: var(--br-azul); font-size: 14px; font-weight: 600; cursor: pointer;
+}
+.br-revision__opcion input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.br-revision__opcion svg { width: 14px; height: 14px; flex: none; }
+.br-revision__opcion + .br-revision__opcion { border-left: 1px solid var(--br-gris-claro); }
+.br-revision__opcion:hover { background: var(--br-fondo-2); }
+.br-revision__opcion:has(input:focus-visible) { outline: 3px solid var(--br-enlace); outline-offset: -3px; }
+.br-revision__opcion--valido:has(input:checked) { background: var(--br-doc-ok-fondo); color: var(--br-doc-ok-texto); }
+.br-revision__opcion--no-valido:has(input:checked) { background: var(--br-rojo-fondo); color: var(--br-rojo-texto); }
+@media (max-width: 640px) { .br-revision__opcion { min-height: 42px; } }
+/* La observación de un documento solo aparece cuando está marcado «No válido» */
+.br-documento__observacion { display: none; grid-column: 1 / -1; padding-top: 8px; }
+.br-documento:has(input[value="Rechazado"]:checked) .br-documento__observacion { display: grid; }
+.br-documento__observacion textarea { min-height: 72px; }
+.br-revision-guardar { display: flex; justify-content: flex-end; padding-top: 14px; border-top: 1px solid var(--br-fondo-3); }
+.br-revision-guardar .br-boton { min-width: 180px; }
+@media (max-width: 480px) { .br-revision-guardar .br-boton { width: 100%; } }
+
+/* Panel de decisión: los dos pasos manuales en orden (1. confirmar datos, 2. aprobar o rechazar) */
+.br-tarjeta.br-decision { padding: 0; }
+.br-decision > * + * { margin-top: 0; }
+.br-decision__cabecera { padding: 18px 20px 14px; border-bottom: 1px solid var(--br-borde); display: grid; gap: 2px; }
+.br-decision__paso { display: grid; gap: 12px; padding: 18px 20px 20px; }
+.br-decision__paso + .br-decision__paso { border-top: 1px solid var(--br-borde); }
+.br-decision__titulo { display: flex; align-items: center; gap: 10px; }
+.br-decision__numero {
+  flex: none; width: 26px; height: 26px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700;
+  background: var(--br-blanco); color: var(--br-enlace); border: 2px solid var(--br-enlace);
+}
+.br-decision__numero svg { width: 14px; height: 14px; }
+.br-decision__paso--hecho .br-decision__numero { background: var(--br-verde); border-color: var(--br-verde); color: var(--br-blanco); }
+.br-decision__paso--bloqueado .br-decision__numero { background: var(--br-fondo-3); border-color: var(--br-borde); color: var(--br-gris); }
+.br-decision__paso--bloqueado h3 { color: var(--br-gris); }
+.br-decision__texto { font-size: 14px; color: var(--br-gris); }
+.br-decision__acciones { display: grid; gap: 8px; }
+.br-decision__acciones .br-boton { width: 100%; }
+.br-decision__separador { height: 1px; margin: 4px 0; background: var(--br-fondo-3); }
+@media (max-width: 1100px) {
+  .br-decision__acciones .br-boton { min-height: 48px; }
+}
+
+
+/* Historial de estados (tabla historial_estados): lo más reciente arriba */
+.br-historial { list-style: none; margin: 0; padding: 0; }
+.br-tarjeta > .br-historial { margin-top: 16px; }
+.br-historial__item { position: relative; display: grid; gap: 2px; padding: 0 0 16px 26px; font-size: 14px; }
+.br-historial__item:last-child { padding-bottom: 0; }
+.br-historial__item::before {
+  content: ''; position: absolute; left: 4px; top: 6px; width: 10px; height: 10px; border-radius: 50%;
+  background: var(--br-blanco); border: 2px solid var(--br-gris-claro);
+}
+.br-historial__item:first-child::before { background: var(--br-verde); border-color: var(--br-verde); }
+.br-historial__item:not(:last-child)::after {
+  content: ''; position: absolute; left: 9px; top: 20px; bottom: 2px; width: 2px; background: var(--br-borde);
+}
+.br-historial__cambio { font-weight: 600; }
+.br-historial__quien { color: var(--br-gris); }
+.br-decision__paso--rechazado .br-decision__numero { background: var(--br-rojo); border-color: var(--br-rojo); color: var(--br-blanco); }

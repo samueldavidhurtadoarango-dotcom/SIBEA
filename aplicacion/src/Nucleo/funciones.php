@@ -5,7 +5,8 @@
  *
  * Composer carga este archivo en cada petición (ver "files" en composer.json).
  * e() escapa un dato para mostrarlo de forma segura; formato_pesos() y
- * formato_fecha() lo muestran como se lee en Colombia («$ 180.000», «15 nov 2026»).
+ * formato_fecha() y formato_fecha_hora() lo muestran como se lee en Colombia («$ 180.000», «15 nov 2026»,
+ * «5 nov 2026, 9:40 a. m.»).
  */
 
 declare(strict_types=1);
@@ -56,5 +57,25 @@ if (!function_exists('formato_fecha')) {
         [$anio, $mes, $dia] = array_map('intval', explode('-', substr($fecha, 0, 10)));
 
         return $dia . ' ' . $meses[$mes - 1] . ($conAnio ? ' ' . $anio : '');
+    }
+}
+
+if (!function_exists('formato_fecha_hora')) {
+    /**
+     * Muestra fecha y hora con reloj de 12 horas: «2026-11-05 16:12:00» -> «5 nov 2026, 4:12 p. m.».
+     * Las 00:xx son «12:xx a. m.» y las 12:xx son «12:xx p. m.».
+     *
+     * @param string|null $fechaHora «AAAA-MM-DD HH:MM:SS»; null o vacío se muestra vacío.
+     * @return string La fecha y la hora listas para mostrar.
+     */
+    function formato_fecha_hora(?string $fechaHora): string
+    {
+        if ($fechaHora === null || $fechaHora === '') {
+            return '';
+        }
+        $hora24 = (int) substr($fechaHora, 11, 2);
+        $hora12 = $hora24 % 12 === 0 ? 12 : $hora24 % 12;
+
+        return formato_fecha($fechaHora) . ', ' . $hora12 . ':' . substr($fechaHora, 14, 2) . ($hora24 < 12 ? ' a. m.' : ' p. m.');
     }
 }

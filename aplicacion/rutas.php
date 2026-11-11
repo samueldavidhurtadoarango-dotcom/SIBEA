@@ -63,9 +63,16 @@ return static function (Enrutador $enrutador, Fabrica $fabrica): void {
     $enrutador->agregar('POST', '/admin/convocatorias/{id}/estado', [ConvocatoriasControlador::class, 'cambiarEstado'], $adminConCsrf);
 
     // Postulaciones del administrador (M6a): lista con filtros y Excel. Son GET que solo leen: no llevan CSRF.
-    // (El detalle y las decisiones, /admin/postulaciones/{id}..., son de la tarea siguiente.)
     $enrutador->agregar('GET', '/admin/postulaciones', [PostulacionesAdminControlador::class, 'lista'], $admin);
     $enrutador->agregar('GET', '/admin/postulaciones/excel', [PostulacionesAdminControlador::class, 'excel'], $admin);
+
+    // Detalle y decisiones de una postulación (M6b): el detalle solo lee; la revisión de documentos, confirmar,
+    // aprobar y rechazar cambian datos, así que llevan CSRF. El filtro de rol responde 403 a un aprendiz antes de todo.
+    $enrutador->agregar('GET', '/admin/postulaciones/{id}', [PostulacionesAdminControlador::class, 'detalle'], $admin);
+    $enrutador->agregar('POST', '/admin/postulaciones/{id}/documentos', [PostulacionesAdminControlador::class, 'documentos'], $adminConCsrf);
+    $enrutador->agregar('POST', '/admin/postulaciones/{id}/confirmar', [PostulacionesAdminControlador::class, 'confirmar'], $adminConCsrf);
+    $enrutador->agregar('POST', '/admin/postulaciones/{id}/aprobar', [PostulacionesAdminControlador::class, 'aprobar'], $adminConCsrf);
+    $enrutador->agregar('POST', '/admin/postulaciones/{id}/rechazar', [PostulacionesAdminControlador::class, 'rechazar'], $adminConCsrf);
 
     // Postulación del aprendiz (M5a y M5b): formulario, revisar y enviar. Solo el aprendiz, ya con contraseña propia; los POST llevan CSRF.
     $aprendiz = [$fabrica->filtroSesion(), $fabrica->filtroRol('Aprendiz'), $fabrica->filtroPrimerIngreso()];

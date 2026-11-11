@@ -3,16 +3,21 @@
 /**
  * CONTROLADOR DE POSTULACIONES DEL ADMINISTRADOR
  *
- * Paso 4 del recorrido: atiende /admin/postulaciones (la pantalla de inicio del administrador) y
- * /admin/postulaciones/excel. Lee los filtros de la URL con FiltroPostulaciones, pide las filas al repositorio y
- * elige la pantalla o la descarga. No tiene SQL ni HTML. (El detalle y las decisiones de cada postulación son de
- * la tarea siguiente.)
+ * Paso 4 del recorrido: atiende /admin/postulaciones (la pantalla de inicio del administrador), /admin/postulaciones/excel
+ * y el detalle de cada postulación con sus decisiones (/admin/postulaciones/{id} y sus cuatro POST: revisar documentos,
+ * confirmar, aprobar y rechazar). Lee los filtros de la URL con FiltroPostulaciones, pide las filas al repositorio y
+ * elige la pantalla o la descarga; las reglas de la revisión están en ServicioRevision. No tiene SQL ni HTML.
+ *
+ * Toda decisión sigue el patrón Post/Redirect/Get: se hace el cambio, se deja un aviso de una sola vez y se vuelve al
+ * detalle. Así, recargar la página no repite la decisión, y un error de negocio («Ya no hay cupos en esta
+ * convocatoria») se ve como una alerta, nunca como una pantalla de error técnico.
  */
 
 declare(strict_types=1);
 
 namespace BenefitRack\Controladores;
 
+use BenefitRack\Nucleo\ErrorDeNegocio;
 use BenefitRack\Nucleo\Peticion;
 use BenefitRack\Nucleo\Respuesta;
 use BenefitRack\Nucleo\Sesion;
@@ -21,6 +26,7 @@ use BenefitRack\Repositorios\RepositorioCatalogos;
 use BenefitRack\Repositorios\RepositorioPostulaciones;
 use BenefitRack\Servicios\ExportadorExcel;
 use BenefitRack\Servicios\FiltroPostulaciones;
+use BenefitRack\Servicios\ServicioRevision;
 
 final class PostulacionesAdminControlador
 {
@@ -34,6 +40,7 @@ final class PostulacionesAdminControlador
      * @param Vista                    $vista         Dibuja las pantallas.
      * @param RepositorioPostulaciones $postulaciones Busca las filas con los filtros.
      * @param RepositorioCatalogos     $catalogos     Beneficios y programas para los desplegables de filtros.
+     * @param ServicioRevision         $revision      El detalle de una postulación, la revisión de sus documentos y las decisiones.
      * @param ExportadorExcel|null     $exportador    Arma el Excel (por defecto, el real).
      */
     public function __construct(
@@ -41,6 +48,7 @@ final class PostulacionesAdminControlador
         private readonly Vista $vista,
         private readonly RepositorioPostulaciones $postulaciones,
         private readonly RepositorioCatalogos $catalogos,
+        private readonly ServicioRevision $revision,
         ?ExportadorExcel $exportador = null,
     ) {
         $this->exportador = $exportador ?? new ExportadorExcel();
@@ -98,5 +106,109 @@ final class PostulacionesAdminControlador
 
         // Lleva datos personales: el navegador no debe guardarlo en caché.
         return Respuesta::descarga($contenido, 'postulaciones-' . date('Y-m-d') . '.xlsx', self::TIPO_EXCEL)->sinCache();
+    }
+
+    /**
+     * GET /admin/postulaciones/{id} : el detalle de una postulación con sus datos, documentos, historial y el panel de decisión.
+     *
+     * @param Peticion $peticion Trae {id} en la URL.
+     * @return Respuesta La pantalla de detalle, o la página 404 si la postulación no existe.
+     */
+    public function detalle(Peticion $peticion): Respuesta
+    {
+        $detalle = $this->revision->detalle((int) $peticion->parametro('id'));
+        if ($detalle === null) {
+            return Respuesta::html($this->vista->mostrar('errores/404', [], 'admin'), 404);
+        }
+
+        return Respuesta::html($this->vista->mostrar('postulaciones/detalle', [
+            'titulo' => 'Postulación de ' . (string) $detalle['nombre'],
+            'detalle' => $detalle,
+            'acciones' => ServicioRevision::acciones($detalle),
+            'motivoConfirmar' => ServicioRevision::motivoConfirmarDeshabilitado($detalle),
+            'soloRechazar' => ServicioRevision::soloQuedaRechazar($detalle),
+        ], 'admin'));
+    }
+
+    /**
+     * POST /admin/postulaciones/{id}/documentos : guarda la revisión de los documentos («Válido» / «No válido»).
+     *
+     * @param Peticion $peticion Trae {id}, estado[idDocumento] y observacion[idDocumento].
+     * @return Respuesta Vuelve al detalle con un aviso.
+     */
+    public function documentos(Peticion $peticion): Respuesta
+    {
+        $estados = $peticion->campoMapa('estado');
+        $observaciones = $peticion->campoMapa('observacion');
+        $revisiones = [];
+        foreach ($estados as $idDocumento => $estado) {
+            $revisiones[(int) $idDocumento] = ['estado' => $estado, 'observacion' => $observaciones[$idDocumento] ?? ''];
+        }
+        if ($revisiones === []) {
+            $this->sesion->mensaje('aviso', 'Marca al menos un documento como «Válido» o «No válido».');
+
+            return $this->volverAlDetalle((int) $peticion->parametro('id'));
+        }
+
+        return $this->decidir($peticion, fn (int $id) => $this->revision->marcarDocumentos($id, $revisiones), 'Revisión guardada.');
+    }
+
+    /**
+     * POST /admin/postulaciones/{id}/confirmar : «Datos confirmados» (la postulación pasa a Validada).
+     *
+     * @param Peticion $peticion Trae {id}.
+     * @return Respuesta Vuelve al detalle con un aviso.
+     */
+    public function confirmar(Peticion $peticion): Respuesta
+    {
+        return $this->decidir($peticion, fn (int $id) => $this->revision->confirmar($id), 'Datos confirmados. Ahora puedes aprobar o rechazar la postulación.');
+    }
+
+    /**
+     * POST /admin/postulaciones/{id}/aprobar : aprueba la postulación (la base crea la asignación y avisa al aprendiz).
+     *
+     * @param Peticion $peticion Trae {id}.
+     * @return Respuesta Vuelve al detalle con un aviso (de éxito o, por ejemplo, «Ya no hay cupos en esta convocatoria»).
+     */
+    public function aprobar(Peticion $peticion): Respuesta
+    {
+        return $this->decidir($peticion, fn (int $id) => $this->revision->aprobar($id), 'Postulación aprobada. Se creó la asignación y el aprendiz recibió un aviso.');
+    }
+
+    /**
+     * POST /admin/postulaciones/{id}/rechazar : rechaza la postulación con un motivo obligatorio.
+     *
+     * @param Peticion $peticion Trae {id} y el campo «motivo» de la ventana de rechazo.
+     * @return Respuesta Vuelve al detalle con un aviso.
+     */
+    public function rechazar(Peticion $peticion): Respuesta
+    {
+        $motivo = $peticion->campo('motivo');
+
+        return $this->decidir($peticion, fn (int $id) => $this->revision->rechazar($id, $motivo), 'Postulación rechazada. El aprendiz recibió un aviso con el motivo.');
+    }
+
+    /**
+     * Hace el cambio, deja el aviso (éxito o el mensaje del error de negocio) y vuelve al detalle (Post/Redirect/Get).
+     *
+     * @param callable(int): void $cambio       Lo que se hace con el id de la postulación.
+     * @param string              $mensajeExito Lo que se avisa si todo salió bien.
+     */
+    private function decidir(Peticion $peticion, callable $cambio, string $mensajeExito): Respuesta
+    {
+        $id = (int) $peticion->parametro('id');
+        try {
+            $cambio($id);
+            $this->sesion->mensaje('exito', $mensajeExito);
+        } catch (ErrorDeNegocio $error) {
+            $this->sesion->mensaje('error', $error->getMessage());
+        }
+
+        return $this->volverAlDetalle($id);
+    }
+
+    private function volverAlDetalle(int $idPostulacion): Respuesta
+    {
+        return Respuesta::redirigir(self::RUTA_LISTA . '/' . $idPostulacion);
     }
 }

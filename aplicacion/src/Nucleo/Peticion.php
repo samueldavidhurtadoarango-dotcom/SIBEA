@@ -112,6 +112,19 @@ final class Peticion
     }
 
     /**
+     * Lee de un formulario un grupo de campos con clave, como los manda <input name="estado[12]">.
+     *
+     * @param string $nombre Nombre del grupo (por ejemplo "estado").
+     * @return array<int|string, string> Clave => texto sin espacios sobrantes; lo que no sea texto se descarta,
+     *                                   y si el campo no es un grupo, queda vacío.
+     */
+    public function campoMapa(string $nombre): array
+    {
+        $valor = $this->campos[$nombre] ?? [];
+
+        return is_array($valor) ? array_map('trim', array_filter($valor, 'is_string')) : [];
+    }
+    /**
      * Lee de la URL una lista de textos, como la mandan las casillas de un formulario (?columnas[]=a&columnas[]=b).
      *
      * @param string $nombre Nombre del dato (por ejemplo "columnas").

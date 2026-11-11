@@ -4,8 +4,8 @@
  * REPOSITORIO DE POSTULACIONES
  *
  * Paso 4 del recorrido: aquí vive el SQL de la tabla "postulaciones": crearla, buscarlas con filtros para la lista
- * del administrador, recorrerlas para el Excel y el control de la transacción con la que ServicioPostulacion guarda
- * todo junto o nada.
+ * del administrador, recorrerlas para el Excel, leer el detalle de una (con su historial y su asignación), cambiarle
+ * el estado y el control de la transacción con la que ServicioPostulacion guarda todo junto o nada.
  *
  * Lista y Excel comparten UNA misma consulta (SELECT + FROM + WHERE), así el Excel siempre respeta los filtros de la
  * pantalla. Los datos del formulario (teléfono, banco, cuenta, motivo...) se leen de postulaciones.datos_formulario
@@ -14,7 +14,9 @@
  *
  * Las reglas de fondo las impone la BASE DE DATOS con sus triggers (tr_postulacion_inicial): solo el propio
  * aprendiz crea su postulación, la convocatoria debe estar Activa y dentro de sus fechas, y el estado nace
- * Pendiente. La clave única (usuario, convocatoria) impide postularse dos veces.
+ * Pendiente. La clave única (usuario, convocatoria) impide postularse dos veces. Al cambiar el estado, el trigger
+ * tr_postulacion_validar decide si la transición se permite (Pendiente -> Validada -> Aprobada; Rechazada desde
+ * Pendiente o Validada), exige el motivo al rechazar y no deja aprobar más postulaciones que cupos.
  *
  * No es "final" a propósito: las pruebas del servicio la reemplazan por una falsa.
  */
@@ -27,6 +29,7 @@ use BenefitRack\Nucleo\BaseDatos;
 use BenefitRack\Servicios\FiltroPostulaciones;
 use BenefitRack\Servicios\Paginacion;
 use Generator;
+use InvalidArgumentException;
 use PDO;
 use PDOStatement;
 
@@ -52,6 +55,10 @@ class RepositorioPostulaciones
         LEFT JOIN tipos_cuenta tc ON tc.id_tipo_cuenta = %s';
 
     private const ORDEN = 'ORDER BY p.fecha_creacion DESC, p.id_postulacion DESC';
+
+    /** Los estados que se pueden guardar con cambiarEstado() (los que decide el administrador). */
+    private const ESTADOS_DE_DECISION = ['Validada', 'Aprobada', 'Rechazada'];
+
     /**
      * @param BaseDatos $baseDatos La conexión de esta petición (la base sabe qué aprendiz actúa).
      */
@@ -119,6 +126,87 @@ class RepositorioPostulaciones
     }
 
     /**
+     * Una postulación completa para la pantalla de detalle: las mismas columnas de la lista (con la EPS, el banco y
+     * el tipo de cuenta ya resueltos) más la fecha de nacimiento y la dirección del formulario, los cupos de su
+     * convocatoria y cuántos ya están aprobados (para «Cupos: 18 de 25 usados»).
+     *
+     * @param int $idPostulacion La postulación.
+     * @return array<string, mixed>|null La fila; null si no existe.
+     */
+    public function detalle(int $idPostulacion): ?array
+    {
+        $aprobadas = "(SELECT COUNT(*) FROM postulaciones a WHERE a.id_convocatoria = c.id_convocatoria AND a.estado = 'Aprobada') AS aprobadas";
+        $extras = [
+            'c.id_convocatoria', 'c.cupos', $aprobadas, 'p.justificacion_rechazo',
+            sprintf(self::JSON, 'fecha_nacimiento') . ' AS fecha_nacimiento', sprintf(self::JSON, 'direccion') . ' AS direccion',
+        ];
+        $consulta = $this->preparar($this->sqlDeFilas('WHERE p.id_postulacion = ?', $extras), [$idPostulacion]);
+        $consulta->execute();
+        $fila = $consulta->fetch();
+
+        return is_array($fila) ? $fila : null;
+    }
+
+    /**
+     * Cada cambio de estado de la postulación (lo escribe la base con el trigger tr_postulacion_estado), el más
+     * reciente primero. La primera fila (estado anterior vacío) es el envío del aprendiz.
+     *
+     * @param int $idPostulacion La postulación.
+     * @return list<array<string, mixed>> estado_anterior, estado_nuevo, justificacion, fecha y quien (nombre de quien lo hizo).
+     */
+    public function historial(int $idPostulacion): array
+    {
+        $consulta = $this->baseDatos->pdo()->prepare(
+            "SELECT h.estado_anterior, h.estado_nuevo, h.justificacion, h.fecha, CONCAT(u.nombre, ' ', u.apellido) AS quien
+               FROM historial_estados h
+               LEFT JOIN usuarios u ON u.id_usuario = h.id_usuario
+              WHERE h.id_postulacion = ?
+              ORDER BY h.fecha DESC, h.id_historial DESC"
+        );
+        $consulta->execute([$idPostulacion]);
+
+        return array_values($consulta->fetchAll());
+    }
+
+    /**
+     * La asignación del beneficio que la base crea sola al aprobar (tr_postulacion_crear_asignacion).
+     *
+     * @param int $idPostulacion La postulación.
+     * @return array<string, mixed>|null valor_pago, numero_pagos, duracion_meses, fecha_inicio y estado; null si aún no hay.
+     */
+    public function asignacion(int $idPostulacion): ?array
+    {
+        $consulta = $this->baseDatos->pdo()->prepare(
+            'SELECT valor_pago, numero_pagos, duracion_meses, fecha_inicio, estado FROM asignaciones_beneficio WHERE id_postulacion = ?'
+        );
+        $consulta->execute([$idPostulacion]);
+        $fila = $consulta->fetch();
+
+        return is_array($fila) ? $fila : null;
+    }
+
+    /**
+     * Guarda la decisión del administrador sobre la postulación. SEGURIDAD y reglas: la BASE decide si el cambio
+     * se permite (transición válida, justificación al rechazar, cupos al aprobar, y que quien lo hace sea un
+     * administrador activo); si no, lanza un error con el motivo y no cambia nada.
+     *
+     * @param int         $idPostulacion La postulación.
+     * @param string      $estado        Validada, Aprobada o Rechazada.
+     * @param string|null $justificacion El motivo (solo al rechazar; en los demás casos, null).
+     * @return void
+     * @throws InvalidArgumentException Si el estado no es uno de los tres que decide el administrador (error del programa, no de la persona).
+     * @throws \PDOException             Si la base rechaza el cambio (el servicio la traduce a ErrorDeNegocio).
+     */
+    public function cambiarEstado(int $idPostulacion, string $estado, ?string $justificacion): void
+    {
+        if (!in_array($estado, self::ESTADOS_DE_DECISION, true)) {
+            throw new InvalidArgumentException("Estado de decisión desconocido: $estado");
+        }
+        $this->baseDatos->pdo()->prepare('UPDATE postulaciones SET estado = ?, justificacion_rechazo = ? WHERE id_postulacion = ?')
+            ->execute([$estado, $justificacion, $idPostulacion]);
+    }
+
+    /**
      * Cuántas postulaciones cumplen los filtros (para calcular las páginas).
      *
      * @param string      $donde      El WHERE ya armado (con signos de pregunta).
@@ -136,8 +224,11 @@ class RepositorioPostulaciones
      * El SELECT de cada fila. Los alias coinciden con las claves de ExportadorExcel::COLUMNAS, así la misma fila
      * sirve para la pantalla y para el Excel. Los documentos se resumen con subconsultas: cuántos hay, cuántos
      * esperan revisión, cuántos son no válidos y si hay una solicitud de documento Pendiente.
+     *
+     * @param string       $donde  El WHERE (puede ser vacío).
+     * @param list<string> $extras Columnas que solo pide el detalle (se suman a las de la lista).
      */
-    private function sqlDeFilas(string $donde): string
+    private function sqlDeFilas(string $donde, array $extras = []): string
     {
         $documentos = '(SELECT COUNT(*) FROM documentos_postulacion d WHERE d.id_postulacion = p.id_postulacion%s)';
         $columnas = [
@@ -153,7 +244,7 @@ class RepositorioPostulaciones
             "EXISTS (SELECT 1 FROM solicitudes_documentacion s WHERE s.id_postulacion = p.id_postulacion AND s.estado = 'Pendiente') AS documento_pedido",
         ];
 
-        return 'SELECT ' . implode(', ', $columnas) . ' ' . $this->desde() . ' ' . $donde . ' ' . self::ORDEN;
+        return 'SELECT ' . implode(', ', [...$columnas, ...$extras]) . ' ' . $this->desde() . ' ' . $donde . ' ' . self::ORDEN;
     }
 
     /** El FROM con los tres catálogos unidos por los ids que vienen dentro del JSON del formulario. */

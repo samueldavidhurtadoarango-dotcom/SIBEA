@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace BenefitRack\Pruebas\Unidad\Controladores;
 
 use BenefitRack\Controladores\PostulacionesAdminControlador;
-use BenefitRack\Nucleo\ErrorDeNegocio;
 use BenefitRack\Nucleo\Peticion;
 use BenefitRack\Nucleo\Sesion;
 use BenefitRack\Nucleo\Vista;
