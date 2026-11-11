@@ -36,8 +36,7 @@ $errores = $errores ?? [];
             <div>
                 <p><strong>Tu cuenta está protegida</strong></p>
                 <p>Tu cuenta se bloqueó por 3 intentos fallidos. Puedes intentarlo de nuevo en 15 minutos.</p>
-                <p>Si no recuerdas tu contraseña, puedes crear una nueva ahora mismo.</p>
-                <a class="br-boton-contorno" href="/contrasena/recuperar">Recuperar mi contraseña</a>
+                <p>Si no recuerdas tu contraseña, pide a Bienestar al Aprendiz que te la restablezca.</p>
             </div>
         </div>
     <?php elseif ($estado === 'cuenta-inactiva') : ?>
@@ -73,9 +72,7 @@ $errores = $errores ?? [];
         <?php endif; ?>
     </div>
 
-    <div class="br-ingreso__olvido">
-        <a href="/contrasena/recuperar">¿Olvidaste tu contraseña?</a>
-    </div>
+    <p class="br-ingreso__olvido">Si olvidaste tu contraseña, pide a Bienestar al Aprendiz que te la restablezca.</p>
 
     <button type="submit" class="br-boton-ingresar" data-texto-cargando="Ingresando…">Ingresar</button>
 </form>

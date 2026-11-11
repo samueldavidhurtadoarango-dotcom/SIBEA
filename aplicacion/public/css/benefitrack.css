@@ -343,12 +343,7 @@ textarea:focus-visible, summary:focus-visible, [tabindex]:focus-visible {
 }
 .br-campo__ojo:hover { background: var(--br-fondo-2); }
 .br-campo__error { margin: 0; font-size: 14px; line-height: 1.45; font-weight: 500; color: #A12A22; }
-.br-ingreso__olvido { display: flex; justify-content: flex-end; margin-top: -8px; }
-.br-ingreso__olvido a {
-  min-height: 44px; display: inline-flex; align-items: center; font-size: 14px; font-weight: 600;
-  color: var(--br-azul); text-decoration: underline; text-underline-offset: 3px;
-}
-.br-ingreso__olvido a:hover { color: var(--br-verde); }
+.br-ingreso__olvido { margin: -8px 0 0; font-size: 14px; line-height: 1.5; color: var(--br-gris); }
 .br-boton-ingresar {
   height: 52px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px;
   border: 0; border-radius: 10px; background: var(--br-verde); color: var(--br-blanco); font: inherit; font-size: 16px; font-weight: 600; cursor: pointer;
@@ -371,9 +366,3 @@ textarea:focus-visible, summary:focus-visible, [tabindex]:focus-visible {
 .br-aviso-ingreso--error { background: var(--br-rojo-fondo); border-color: #F2C4C0; color: #8A2C26; }
 .br-aviso-ingreso--bloqueada { background: #EAF2F8; border-color: var(--br-chip-borde); color: var(--br-azul); }
 .br-aviso-ingreso--inactiva { background: var(--br-antiguedad-fondo); border-color: #F3DF9C; color: var(--br-pendiente-texto); }
-.br-boton-contorno {
-  margin-top: 6px; min-height: 48px; display: inline-flex; align-items: center; justify-content: center; padding: 0 18px;
-  border: 1.5px solid var(--br-azul); border-radius: 10px; background: var(--br-blanco); color: var(--br-azul);
-  font-size: 15px; font-weight: 600; text-decoration: none;
-}
-.br-boton-contorno:hover { background: var(--br-fondo-2); }

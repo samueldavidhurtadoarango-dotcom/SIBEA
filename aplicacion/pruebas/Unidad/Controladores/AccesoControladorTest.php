@@ -63,6 +63,14 @@ final class AccesoControladorTest extends TestCase
         $this->assertStringContainsString('Inicia sesión', $respuesta->cuerpo());
     }
 
+    public function test_la_pagina_no_ofrece_recuperar_la_contrasena_por_correo(): void
+    {
+        $respuesta = $this->controlador->formulario(new Peticion('GET', '/ingresar', [], [], '127.0.0.1'));
+
+        $this->assertStringNotContainsString('/contrasena/recuperar', $respuesta->cuerpo());
+        $this->assertStringContainsString('pide a Bienestar al Aprendiz que te la restablezca', $respuesta->cuerpo());
+    }
+
     public function test_un_correo_mal_escrito_muestra_la_validacion_y_conserva_lo_escrito(): void
     {
         $respuesta = $this->controlador->ingresar($this->post(['correo' => 'valentina@soy', 'clave' => 'x']));
