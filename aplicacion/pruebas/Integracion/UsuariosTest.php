@@ -273,7 +273,7 @@ final class UsuariosTest extends BaseDePrueba
         $respuesta = $this->enviar($fabrica, 'POST', '/admin/usuarios/nuevo', $this->camposDelFormulario());
 
         $this->assertSame(200, $respuesta->codigo());
-        $pendiente = $_SESSION['entrega_pendiente'];
+        $pendiente = $fabrica->sesion()->entregaPendiente();
         $this->assertCount(1, $pendiente);
         $this->assertStringContainsString($pendiente[0]['contrasena'], $respuesta->cuerpo());
         $this->assertStringContainsString('Descargar Excel de entrega', $respuesta->cuerpo());
@@ -319,16 +319,77 @@ final class UsuariosTest extends BaseDePrueba
     {
         $fabrica = $this->fabricaDeAdmin();
         $this->enviar($fabrica, 'POST', '/admin/usuarios/nuevo', $this->camposDelFormulario());
-        $contrasena = $_SESSION['entrega_pendiente'][0]['contrasena'];
+        $contrasena = $fabrica->sesion()->entregaPendiente()[0]['contrasena'];
+        $antes = $this->archivosTemporales();
 
         $respuesta = $this->enviar($fabrica, 'POST', '/admin/usuarios/entrega', ['_csrf' => Csrf::token()]);
 
-        $ruta = (string) $respuesta->rutaArchivo();
+        // El Excel viaja en memoria: se lee del cuerpo de la respuesta y no queda ningún archivo en el servidor.
         $this->assertSame(200, $respuesta->codigo());
-        $this->assertFileExists($ruta);
+        $ruta = tempnam(sys_get_temp_dir(), 'br_prueba_');
+        file_put_contents($ruta, $respuesta->cuerpo());
         $this->assertSame($contrasena, IOFactory::load($ruta)->getActiveSheet()->getCell('D2')->getValue());
-        $this->assertArrayNotHasKey('entrega_pendiente', $_SESSION);
         @unlink($ruta);
+        $this->assertArrayNotHasKey('entrega_pendiente', $_SESSION);
+        $this->assertSame($antes, $this->archivosTemporales());
+        $this->assertSame('no-store', $respuesta->cabecera('Cache-Control'));
+        $this->assertSame('no-cache', $respuesta->cabecera('Pragma'));
+    }
+
+    /** @return list<string> Los Excel de entrega que hay en la carpeta temporal. */
+    private function archivosTemporales(): array
+    {
+        return glob(sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'br_entrega_*') ?: [];
+    }
+
+    public function test_si_falla_la_generacion_no_queda_ningun_archivo_temporal(): void
+    {
+        $antes = $this->archivosTemporales();
+
+        try {
+            // Una fila mal armada hace fallar al exportador a mitad de camino.
+            (new \BenefitRack\Servicios\ExportadorExcel())->entregaContrasenas([['documento' => '1']]); // @phpstan-ignore-line
+            $this->fail('Debía fallar.');
+        } catch (\Throwable) {
+            $this->assertSame($antes, $this->archivosTemporales());
+        }
+    }
+
+    public function test_la_pantalla_con_la_contrasena_no_se_guarda_en_cache(): void
+    {
+        $fabrica = $this->fabricaDeAdmin();
+
+        $respuesta = $this->enviar($fabrica, 'POST', '/admin/usuarios/nuevo', $this->camposDelFormulario());
+
+        $this->assertSame('no-store', $respuesta->cabecera('Cache-Control'));
+        $this->assertSame('no-cache', $respuesta->cabecera('Pragma'));
+    }
+
+    public function test_la_lista_avisa_de_las_contrasenas_pendientes_y_ofrece_la_descarga(): void
+    {
+        $fabrica = $this->fabricaDeAdmin();
+        $this->assertStringNotContainsString('Descargar Excel de entrega', $this->enviar($fabrica, 'GET', '/admin/usuarios')->cuerpo());
+        $this->enviar($fabrica, 'POST', '/admin/usuarios/nuevo', $this->camposDelFormulario());
+
+        $cuerpo = $this->enviar($fabrica, 'GET', '/admin/usuarios')->cuerpo();
+
+        $this->assertStringContainsString('Descargar Excel de entrega', $cuerpo);
+        $this->assertStringContainsString('action="/admin/usuarios/entrega"', $cuerpo);
+        $this->assertStringContainsString('1 contraseña pendiente', $cuerpo);
+    }
+
+    public function test_restablecer_dos_veces_deja_solo_la_ultima_contrasena_del_aprendiz(): void
+    {
+        $aprendiz = $this->crearAprendiz();
+        $fabrica = $this->fabricaDeAdmin();
+        $this->enviar($fabrica, 'POST', "/admin/usuarios/$aprendiz/restablecer", ['_csrf' => Csrf::token()]);
+        $this->enviar($fabrica, 'POST', "/admin/usuarios/$aprendiz/restablecer", ['_csrf' => Csrf::token()]);
+
+        $pendientes = $fabrica->sesion()->entregaPendiente();
+
+        $this->assertCount(1, $pendientes);
+        $hash = (string) $this->filaDe($aprendiz)['password_hash'];
+        $this->assertTrue(password_verify($pendientes[0]['contrasena'], $hash));
     }
 
     public function test_descargar_sin_nada_pendiente_vuelve_a_la_lista_con_un_aviso(): void
@@ -360,7 +421,7 @@ final class UsuariosTest extends BaseDePrueba
         $respuesta = $this->enviar($fabrica, 'POST', "/admin/usuarios/$aprendiz/restablecer", ['_csrf' => Csrf::token()]);
 
         $this->assertSame(200, $respuesta->codigo());
-        $this->assertStringContainsString($_SESSION['entrega_pendiente'][0]['contrasena'], $respuesta->cuerpo());
+        $this->assertStringContainsString($fabrica->sesion()->entregaPendiente()[0]['contrasena'], $respuesta->cuerpo());
         $this->assertSame(1, (int) $this->filaDe($aprendiz)['debe_cambiar_contrasena']);
     }
 }
