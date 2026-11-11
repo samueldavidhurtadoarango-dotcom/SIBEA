@@ -15,6 +15,7 @@
 declare(strict_types=1);
 
 use BenefitRack\Controladores\AccesoControlador;
+use BenefitRack\Controladores\CargaUsuariosControlador;
 use BenefitRack\Controladores\ContrasenaControlador;
 use BenefitRack\Controladores\UsuariosControlador;
 use BenefitRack\Nucleo\Enrutador;
@@ -41,4 +42,11 @@ return static function (Enrutador $enrutador, Fabrica $fabrica): void {
     $enrutador->agregar('POST', '/admin/usuarios/{id}/estado', [UsuariosControlador::class, 'cambiarEstado'], $adminConCsrf);
     $enrutador->agregar('POST', '/admin/usuarios/{id}/restablecer', [UsuariosControlador::class, 'restablecer'], $adminConCsrf);
     $enrutador->agregar('POST', '/admin/usuarios/entrega', [UsuariosControlador::class, 'descargarEntrega'], $adminConCsrf);
+
+    // Carga de aprendices desde Excel (M3b): subir -> vista previa -> confirmar. Subir y confirmar cambian datos: llevan CSRF.
+    $enrutador->agregar('GET', '/admin/usuarios/cargar', [CargaUsuariosControlador::class, 'formulario'], $admin);
+    $enrutador->agregar('GET', '/admin/usuarios/plantilla', [CargaUsuariosControlador::class, 'plantilla'], $admin);
+    $enrutador->agregar('POST', '/admin/usuarios/cargar', [CargaUsuariosControlador::class, 'vistaPrevia'], $adminConCsrf);
+    $enrutador->agregar('POST', '/admin/usuarios/cargar/confirmar', [CargaUsuariosControlador::class, 'confirmar'], $adminConCsrf);
+    $enrutador->agregar('GET', '/admin/usuarios/cargar/errores', [CargaUsuariosControlador::class, 'errores'], $admin);
 };

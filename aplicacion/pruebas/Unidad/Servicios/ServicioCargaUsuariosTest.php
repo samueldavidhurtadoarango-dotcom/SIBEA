@@ -59,7 +59,7 @@ final class ServicioCargaUsuariosTest extends BaseDePrueba
                 $hoja->getCell([$j + 1, $i + 1])->setValueExplicit($valor, DataType::TYPE_STRING);
             }
         }
-        $ruta = tempnam(sys_get_temp_dir(), 'br_prueba_') . '.xlsx';
+        $ruta = tempnam(sys_get_temp_dir(), 'br_prueba_');
         (new Xlsx($libro))->save($ruta);
         $this->archivos[] = $ruta;
 
@@ -125,7 +125,7 @@ final class ServicioCargaUsuariosTest extends BaseDePrueba
 
     public function test_un_txt_renombrado_xlsx_lanza_error_de_negocio(): void
     {
-        $ruta = tempnam(sys_get_temp_dir(), 'br_prueba_') . '.xlsx';
+        $ruta = tempnam(sys_get_temp_dir(), 'br_prueba_');
         file_put_contents($ruta, 'esto no es un excel');
         $this->archivos[] = $ruta;
 

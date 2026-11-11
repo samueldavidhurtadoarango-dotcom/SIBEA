@@ -99,6 +99,16 @@ final class CargaUsuariosTest extends BaseDePrueba
 
     // ---------- Pantallas (por el enrutador, como en el navegador) ----------
 
+    /** @var list<string> Excel de prueba creados por subida() (se borran en tearDown). */
+    private array $subidos = [];
+
+    protected function tearDown(): void
+    {
+        foreach ($this->subidos as $ruta) {
+            @unlink($ruta);
+        }
+    }
+
     protected function setUp(): void
     {
         $_SESSION = [];
@@ -133,7 +143,8 @@ final class CargaUsuariosTest extends BaseDePrueba
      */
     private function subida(array $filas, string $contenidoCrudo = ''): array
     {
-        $ruta = tempnam(sys_get_temp_dir(), 'br_subida_') . '.xlsx';
+        $ruta = tempnam(sys_get_temp_dir(), 'br_subida_');
+        $this->subidos[] = $ruta;
         if ($contenidoCrudo !== '') {
             file_put_contents($ruta, $contenidoCrudo);
         } else {

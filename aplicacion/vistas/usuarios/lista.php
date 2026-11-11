@@ -27,7 +27,8 @@ $icono = '<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="curren
         <p class="br-encabezado__sub">Crea las cuentas de los aprendices y activa, desactiva o desbloquea las que ya existen.</p>
     </div>
     <div class="br-encabezado__acciones">
-        <a href="/admin/usuarios/nuevo" class="br-boton br-boton--primario"><?= $icono ?><path d="M12 5v14M5 12h14"></path></svg>Crear una cuenta</a>
+        <a href="/admin/usuarios/cargar" class="br-boton br-boton--primario"><?= $icono ?><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="m17 8-5-5-5 5"></path><path d="M12 3v12"></path></svg>Cargar Excel</a>
+        <a href="/admin/usuarios/nuevo" class="br-boton br-boton--secundario"><?= $icono ?><path d="M12 5v14M5 12h14"></path></svg>Crear una cuenta</a>
     </div>
 </div>
 

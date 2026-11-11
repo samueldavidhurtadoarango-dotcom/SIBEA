@@ -4,7 +4,7 @@
  * EXPORTADOR DE EXCEL
  *
  * Paso 4 del recorrido: arma los archivos .xlsx que el administrador descarga.
- * Por ahora, el Excel de entrega de contraseñas temporales (las tareas siguientes
+ * el Excel de entrega de contraseñas temporales, la plantilla de carga y el Excel de errores (las tareas siguientes
  * agregan los reportes). El archivo se escribe en la carpeta temporal del sistema
  * y quien lo pidió (el controlador) lo envía y lo borra: NUNCA queda guardado en el servidor.
  *
@@ -16,6 +16,7 @@ declare(strict_types=1);
 
 namespace BenefitRack\Servicios;
 
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
@@ -26,6 +27,8 @@ use Throwable;
 final class ExportadorExcel
 {
     private const ENCABEZADOS = ['Documento', 'Nombre completo', 'Correo', 'Contraseña temporal'];
+    private const ENCABEZADOS_PLANTILLA = ['Documento', 'Nombre', 'Apellido', 'Correo', 'Programa', 'Ficha'];
+    private const ENCABEZADOS_ERRORES = ['Fila', 'Campo', 'Motivo'];
 
     /**
      * Crea el Excel que Bienestar le entrega a cada aprendiz (documento, nombre, correo y contraseña).
@@ -35,17 +38,61 @@ final class ExportadorExcel
      */
     public function entregaContrasenas(array $filas): string
     {
+        $tabla = [];
+        foreach ($filas as $fila) {
+            $tabla[] = [$fila['documento'], $fila['nombre'], $fila['correo'], $fila['contrasena']];
+        }
+
+        return $this->tabla('Entrega', self::ENCABEZADOS, $tabla);
+    }
+
+    /**
+     * Crea la plantilla vacía para cargar aprendices: solo la fila de encabezados.
+     *
+     * @return string Ruta de un archivo temporal .xlsx (quien lo pidió lo envía y lo borra).
+     */
+    public function plantillaUsuarios(): string
+    {
+        return $this->tabla('Aprendices', self::ENCABEZADOS_PLANTILLA, []);
+    }
+
+    /**
+     * Crea el Excel con los errores de una carga: en qué fila, en qué campo y por qué.
+     *
+     * @param list<array{fila: int, campo: string, motivo: string}> $errores Una fila de Excel por error.
+     * @return string Ruta de un archivo temporal .xlsx (quien lo pidió lo envía y lo borra).
+     */
+    public function erroresCarga(array $errores): string
+    {
+        $tabla = [];
+        foreach ($errores as $error) {
+            $tabla[] = [(string) $error['fila'], $error['campo'], $error['motivo']];
+        }
+
+        return $this->tabla('Errores', self::ENCABEZADOS_ERRORES, $tabla);
+    }
+
+    /**
+     * Arma un libro de una hoja: encabezados en negrita y las filas debajo, todo como texto seguro.
+     *
+     * @param list<string>       $encabezados Títulos de las columnas.
+     * @param list<list<string>> $filas       Los datos, una lista por fila.
+     * @return string Ruta del archivo temporal.
+     */
+    private function tabla(string $titulo, array $encabezados, array $filas): string
+    {
         $libro = new Spreadsheet();
         $hoja = $libro->getActiveSheet();
-        $hoja->setTitle('Entrega');
+        $hoja->setTitle($titulo);
 
-        $this->escribirFila($hoja, 1, self::ENCABEZADOS);
-        $hoja->getStyle('A1:D1')->getFont()->setBold(true);
+        $this->escribirFila($hoja, 1, $encabezados);
+        $ultima = Coordinate::stringFromColumnIndex(count($encabezados));
+        $hoja->getStyle("A1:{$ultima}1")->getFont()->setBold(true);
         foreach ($filas as $indice => $fila) {
-            $this->escribirFila($hoja, $indice + 2, [$fila['documento'], $fila['nombre'], $fila['correo'], $fila['contrasena']]);
+            $this->escribirFila($hoja, $indice + 2, $fila);
         }
-        foreach (['A', 'B', 'C', 'D'] as $columna) {
-            $hoja->getColumnDimension($columna)->setAutoSize(true);
+        foreach (range(1, count($encabezados)) as $columna) {
+            $hoja->getColumnDimensionByColumn($columna)->setAutoSize(true);
         }
 
         return $this->guardarTemporal($libro);

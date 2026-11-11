@@ -220,6 +220,31 @@ final class Sesion
         unset($_SESSION['entrega_pendiente']);
     }
 
+    /**
+     * Guarda la carga de aprendices en curso: las filas válidas esperan a que el administrador confirme
+     * (así se confirma lo que se vio en la vista previa, sin conservar el archivo subido) y los errores
+     * quedan para poder descargarlos.
+     *
+     * @param array{archivo: string, filas: list<array<string, mixed>>, errores: array<int, array<string, string>>} $carga
+     * @return void
+     */
+    public function guardarCarga(array $carga): void
+    {
+        $_SESSION['carga_usuarios'] = $carga;
+    }
+
+    /**
+     * @return array{archivo: string, filas: list<array<string, mixed>>, errores: array<int, array<string, string>>}|null
+     *         La carga en curso, o null si no hay ninguna.
+     */
+    public function cargaPendiente(): ?array
+    {
+        /** @var array{archivo: string, filas: list<array<string, mixed>>, errores: array<int, array<string, string>>}|null $carga */
+        $carga = $_SESSION['carga_usuarios'] ?? null;
+
+        return $carga;
+    }
+
     /** ¿La petición llegó por HTTPS? (el servidor lo avisa en $_SERVER['HTTPS']). */
     private function esHttps(): bool
     {

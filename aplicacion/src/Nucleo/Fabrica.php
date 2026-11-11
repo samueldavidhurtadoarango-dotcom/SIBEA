@@ -20,6 +20,7 @@ declare(strict_types=1);
 namespace BenefitRack\Nucleo;
 
 use BenefitRack\Controladores\AccesoControlador;
+use BenefitRack\Controladores\CargaUsuariosControlador;
 use BenefitRack\Controladores\ContrasenaControlador;
 use BenefitRack\Controladores\UsuariosControlador;
 use BenefitRack\Filtros\FiltroCsrf;
@@ -27,8 +28,10 @@ use BenefitRack\Filtros\FiltroPrimerIngreso;
 use BenefitRack\Filtros\FiltroRol;
 use BenefitRack\Filtros\FiltroSesion;
 use BenefitRack\Repositorios\RepositorioCatalogos;
+use BenefitRack\Repositorios\RepositorioMigraciones;
 use BenefitRack\Repositorios\RepositorioUsuarios;
 use BenefitRack\Servicios\ServicioAcceso;
+use BenefitRack\Servicios\ServicioCargaUsuarios;
 use BenefitRack\Servicios\ServicioContrasena;
 use BenefitRack\Servicios\ServicioUsuarios;
 use InvalidArgumentException;
@@ -84,6 +87,17 @@ final class Fabrica
                 $this->vista(),
                 new ServicioUsuarios(new RepositorioUsuarios($this->baseDatos())),
                 new RepositorioCatalogos($this->baseDatos())
+            ),
+            // La carga desde Excel también usa baseDatos(): la migración queda a nombre del administrador
+            // (el trigger toma @app_id_usuario) y la auditoría de cada cuenta creada también.
+            CargaUsuariosControlador::class => new CargaUsuariosControlador(
+                $this->sesion(),
+                $this->vista(),
+                new ServicioCargaUsuarios(
+                    new ServicioUsuarios(new RepositorioUsuarios($this->baseDatos())),
+                    new RepositorioMigraciones($this->baseDatos()),
+                    new RepositorioCatalogos($this->baseDatos())
+                )
             ),
             default => throw new InvalidArgumentException("No sé crear el controlador: $claseControlador"),
         };
