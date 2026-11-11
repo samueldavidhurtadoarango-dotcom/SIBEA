@@ -20,7 +20,10 @@
     },
     "scripts": {
         "pruebas": "phpunit",
-        "analisis": "phpstan analyse --memory-limit=512M",
+        "analisis": [
+            "phpstan analyse --memory-limit=512M",
+            "@php herramientas/revisar_comentarios.php"
+        ],
         "formato": "php-cs-fixer fix --diff"
     },
     "config": {

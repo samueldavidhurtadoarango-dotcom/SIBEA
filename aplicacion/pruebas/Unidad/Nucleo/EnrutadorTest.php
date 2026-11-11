@@ -42,4 +42,16 @@ final class EnrutadorTest extends TestCase
 
         $this->assertNull($enrutador->resolver($this->peticion('POST', '/ingresar')));
     }
+
+    public function test_lista_las_rutas_registradas_con_metodo_y_patron(): void
+    {
+        $enrutador = new Enrutador();
+        $enrutador->agregar('get', '/ingresar', ['Controlador', 'formulario']);
+        $enrutador->agregar('POST', '/admin/usuarios/{id}/estado', ['Controlador', 'estado']);
+
+        $this->assertSame(
+            [['metodo' => 'GET', 'patron' => '/ingresar'], ['metodo' => 'POST', 'patron' => '/admin/usuarios/{id}/estado']],
+            $enrutador->rutas()
+        );
+    }
 }

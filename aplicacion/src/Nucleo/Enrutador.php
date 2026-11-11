@@ -17,7 +17,7 @@ use BenefitRack\Filtros\Filtro;
 
 final class Enrutador
 {
-    /** @var list<array{metodo: string, regex: string, destino: callable|array<int, string>, filtros: list<Filtro>}> */
+    /** @var list<array{metodo: string, patron: string, regex: string, destino: callable|array<int, string>, filtros: list<Filtro>}> */
     private array $rutas = [];
 
     /**
@@ -33,10 +33,25 @@ final class Enrutador
     {
         $this->rutas[] = [
             'metodo' => strtoupper($metodo),
+            'patron' => $patron,
             'regex' => $this->aExpresion($patron),
             'destino' => $destino,
             'filtros' => $filtros,
         ];
+    }
+
+    /**
+     * Lista las rutas registradas (método y patrón). Sirve para que las pruebas de permisos
+     * recorran la tabla real y revisen también las rutas que se agreguen en el futuro.
+     *
+     * @return list<array{metodo: string, patron: string}>
+     */
+    public function rutas(): array
+    {
+        return array_map(
+            static fn (array $ruta): array => ['metodo' => $ruta['metodo'], 'patron' => $ruta['patron']],
+            $this->rutas
+        );
     }
 
     /**
