@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace BenefitRack\Pruebas\Integracion;
 
+use BenefitRack\Controladores\CargaUsuariosControlador;
 use BenefitRack\Nucleo\Aplicacion;
 use BenefitRack\Nucleo\Csrf;
 use BenefitRack\Nucleo\Enrutador;
@@ -13,6 +14,7 @@ use BenefitRack\Nucleo\Respuesta;
 use BenefitRack\Repositorios\RepositorioCatalogos;
 use BenefitRack\Repositorios\RepositorioMigraciones;
 use BenefitRack\Repositorios\RepositorioUsuarios;
+use BenefitRack\Servicios\CargaInterrumpida;
 use BenefitRack\Servicios\ServicioCargaUsuarios;
 use BenefitRack\Servicios\ServicioUsuarios;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
@@ -95,6 +97,64 @@ final class CargaUsuariosTest extends BaseDePrueba
         $this->assertSame(1, (int) $m['registros_fallidos']);
         $detalle = json_decode((string) $m['detalle_errores'], true);
         $this->assertSame(2, $detalle[0]['fila']);
+    }
+
+    // ---------- Un fallo inesperado a la mitad de la confirmación ----------
+
+    /** Un repositorio que falla al crear la SEGUNDA cuenta (como un corte de la base a mitad de carga). */
+    private function servicioQueFallaEnLaSegunda(\BenefitRack\Nucleo\BaseDatos $bd): ServicioCargaUsuarios
+    {
+        $repositorio = new class($bd) extends RepositorioUsuarios {
+            private int $llamadas = 0;
+
+            public function crear(array $datos, string $hash): int
+            {
+                if (++$this->llamadas === 2) {
+                    throw new \RuntimeException('falla simulada');
+                }
+
+                return parent::crear($datos, $hash);
+            }
+        };
+
+        return new ServicioCargaUsuarios(new ServicioUsuarios($repositorio), new RepositorioMigraciones($bd), new RepositorioCatalogos($bd));
+    }
+
+    public function test_un_fallo_inesperado_devuelve_lo_creado_hasta_ahora_y_cierra_la_migracion_fallida(): void
+    {
+        $admin = $this->crearAdmin();
+        $bd = $this->baseDatosDeLaApp();
+        $bd->fijarUsuario($admin, '127.0.0.1');
+
+        try {
+            $this->servicioQueFallaEnLaSegunda($bd)->confirmar([$this->filaValida(2), $this->filaValida(3), $this->filaValida(4)], 'corte.xlsx');
+            $this->fail('Debía lanzar CargaInterrumpida.');
+        } catch (CargaInterrumpida $interrupcion) {
+            $this->assertSame(1, $interrupcion->resultado()['creadas']);
+            $this->assertCount(1, $interrupcion->resultado()['entrega']);
+            $this->assertSame(10, strlen($interrupcion->resultado()['entrega'][0]['contrasena']));
+            $this->assertSame('falla simulada', $interrupcion->getPrevious()?->getMessage());
+        }
+        $m = $this->migracion($admin);
+        $this->assertSame('Fallida', $m['estado']);
+        $this->assertSame(1, (int) $m['registros_exitosos']);
+    }
+
+    public function test_el_controlador_guarda_la_entrega_parcial_y_vacia_las_filas_pendientes(): void
+    {
+        $fabrica = $this->fabricaDeAdmin();
+        $servicio = $this->servicioQueFallaEnLaSegunda($fabrica->baseDatos());
+        $fabrica->sesion()->guardarCarga(['archivo' => 'corte.xlsx', 'filas' => [$this->filaValida(2), $this->filaValida(3)], 'errores' => []]);
+        $controlador = new CargaUsuariosControlador($fabrica->sesion(), $fabrica->vista(), $servicio);
+
+        $respuesta = $controlador->confirmar(new Peticion('POST', '/admin/usuarios/cargar/confirmar', [], [], '127.0.0.1'));
+
+        // La cuenta que sí se creó conserva su contraseña en la entrega, y reintentar no repite filas.
+        $this->assertCount(1, $fabrica->sesion()->entregaPendiente());
+        $this->assertSame([], $_SESSION['carga_usuarios']['filas']);
+        $this->assertSame(200, $respuesta->codigo());
+        $this->assertStringContainsString('se interrumpió', $respuesta->cuerpo());
+        $this->assertStringContainsString('Descargar Excel de entrega', $respuesta->cuerpo());
     }
 
     // ---------- Pantallas (por el enrutador, como en el navegador) ----------
