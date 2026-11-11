@@ -541,9 +541,11 @@ final class ConvocatoriasTest extends BaseDePrueba
     public function test_crear_con_errores_vuelve_al_formulario_sin_guardar(): void
     {
         $nombre = 'Con errores ' . bin2hex(random_bytes(3));
+        // La fábrica va primero: al iniciar sesión se renueva el token CSRF y el formulario debe traer el vigente.
+        $fabrica = $this->fabricaDeAdmin();
         $campos = ['cupos' => '0', 'fecha_cierre' => date('Y-m-d', strtotime('-1 day'))] + $this->camposDelFormulario($nombre);
 
-        $respuesta = $this->enviar($this->fabricaDeAdmin(), 'POST', '/admin/convocatorias/nueva', $campos);
+        $respuesta = $this->enviar($fabrica, 'POST', '/admin/convocatorias/nueva', $campos);
 
         $this->assertSame(200, $respuesta->codigo());
         $this->assertStringContainsString('Revisa 2 cosas', $respuesta->cuerpo());

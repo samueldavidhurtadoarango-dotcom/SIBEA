@@ -54,7 +54,7 @@ final class ValidadorConvocatoriaTest extends TestCase
         foreach (['180.000', '$ 180.000', ' 180000 '] as $escrito) {
             $resultado = (new ValidadorConvocatoria())->validar($this->formulario(['valor_pago' => $escrito]));
 
-            $this->assertTrue($resultado->esValido(), "«$escrito» debería valer");
+            $this->assertTrue($resultado->esValido(), "«{$escrito}» debería valer");
             $this->assertSame('180000.00', $resultado->datos()['valor_pago']);
         }
     }
@@ -64,7 +64,7 @@ final class ValidadorConvocatoriaTest extends TestCase
         foreach (['0', '0.000', 'abc', '18,5', '-5', ''] as $escrito) {
             $resultado = (new ValidadorConvocatoria())->validar($this->formulario(['valor_pago' => $escrito]));
 
-            $this->assertArrayHasKey('valor_pago', $resultado->errores(), "«$escrito» no debería valer");
+            $this->assertArrayHasKey('valor_pago', $resultado->errores(), "«{$escrito}» no debería valer");
         }
     }
 
@@ -103,7 +103,7 @@ final class ValidadorConvocatoriaTest extends TestCase
         foreach (['abc', '2.5', '-3', ''] as $escrito) {
             $resultado = (new ValidadorConvocatoria())->validar($this->formulario(['cupos' => $escrito]));
 
-            $this->assertArrayHasKey('cupos', $resultado->errores(), "«$escrito» no debería valer");
+            $this->assertArrayHasKey('cupos', $resultado->errores(), "«{$escrito}» no debería valer");
         }
     }
 

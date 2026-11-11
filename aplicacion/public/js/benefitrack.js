@@ -103,7 +103,7 @@
     setTimeout(function () { alerta.hidden = true; }, 6000);
   });
 
-  // 3. Ventanas (modales) de la lista de usuarios: al abrirse, toman de la fila que las abrió
+  // 3. Ventanas (modales) de las listas de usuarios y convocatorias: al abrirse, toman de la fila que las abrió
   //    a dónde se envía el formulario (data-accion), el estado nuevo (data-estado), el nombre y el título.
   document.querySelectorAll('.modal').forEach(function (modal) {
     modal.addEventListener('show.bs.modal', function (evento) {
@@ -120,6 +120,20 @@
       var estado = modal.querySelector('input[name="estado"]');
       if (estado) {
         estado.value = origen.dataset.estado || '';
+      }
+      // Ventana de cerrar convocatoria: resumen y explicación de la fila, y el motivo solo si el cierre es anticipado.
+      ['resumen', 'explicacion'].forEach(function (clave) {
+        modal.querySelectorAll('[data-modal-' + clave + ']').forEach(function (el) { el.textContent = origen.dataset[clave] || ''; });
+      });
+      var accion = modal.querySelector('input[name="accion"]');
+      if (accion) {
+        accion.value = origen.dataset.cambio || '';
+      }
+      var motivo = modal.querySelector('[data-modal-motivo]');
+      if (motivo) {
+        var pideMotivo = origen.dataset.cambio === 'cerrar-anticipado';
+        motivo.hidden = !pideMotivo;
+        motivo.querySelector('textarea').required = pideMotivo;
       }
       // El menú «⋯» de la fila se cierra al abrir la ventana.
       var menu = origen.closest('details');

@@ -22,17 +22,20 @@ namespace BenefitRack\Nucleo;
 use BenefitRack\Controladores\AccesoControlador;
 use BenefitRack\Controladores\CargaUsuariosControlador;
 use BenefitRack\Controladores\ContrasenaControlador;
+use BenefitRack\Controladores\ConvocatoriasControlador;
 use BenefitRack\Controladores\UsuariosControlador;
 use BenefitRack\Filtros\FiltroCsrf;
 use BenefitRack\Filtros\FiltroPrimerIngreso;
 use BenefitRack\Filtros\FiltroRol;
 use BenefitRack\Filtros\FiltroSesion;
 use BenefitRack\Repositorios\RepositorioCatalogos;
+use BenefitRack\Repositorios\RepositorioConvocatorias;
 use BenefitRack\Repositorios\RepositorioMigraciones;
 use BenefitRack\Repositorios\RepositorioUsuarios;
 use BenefitRack\Servicios\ServicioAcceso;
 use BenefitRack\Servicios\ServicioCargaUsuarios;
 use BenefitRack\Servicios\ServicioContrasena;
+use BenefitRack\Servicios\ServicioConvocatorias;
 use BenefitRack\Servicios\ServicioUsuarios;
 use InvalidArgumentException;
 
@@ -98,6 +101,14 @@ final class Fabrica
                     new RepositorioMigraciones($this->baseDatos()),
                     new RepositorioCatalogos($this->baseDatos())
                 )
+            ),
+            // Las convocatorias usan baseDatos(): los triggers de la base exigen que @app_id_usuario sea un administrador
+            // activo para crear o modificar, y anotan quién cerró la convocatoria.
+            ConvocatoriasControlador::class => new ConvocatoriasControlador(
+                $this->sesion(),
+                $this->vista(),
+                new ServicioConvocatorias(new RepositorioConvocatorias($this->baseDatos())),
+                new RepositorioCatalogos($this->baseDatos())
             ),
             default => throw new InvalidArgumentException("No sé crear el controlador: $claseControlador"),
         };

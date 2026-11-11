@@ -17,6 +17,7 @@ declare(strict_types=1);
 use BenefitRack\Controladores\AccesoControlador;
 use BenefitRack\Controladores\CargaUsuariosControlador;
 use BenefitRack\Controladores\ContrasenaControlador;
+use BenefitRack\Controladores\ConvocatoriasControlador;
 use BenefitRack\Controladores\UsuariosControlador;
 use BenefitRack\Nucleo\Enrutador;
 use BenefitRack\Nucleo\Fabrica;
@@ -49,4 +50,12 @@ return static function (Enrutador $enrutador, Fabrica $fabrica): void {
     $enrutador->agregar('POST', '/admin/usuarios/cargar', [CargaUsuariosControlador::class, 'vistaPrevia'], $adminConCsrf);
     $enrutador->agregar('POST', '/admin/usuarios/cargar/confirmar', [CargaUsuariosControlador::class, 'confirmar'], $adminConCsrf);
     $enrutador->agregar('GET', '/admin/usuarios/cargar/errores', [CargaUsuariosControlador::class, 'errores'], $admin);
+
+    // Convocatorias (M4): solo el administrador. Lo que cambia datos lleva además el token CSRF.
+    $enrutador->agregar('GET', '/admin/convocatorias', [ConvocatoriasControlador::class, 'lista'], $admin);
+    $enrutador->agregar('GET', '/admin/convocatorias/nueva', [ConvocatoriasControlador::class, 'formulario'], $admin);
+    $enrutador->agregar('POST', '/admin/convocatorias/nueva', [ConvocatoriasControlador::class, 'crear'], $adminConCsrf);
+    $enrutador->agregar('GET', '/admin/convocatorias/{id}/editar', [ConvocatoriasControlador::class, 'editar'], $admin);
+    $enrutador->agregar('POST', '/admin/convocatorias/{id}/editar', [ConvocatoriasControlador::class, 'guardar'], $adminConCsrf);
+    $enrutador->agregar('POST', '/admin/convocatorias/{id}/estado', [ConvocatoriasControlador::class, 'cambiarEstado'], $adminConCsrf);
 };
