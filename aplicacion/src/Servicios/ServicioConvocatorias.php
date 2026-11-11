@@ -127,7 +127,13 @@ final class ServicioConvocatorias
     public function cambiarEstado(int $id, string $accion, ?string $motivo): void
     {
         $estado = self::ESTADO_POR_ACCION[$accion] ?? throw new ErrorDeNegocio('Esa acción no existe.');
-        $this->convocatoria($id);
+        $actual = $this->convocatoria($id);
+
+        // Regla de negocio: una convocatoria ya cerrada no se vuelve a cerrar (quedaría con el cierre original y otro estado o motivo).
+        // Para tocarla se reabre primero con activar o desactivar.
+        if (in_array($actual['estado'], self::ESTADOS_CERRADOS, true) && in_array($estado, self::ESTADOS_CERRADOS, true)) {
+            throw new ErrorDeNegocio('La convocatoria ya está cerrada. Reábrela antes de volver a cerrarla.');
+        }
 
         // Regla de negocio: cerrar antes de la fecha de cierre deja escrito el motivo; en las demás acciones no se guarda ninguno.
         $motivo = $accion === 'cerrar-anticipado' ? trim((string) $motivo) : null;

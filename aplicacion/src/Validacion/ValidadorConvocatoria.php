@@ -20,6 +20,8 @@ final class ValidadorConvocatoria extends Validador
 {
     private const NOMBRE_MAXIMO = 150;
     private const REQUISITOS_MAXIMO = 5000;
+    /** Los ids de la base son INT; el entero() de abajo ya limita a 9 dígitos. */
+    private const ID_MAXIMO = 999999999;
     private const CUPOS_MAXIMO = 100000;
     private const PAGOS_MAXIMO = 120;
     private const MESES_MAXIMO = 120;
@@ -40,7 +42,7 @@ final class ValidadorConvocatoria extends Validador
         $nombre = trim($d['nombre'] ?? '');
         $requisitos = trim($d['requisitos'] ?? '');
         $estado = trim($d['estado'] ?? '') ?: 'Inactiva';
-        $idBeneficio = $this->entero($d['id_beneficio'] ?? '', 1);
+        $idBeneficio = $this->entero($d['id_beneficio'] ?? '', self::ID_MAXIMO);
         $cupos = $this->entero($d['cupos'] ?? '', self::CUPOS_MAXIMO);
         $pagos = $this->entero($d['numero_pagos'] ?? '', self::PAGOS_MAXIMO);
         $meses = $this->entero($d['duracion_meses'] ?? '', self::MESES_MAXIMO);
@@ -102,8 +104,8 @@ final class ValidadorConvocatoria extends Validador
      */
     private function valorEnPesos(string $texto): ?string
     {
-        // Se quita el signo $ y los espacios de los bordes: queda «180.000» o «180000».
-        $limpio = trim(str_replace('$', '', $texto));
+        // Solo se quita un signo $ al INICIO (y los espacios): queda «180.000» o «180000». Un $ en medio es un error.
+        $limpio = preg_replace('/^\$\s*/', '', trim($texto)) ?? '';
         $conFormato = $this->cumple('/^[0-9]+$/', $limpio) || $this->cumple('/^[0-9]{1,3}(\.[0-9]{3})+$/', $limpio);
         $digitos = str_replace('.', '', $limpio);
         if (!$conFormato || strlen($digitos) > self::VALOR_MAXIMO_DIGITOS || (int) $digitos < 1) {
