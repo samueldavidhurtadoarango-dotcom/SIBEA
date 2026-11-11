@@ -55,4 +55,15 @@ final class HojaDeEstilosTest extends TestCase
 
         $this->assertSame([], array_values($faltan), 'Clases usadas en las vistas y sin estilos');
     }
+
+    public function test_la_barra_de_cupos_de_la_tabla_va_en_su_propia_linea_y_no_tapa_la_cifra(): void
+    {
+        $this->assertStringContainsString('display: block', $this->regla('.br-tabla__cupos .br-progreso'));
+    }
+
+    public function test_el_buscador_de_usuarios_deja_el_boton_a_su_tamano_natural(): void
+    {
+        $this->assertStringContainsString('auto', $this->regla('.br-filtros--buscar'));
+        $this->assertStringContainsString('class="br-filtros br-filtros--buscar"', (string) file_get_contents(dirname(__DIR__, 3) . '/vistas/usuarios/lista.php'));
+    }
 }
