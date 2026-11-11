@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace BenefitRack\Pruebas\Unidad\Controladores;
 
 use BenefitRack\Controladores\PostulacionAprendizControlador;
+use BenefitRack\Nucleo\ErrorDeNegocio;
 use BenefitRack\Nucleo\Peticion;
 use BenefitRack\Nucleo\Sesion;
 use BenefitRack\Nucleo\Vista;
@@ -13,6 +14,7 @@ use BenefitRack\Pruebas\Unidad\Validacion\ArchivosDePrueba;
 use BenefitRack\Repositorios\RepositorioCatalogos;
 use BenefitRack\Repositorios\RepositorioConvocatorias;
 use BenefitRack\Repositorios\RepositorioUsuarios;
+use BenefitRack\Servicios\ServicioPostulacion;
 use BenefitRack\Validacion\ValidadorPostulacion;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -27,6 +29,7 @@ final class PostulacionAprendizControladorTest extends TestCase
     private Sesion $sesion;
     private string $carpetaTemporal;
     private RepositorioConvocatorias&MockObject $convocatorias;
+    private ServicioPostulacion&MockObject $servicio;
     private PostulacionAprendizControlador $controlador;
 
     protected function setUp(): void
@@ -38,6 +41,7 @@ final class PostulacionAprendizControladorTest extends TestCase
         $this->sesion->iniciarPara(7, 'Aprendiz', false, 'Luisa');
         $this->carpetaTemporal = sys_get_temp_dir() . '/br-ctrl-' . bin2hex(random_bytes(4));
 
+        $this->servicio = $this->createMock(ServicioPostulacion::class);
         $this->convocatorias = $this->createMock(RepositorioConvocatorias::class);
         $this->convocatorias->method('buscar')->willReturn($this->convocatoria());
         $this->convocatorias->method('abierta')->willReturn(true);
@@ -63,6 +67,7 @@ final class PostulacionAprendizControladorTest extends TestCase
             $usuarios,
             new ValidadorPostulacion(),
             new AlmacenTemporalDePrueba($this->carpetaTemporal),
+            $this->servicio,
         );
     }
 
@@ -227,6 +232,129 @@ final class PostulacionAprendizControladorTest extends TestCase
         $this->assertArrayNotHasKey('postulacion_pendiente', $_SESSION);
     }
 
+    public function test_un_post_con_errores_descarta_tambien_la_revision_anterior(): void
+    {
+        $this->controlador->revisar($this->post($this->camposBuenos(), $this->archivosBuenos()));
+        $anteriores = $this->sesion->postulacionPendiente(self::ID_CONVOCATORIA)['archivos'] ?? [];
+        $this->assertNotEmpty($anteriores);
+
+        $this->controlador->revisar($this->post(['telefono' => '12'] + $this->camposBuenos(), $this->archivosBuenos()));
+
+        foreach ($anteriores as $archivo) {
+            $this->assertFileDoesNotExist($archivo['ruta']);
+        }
+        $this->assertNull($this->sesion->postulacionPendiente(self::ID_CONVOCATORIA));
+    }
+
+    // ---------- Enviar la postulación ----------
+
+    private function enviar(): Peticion
+    {
+        return new Peticion('POST', '/convocatorias/5/postulacion/enviar', [], [], '127.0.0.1', ['id' => '5']);
+    }
+
+    /** Deja una revisión pendiente como la deja «Revisar y enviar». */
+    private function dejarPendiente(): void
+    {
+        $this->controlador->revisar($this->post($this->camposBuenos(), $this->archivosBuenos()));
+    }
+
+    public function test_enviar_llama_al_servicio_con_lo_pendiente_y_muestra_enviada(): void
+    {
+        $this->dejarPendiente();
+        $pendiente = $this->sesion->postulacionPendiente(self::ID_CONVOCATORIA);
+        $this->assertNotNull($pendiente);
+        $this->servicio->expects($this->once())->method('enviar')
+            ->with(7, self::ID_CONVOCATORIA, $pendiente['datos'], $pendiente['archivos'])
+            ->willReturn(99);
+
+        $respuesta = $this->controlador->enviar($this->enviar());
+
+        $this->assertSame(200, $respuesta->codigo());
+        $this->assertStringContainsString('Listo, tu postulación fue enviada', $respuesta->cuerpo());
+        $this->assertStringContainsString('Plan de datos', $respuesta->cuerpo());
+        $this->assertSame('no-store', $respuesta->cabecera('Cache-Control'));
+    }
+
+    public function test_despues_de_enviar_se_borra_lo_pendiente_y_la_carpeta_temporal_de_la_sesion(): void
+    {
+        $this->dejarPendiente();
+        $archivos = $this->sesion->postulacionPendiente(self::ID_CONVOCATORIA)['archivos'] ?? [];
+        $this->servicio->method('enviar')->willReturn(99);
+
+        $this->controlador->enviar($this->enviar());
+
+        $this->assertNull($this->sesion->postulacionPendiente(self::ID_CONVOCATORIA));
+        foreach ($archivos as $archivo) {
+            $this->assertFileDoesNotExist($archivo['ruta']);
+        }
+        $this->assertSame([], glob($this->carpetaTemporal . '/*') ?: []);
+    }
+
+    public function test_enviar_sin_revision_pendiente_vuelve_al_formulario_con_un_aviso(): void
+    {
+        $this->servicio->expects($this->never())->method('enviar');
+
+        $respuesta = $this->controlador->enviar($this->enviar());
+
+        $this->assertSame('/convocatorias/5/postulacion', $respuesta->destino());
+        $this->assertNotEmpty($this->sesion->tomarMensajes());
+    }
+
+    public function test_enviar_a_una_convocatoria_que_ya_cerro_no_llama_al_servicio_y_descarta_lo_pendiente(): void
+    {
+        $this->dejarPendiente();
+        $archivos = $this->sesion->postulacionPendiente(self::ID_CONVOCATORIA)['archivos'] ?? [];
+        $convocatorias = $this->createMock(RepositorioConvocatorias::class);
+        $convocatorias->method('buscar')->willReturn($this->convocatoria());
+        $convocatorias->method('abierta')->willReturn(false);
+        $this->servicio->expects($this->never())->method('enviar');
+
+        $respuesta = $this->controladorCon($convocatorias)->enviar($this->enviar());
+
+        $this->assertStringContainsString('Esta convocatoria ya cerró', $respuesta->cuerpo());
+        $this->assertNull($this->sesion->postulacionPendiente(self::ID_CONVOCATORIA));
+        foreach ($archivos as $archivo) {
+            $this->assertFileDoesNotExist($archivo['ruta']);
+        }
+    }
+
+    public function test_enviar_si_ya_se_postulo_muestra_ya_te_postulaste_y_no_llama_al_servicio(): void
+    {
+        $this->dejarPendiente();
+        $convocatorias = $this->createMock(RepositorioConvocatorias::class);
+        $convocatorias->method('buscar')->willReturn($this->convocatoria());
+        $convocatorias->method('abierta')->willReturn(true);
+        $convocatorias->method('idPostulacionDe')->willReturn(99);
+        $this->servicio->expects($this->never())->method('enviar');
+
+        $respuesta = $this->controladorCon($convocatorias)->enviar($this->enviar());
+
+        $this->assertStringContainsString('Ya te postulaste a esta convocatoria', $respuesta->cuerpo());
+    }
+
+    public function test_enviar_a_una_convocatoria_que_no_existe_da_404(): void
+    {
+        $convocatorias = $this->createMock(RepositorioConvocatorias::class);
+        $convocatorias->method('buscar')->willReturn(null);
+
+        $this->assertSame(404, $this->controladorCon($convocatorias)->enviar($this->enviar())->codigo());
+    }
+
+    public function test_si_el_servicio_falla_muestra_el_mensaje_y_descarta_lo_pendiente(): void
+    {
+        $this->dejarPendiente();
+        $this->servicio->method('enviar')->willThrowException(new ErrorDeNegocio('La convocatoria no está abierta'));
+
+        $respuesta = $this->controlador->enviar($this->enviar());
+
+        $this->assertSame('/convocatorias/5/postulacion', $respuesta->destino());
+        $mensajes = $this->sesion->tomarMensajes();
+        $this->assertSame('error', $mensajes[0]['tipo']);
+        $this->assertStringContainsString('La convocatoria no está abierta', $mensajes[0]['texto']);
+        $this->assertNull($this->sesion->postulacionPendiente(self::ID_CONVOCATORIA));
+    }
+
     private function controladorCon(RepositorioConvocatorias $convocatorias): PostulacionAprendizControlador
     {
         $usuarios = $this->createMock(RepositorioUsuarios::class);
@@ -245,6 +373,7 @@ final class PostulacionAprendizControladorTest extends TestCase
             $usuarios,
             new ValidadorPostulacion(),
             new AlmacenTemporalDePrueba($this->carpetaTemporal),
+            $this->servicio,
         );
     }
 }

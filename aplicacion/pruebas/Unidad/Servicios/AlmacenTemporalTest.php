@@ -79,4 +79,26 @@ final class AlmacenTemporalTest extends TestCase
         $this->assertFileExists($ajeno['ruta']); // fuera de la carpeta propia: no se toca
         unlink($ajeno['ruta']);
     }
+
+    public function test_quitar_carpeta_si_vacia_borra_la_carpeta_de_la_sesion_solo_cuando_ya_no_tiene_archivos(): void
+    {
+        $almacen = new AlmacenTemporalDePrueba($this->base);
+        $guardado = $almacen->guardar($this->validado(), 'abc123');
+
+        $almacen->quitarCarpetaSiVacia('abc123');
+        $this->assertDirectoryExists($this->base . '/abc123'); // todavía hay un documento esperando
+
+        $almacen->descartar([$guardado]);
+        $almacen->quitarCarpetaSiVacia('abc123');
+        $this->assertDirectoryDoesNotExist($this->base . '/abc123');
+
+        $almacen->quitarCarpetaSiVacia('abc123'); // ya no existe: no falla
+    }
+
+    public function test_quitar_carpeta_si_vacia_rechaza_un_id_de_sesion_con_rutas_raras(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+
+        (new AlmacenTemporalDePrueba($this->base))->quitarCarpetaSiVacia('../..');
+    }
 }
