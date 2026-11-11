@@ -20,9 +20,11 @@ use BenefitRack\Nucleo\ErrorDeNegocio;
 use BenefitRack\Repositorios\RepositorioCatalogos;
 use BenefitRack\Repositorios\RepositorioMigraciones;
 use BenefitRack\Validacion\ValidadorUsuario;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Reader\Xlsx as LectorXlsx;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use Throwable;
+use ZipArchive;
 
 final class ServicioCargaUsuarios
 {
@@ -31,6 +33,12 @@ final class ServicioCargaUsuarios
 
     /** Máximo de filas de aprendices por archivo (sin contar el encabezado). */
     public const MAXIMO_FILAS = 2000;
+
+    /** Tope de lo que se descomprime del .xlsx (una «bomba zip» pesa poco comprimida y mucho abierta). */
+    private const BYTES_DESCOMPRIMIDOS_MAXIMOS = 20 * 1024 * 1024;
+
+    /** Última columna que se lee (Z): sobra para las 6 de la plantilla y deja ignorar celdas lejanas. */
+    private const ULTIMA_COLUMNA = 'Z';
 
     private const ENTIDAD_DESTINO = 'usuarios';
     private const PREFIJO_ERROR = 'El archivo no es un Excel válido o le faltan columnas: ';
@@ -74,12 +82,15 @@ final class ServicioCargaUsuarios
      */
     public function leer(string $rutaXlsx): array
     {
-        $hoja = $this->abrirHoja($rutaXlsx);
-        if ($hoja->getHighestDataRow() - 1 > self::MAXIMO_FILAS) {
+        // El filtro deja leer solo encabezado + 2 000 filas + 1 (para notar que se pasó); lo de más abajo se ignora.
+        $filtro = new FiltroLecturaCarga(self::MAXIMO_FILAS + 2, Coordinate::columnIndexFromString(self::ULTIMA_COLUMNA));
+        $hoja = $this->abrirHoja($rutaXlsx, $filtro);
+        if ($filtro->huboFilasDeMas() || $hoja->getHighestDataRow() - 1 > self::MAXIMO_FILAS) {
             throw new ErrorDeNegocio('El archivo tiene más de ' . self::MAXIMO_FILAS . ' filas de aprendices. Divídelo en varios archivos.');
         }
 
-        $filasDelArchivo = $hoja->toArray(null, false, true, false);
+        // Solo el rectángulo de la plantilla (A..Z, hasta la última fila con datos): nunca «todo lo que toque una celda».
+        $filasDelArchivo = $hoja->rangeToArray('A1:' . self::ULTIMA_COLUMNA . $hoja->getHighestDataRow(), null, false, true, false);
         $posiciones = $this->posicionesDeColumnas(array_shift($filasDelArchivo) ?? []);
 
         return $this->revisarFilas($filasDelArchivo, $posiciones);
@@ -94,6 +105,7 @@ final class ServicioCargaUsuarios
      * @param string                     $nombreArchivo El nombre del Excel, para el registro de la carga.
      * @return array{creadas: int, fallidas: int, entrega: list<array{documento: string, nombre: string, correo: string, contrasena: string}>, errores: array<int, array<string, string>>}
      *         entrega: lo que lleva el Excel de entrega (con la contraseña temporal de cada cuenta creada).
+     * @throws CargaInterrumpida Si algo inesperado corta la carga: trae lo creado hasta ese momento.
      */
     public function confirmar(array $filasValidas, string $nombreArchivo): array
     {
@@ -105,16 +117,31 @@ final class ServicioCargaUsuarios
             foreach ($filasValidas as $fila) {
                 $resultado = $this->crearFila($fila, $resultado);
             }
+            $estado = $resultado['fallidas'] > 0 ? 'Completada con errores' : 'Completada';
+            $this->migraciones->finalizar($id, $resultado['creadas'], $resultado['fallidas'], $estado, self::aplanarErrores($resultado['errores']));
         } catch (Throwable $error) {
-            // Algo inesperado: la carga se cierra «Fallida» (la base no deja reabrirla) y el error sigue su camino.
-            $this->migraciones->finalizar($id, $resultado['creadas'], $resultado['fallidas'], 'Fallida', self::aplanarErrores($resultado['errores']));
-            throw $error;
+            // Algo inesperado. Las cuentas ya creadas existen y su contraseña SOLO está en la entrega: no se
+            // pierde, viaja en la excepción para que el controlador la guarde antes de avisar del error.
+            $this->cerrarComoFallida($id, $resultado);
+            throw new CargaInterrumpida($resultado, $error);
         }
 
-        $estado = $resultado['fallidas'] > 0 ? 'Completada con errores' : 'Completada';
-        $this->migraciones->finalizar($id, $resultado['creadas'], $resultado['fallidas'], $estado, self::aplanarErrores($resultado['errores']));
-
         return $resultado;
+    }
+
+    /**
+     * Cierra la migración como «Fallida» (la base no deja reabrirla). Si ni eso se puede, se calla ese segundo
+     * error: no debe tapar el primero, que es el que explica qué pasó.
+     *
+     * @param array{creadas: int, fallidas: int, entrega: list<array{documento: string, nombre: string, correo: string, contrasena: string}>, errores: array<int, array<string, string>>} $resultado
+     */
+    private function cerrarComoFallida(int $id, array $resultado): void
+    {
+        try {
+            $this->migraciones->finalizar($id, $resultado['creadas'], $resultado['fallidas'], 'Fallida', self::aplanarErrores($resultado['errores']));
+        } catch (Throwable) {
+            // sin acción: se conserva el error original
+        }
     }
 
     /**
@@ -136,12 +163,15 @@ final class ServicioCargaUsuarios
     }
 
     /** Abre el .xlsx; cualquier otra cosa (un .txt renombrado, un archivo dañado) es un error de negocio, no un 500. */
-    private function abrirHoja(string $ruta): Worksheet
+    private function abrirHoja(string $ruta, FiltroLecturaCarga $filtro): Worksheet
     {
         $lector = new LectorXlsx();
         $lector->setReadDataOnly(true); // solo valores: nada de estilos, macros ni vínculos externos
 
+        $lector->setReadFilter($filtro); // solo se cargan las celdas que el filtro deja pasar
+
         try {
+            $this->revisarTamanoDescomprimido($ruta);
             if (!$lector->canRead($ruta)) {
                 throw new ErrorDeNegocio(self::PREFIJO_ERROR . 'el archivo no se pudo abrir como libro de Excel (.xlsx).');
             }
@@ -151,6 +181,29 @@ final class ServicioCargaUsuarios
             throw $error;
         } catch (Throwable $error) {
             throw new ErrorDeNegocio(self::PREFIJO_ERROR . 'el archivo no se pudo abrir como libro de Excel (.xlsx).', 0, $error);
+        }
+    }
+
+    /**
+     * Seguridad: un .xlsx es un zip. Se suma lo que pesaría abierto y, si pasa del tope, se rechaza ANTES de
+     * cargarlo: el límite de 5 MB del archivo no basta, porque comprimido puede pesar muy poco.
+     *
+     * @throws ErrorDeNegocio Si descomprimido es demasiado grande.
+     */
+    private function revisarTamanoDescomprimido(string $ruta): void
+    {
+        $zip = new ZipArchive();
+        if ($zip->open($ruta) !== true) {
+            return; // no es un zip: canRead() lo rechaza enseguida con su propio mensaje
+        }
+        $total = 0;
+        for ($i = 0; $i < $zip->numFiles; $i++) {
+            $total += (int) ($zip->statIndex($i)['size'] ?? 0);
+        }
+        $zip->close();
+
+        if ($total > self::BYTES_DESCOMPRIMIDOS_MAXIMOS) {
+            throw new ErrorDeNegocio('El archivo es demasiado grande una vez abierto. Quita datos que no sean la lista de aprendices y vuelve a subirlo.');
         }
     }
 
@@ -299,6 +352,7 @@ final class ServicioCargaUsuarios
             'correo' => (string) $fila['correo'],
             'contrasena' => $cuenta['contrasena'],
         ];
+
 
         return $resultado;
     }

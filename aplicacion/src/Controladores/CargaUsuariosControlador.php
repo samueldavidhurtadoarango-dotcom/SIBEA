@@ -21,6 +21,7 @@ use BenefitRack\Nucleo\Peticion;
 use BenefitRack\Nucleo\Respuesta;
 use BenefitRack\Nucleo\Sesion;
 use BenefitRack\Nucleo\Vista;
+use BenefitRack\Servicios\CargaInterrumpida;
 use BenefitRack\Servicios\ExportadorExcel;
 use BenefitRack\Servicios\ServicioCargaUsuarios;
 
@@ -117,12 +118,20 @@ final class CargaUsuariosControlador
             return Respuesta::redirigir(self::RUTA_CARGAR);
         }
 
-        $resultado = $this->servicio->confirmar($carga['filas'], $carga['archivo']);
+        try {
+            $resultado = $this->servicio->confirmar($carga['filas'], $carga['archivo']);
+        } catch (CargaInterrumpida $interrupcion) {
+            // Un fallo inesperado a la mitad: las cuentas ya creadas existen y su contraseña solo está en la entrega.
+            // Se conserva lo hecho (abajo, igual que si hubiera salido bien) y se avisa del error en la pantalla.
+            $resultado = $interrupcion->resultado();
+            $this->sesion->mensaje('error', 'La carga se interrumpió por un error inesperado. Las cuentas ya creadas están en el Excel de entrega; revisa la lista de usuarios antes de volver a cargar el resto.');
+            error_log('[BenefitRack] Carga interrumpida: ' . ($interrupcion->getPrevious()?->getMessage() ?? ''));
+        }
         // Las contraseñas van a la entrega pendiente de la sesión (la misma del resto de cuentas).
         foreach ($resultado['entrega'] as $fila) {
             $this->sesion->agregarEntrega($fila);
         }
-        // Las filas ya se usaron: se vacían para que confirmar dos veces no repita nada. Los errores (de la
+        // Las filas ya se usaron (o se intentaron): se vacían para que confirmar dos veces no repita nada. Los errores (de la
         // vista previa y los que aparecieron al crear) se conservan para poder descargarlos.
         $errores = $carga['errores'] + $resultado['errores'];
         $this->sesion->guardarCarga(['archivo' => $carga['archivo'], 'filas' => [], 'errores' => $errores]);

@@ -104,7 +104,7 @@ final class CargaUsuariosTest extends BaseDePrueba
     /** Un repositorio que falla al crear la SEGUNDA cuenta (como un corte de la base a mitad de carga). */
     private function servicioQueFallaEnLaSegunda(\BenefitRack\Nucleo\BaseDatos $bd): ServicioCargaUsuarios
     {
-        $repositorio = new class($bd) extends RepositorioUsuarios {
+        $repositorio = new class ($bd) extends RepositorioUsuarios {
             private int $llamadas = 0;
 
             public function crear(array $datos, string $hash): int
@@ -147,7 +147,13 @@ final class CargaUsuariosTest extends BaseDePrueba
         $fabrica->sesion()->guardarCarga(['archivo' => 'corte.xlsx', 'filas' => [$this->filaValida(2), $this->filaValida(3)], 'errores' => []]);
         $controlador = new CargaUsuariosControlador($fabrica->sesion(), $fabrica->vista(), $servicio);
 
+        // El controlador anota la causa en el registro de errores de PHP: se desvía a un archivo para no ensuciar la salida.
+        $registro = tempnam(sys_get_temp_dir(), 'br_');
+        $anterior = ini_set('error_log', $registro);
         $respuesta = $controlador->confirmar(new Peticion('POST', '/admin/usuarios/cargar/confirmar', [], [], '127.0.0.1'));
+        ini_set('error_log', (string) $anterior);
+        $this->assertStringContainsString('falla simulada', (string) file_get_contents($registro));
+        @unlink($registro);
 
         // La cuenta que sí se creó conserva su contraseña en la entrega, y reintentar no repite filas.
         $this->assertCount(1, $fabrica->sesion()->entregaPendiente());
