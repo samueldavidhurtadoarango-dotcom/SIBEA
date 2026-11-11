@@ -16,6 +16,7 @@ declare(strict_types=1);
 namespace BenefitRack\Pruebas\Integracion;
 
 use BenefitRack\Nucleo\Aplicacion;
+use BenefitRack\Nucleo\Csrf;
 use BenefitRack\Nucleo\Enrutador;
 use BenefitRack\Nucleo\Fabrica;
 use BenefitRack\Nucleo\Peticion;
@@ -43,12 +44,26 @@ final class PermisosRutasTest extends BaseDePrueba
     }
 
     /** Lanza una petición a la aplicación completa (sin campos: ni siquiera un _csrf). */
-    private function pedir(Fabrica $fabrica, string $metodo, string $patron): Respuesta
+    /** @param array<string, string> $campos */
+    private function pedir(Fabrica $fabrica, string $metodo, string $patron, array $campos = [], ?Enrutador $enrutador = null): Respuesta
     {
         $ruta = str_replace('{id}', '1', $patron);
-        $aplicacion = new Aplicacion($this->enrutador($fabrica), $fabrica->vista(), $this->configuracionDePrueba(), $fabrica);
+        $aplicacion = new Aplicacion($enrutador ?? $this->enrutador($fabrica), $fabrica->vista(), $this->configuracionDePrueba(), $fabrica);
 
-        return $aplicacion->ejecutar(new Peticion($metodo, $ruta, [], [], '127.0.0.1'));
+        return $aplicacion->ejecutar(new Peticion($metodo, $ruta, $campos, [], '127.0.0.1'));
+    }
+
+    /**
+     * Pide una ruta como aprendiz con sesión y, en los POST, con un token CSRF VÁLIDO:
+     * así el filtro de CSRF no puede ser quien responda 403 y se prueba solo el filtro de rol.
+     */
+    private function comoAprendiz(int $idAprendiz, string $metodo, string $patron, ?Enrutador $enrutador = null): Respuesta
+    {
+        $fabrica = $this->fabrica();
+        $fabrica->sesion()->iniciarPara($idAprendiz, 'Aprendiz', false, 'Luisa');
+        $campos = $metodo === 'POST' ? ['_csrf' => Csrf::token()] : [];
+
+        return $this->pedir($fabrica, $metodo, $patron, $campos, $enrutador);
     }
 
     /** @return list<array{metodo: string, patron: string}> */
@@ -71,16 +86,27 @@ final class PermisosRutasTest extends BaseDePrueba
             if (!str_starts_with($ruta['patron'], '/admin/')) {
                 continue;
             }
-            $fabrica = $this->fabrica();
-            $fabrica->sesion()->iniciarPara($idAprendiz, 'Aprendiz', false, 'Luisa');
-
-            $respuesta = $this->pedir($fabrica, $ruta['metodo'], $ruta['patron']);
+            $respuesta = $this->comoAprendiz($idAprendiz, $ruta['metodo'], $ruta['patron']);
 
             $this->assertSame(403, $respuesta->codigo(), "{$ruta['metodo']} {$ruta['patron']} debería dar 403 a un aprendiz");
             $revisadas++;
         }
 
         $this->assertGreaterThan(15, $revisadas);
+    }
+
+    /** Meta-prueba: una ruta POST /admin sin filtroRol NO debe dar 403 a un aprendiz, así que la prueba anterior la delataría. */
+    public function test_la_prueba_de_rol_delata_una_ruta_admin_sin_filtro_de_rol(): void
+    {
+        $fabrica = $this->fabrica();
+        $enrutador = new Enrutador();
+        $enrutador->agregar('POST', '/admin/sin-rol', static fn (Peticion $p): Respuesta => Respuesta::html('entró'), [
+            $fabrica->filtroSesion(), $fabrica->filtroPrimerIngreso(), $fabrica->filtroCsrf(),
+        ]);
+
+        $respuesta = $this->comoAprendiz($this->crearAprendiz(), 'POST', '/admin/sin-rol', $enrutador);
+
+        $this->assertSame(200, $respuesta->codigo(), 'sin filtroRol el aprendiz entra: la prueba de rol lo detectaría');
     }
 
     public function test_cada_post_sin_token_csrf_recibe_403(): void
