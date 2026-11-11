@@ -1,6 +1,6 @@
 # Spec 003 — Aplicación BenefitRack: primera versión que funciona (MVP)
 
-- **Estado:** borrador, espera la aprobación de Samuel
+- **Estado:** implementada (versión 3.0.0, 2026-11-11)
 - **Fecha:** 2026-11-10
 - **Rama:** `feat/003-aplicacion-mvp`
 - **Depende de:** spec 001 (BD `benefitrack_v2`) y spec 002 (pantallas aprobadas en `vistas/`)

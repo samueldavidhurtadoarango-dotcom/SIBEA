@@ -2,6 +2,43 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [3.0.0] - 2026-11-11 — «MVP de la aplicación (spec 003)»
+
+Primera versión de BenefitRack que funciona de punta a punta: PHP puro con MVC sobre `benefitrack_v2`, en `aplicacion/`. Se instala y se explica con `aplicacion/LEEME.md`.
+
+### Añadido (módulos)
+- **M0 Base**: enrutador, filtros (sesión, rol, CSRF, primer ingreso), sesión segura, conexión como `benefitrack_app` con `@app_id_usuario`/`@app_ip` en cada petición, plantillas y páginas 403/404/500.
+- **M1 Iniciar y cerrar sesión**: 3 intentos fallidos bloquean 15 minutos (el desbloqueo lo hace la BD).
+- **M2 Primer ingreso**: cambio obligatorio de la contraseña temporal.
+- **M3 Usuarios**: lista con buscador, crear cuenta, carga desde Excel (plantilla, vista previa, resultado y Excel de errores), activar, desactivar, desbloquear y restablecer contraseña, con Excel de entrega de contraseñas temporales.
+- **M4 Convocatorias**: lista, crear, editar, activar y cerrar.
+- **M5 Postularse**: formulario por secciones, subida de 3 documentos, revisar y enviar, convocatoria cerrada.
+- **M6 Postulaciones (admin)**: lista con filtros y paginación, detalle, revisión de cada documento, confirmar, aprobar (con cupo), rechazar con motivo y Excel con columnas a elección.
+- **M7 Mi proceso**: en revisión, seleccionado y no seleccionado, con varias convocatorias abiertas.
+- **M8 Cierre**: `PermisosRutasTest` (recorre la tabla de rutas real), `herramientas/revisar_comentarios.php` dentro de `composer analisis`, y guía final en `aplicacion/LEEME.md` (instalación en XAMPP y recorrido de una petición).
+- `Enrutador::rutas()`: lista las rutas registradas, para que las pruebas de permisos cubran también las futuras.
+
+### Corregido (revisión visual del cierre)
+- «Mi proceso»: la línea de pasos no tenía estilos y sus íconos salían enormes.
+- Clases sin estilos en reglas de contraseña y cabecera de tarjeta. Una prueba nueva exige que toda clase `br-*` usada en las vistas exista en la hoja de estilos.
+- Cabecera del administrador (usuario y «Salir» en una fila), alineación de los filtros de postulaciones, barra de cupos de convocatorias en su línea y buscador de usuarios.
+
+### Decisiones
+- Contraseña temporal aleatoria por aprendiz (10 caracteres, `random_int`); en la BD solo queda el hash y el Excel de entrega no se guarda.
+- El menú del administrador es Convocatorias · Postulaciones · Usuarios; tras iniciar sesión el administrador va a `/admin/postulaciones` y el aprendiz a `/mi-proceso`.
+- `POST /ingresar` también exige token CSRF (si venció, vuelve al formulario con un aviso).
+- Sin figuras `anatomy` en la documentación (decisión de Samuel).
+- Las pruebas de integración usan solo la MariaDB temporal del puerto 3398.
+
+### Calidad al cierre
+- Pruebas, PHPStan nivel 6 y php-cs-fixer en verde. Cobertura: `src/Servicios` 95,9 %, `src/Validacion` 99,5 %.
+
+### Pendiente y límites conocidos (fase 2, spec 003 §4)
+- Pagos y la parte de pagos de «Mi proceso»; reporte de aprobados; avisos (campanita) y correos; pedir un documento y que el aprendiz lo suba; recuperar la contraseña por correo; dashboard con cifras; auditoría y catálogos en pantalla; borrador del formulario y edición del perfil.
+- Publicar en internet: el MVP corre en XAMPP. XAMPP trae PHP 8.2.12, que debe actualizarse a 8.2.35 o más nuevo (PHP2Shell, CVE-2026-109618/109619).
+- Si un aprendiz olvida su contraseña, el administrador se la restablece.
+- Las pantallas se parecen a su maqueta pero no son idénticas: no tienen pestañas de estado, íconos por documento ni la campanita (son de la fase 2).
+
 ## [2.1.1] - 2026-11-09 — «Documentos sin puntos»
 
 ### Cambiado
