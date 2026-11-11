@@ -112,6 +112,19 @@ final class Peticion
     }
 
     /**
+     * Lee de la URL una lista de textos, como la mandan las casillas de un formulario (?columnas[]=a&columnas[]=b).
+     *
+     * @param string $nombre Nombre del dato (por ejemplo "columnas").
+     * @return list<string> Los textos de la lista; lo que no sea texto se descarta, y si no es una lista, queda vacía.
+     */
+    public function consultaLista(string $nombre): array
+    {
+        $valor = $this->consulta[$nombre] ?? [];
+
+        return is_array($valor) ? array_values(array_filter($valor, 'is_string')) : [];
+    }
+
+    /**
      * @param string $nombre Nombre del campo de archivo.
      * @return array<string, mixed>|null Los datos de $_FILES de ese campo, o null si no existe.
      */

@@ -20,6 +20,7 @@ use BenefitRack\Controladores\ContrasenaControlador;
 use BenefitRack\Controladores\ConvocatoriasControlador;
 use BenefitRack\Controladores\DocumentosControlador;
 use BenefitRack\Controladores\PostulacionAprendizControlador;
+use BenefitRack\Controladores\PostulacionesAdminControlador;
 use BenefitRack\Controladores\UsuariosControlador;
 use BenefitRack\Nucleo\Enrutador;
 use BenefitRack\Nucleo\Fabrica;
@@ -60,6 +61,11 @@ return static function (Enrutador $enrutador, Fabrica $fabrica): void {
     $enrutador->agregar('GET', '/admin/convocatorias/{id}/editar', [ConvocatoriasControlador::class, 'editar'], $admin);
     $enrutador->agregar('POST', '/admin/convocatorias/{id}/editar', [ConvocatoriasControlador::class, 'guardar'], $adminConCsrf);
     $enrutador->agregar('POST', '/admin/convocatorias/{id}/estado', [ConvocatoriasControlador::class, 'cambiarEstado'], $adminConCsrf);
+
+    // Postulaciones del administrador (M6a): lista con filtros y Excel. Son GET que solo leen: no llevan CSRF.
+    // (El detalle y las decisiones, /admin/postulaciones/{id}..., son de la tarea siguiente.)
+    $enrutador->agregar('GET', '/admin/postulaciones', [PostulacionesAdminControlador::class, 'lista'], $admin);
+    $enrutador->agregar('GET', '/admin/postulaciones/excel', [PostulacionesAdminControlador::class, 'excel'], $admin);
 
     // Postulación del aprendiz (M5a y M5b): formulario, revisar y enviar. Solo el aprendiz, ya con contraseña propia; los POST llevan CSRF.
     $aprendiz = [$fabrica->filtroSesion(), $fabrica->filtroRol('Aprendiz'), $fabrica->filtroPrimerIngreso()];

@@ -16,6 +16,11 @@
     if (!(formulario instanceof HTMLFormElement) || evento.defaultPrevented) {
       return;
     }
+    // Un formulario que DESCARGA un archivo (data-descarga) no cambia de página: si se desactivara el botón,
+    // quedaría apagado para siempre y no se podría volver a descargar.
+    if (formulario.hasAttribute('data-descarga')) {
+      return;
+    }
     var boton = formulario.querySelector('button[type="submit"]');
     if (boton) {
       // Se desactiva un instante después, para no impedir el envío mismo.

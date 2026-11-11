@@ -55,6 +55,14 @@ final class ListaPostulacionesTest extends BaseDePrueba
         return $id;
     }
 
+    /** El primer id de un catálogo (la base de prueba ya trae los catálogos cargados). */
+    private function primerId(string $tabla, string $columna): int
+    {
+        $consulta = $this->baseDatosDeLaApp()->pdo()->query("SELECT MIN($columna) FROM $tabla");
+
+        return (int) ($consulta === false ? 0 : $consulta->fetchColumn());
+    }
+
     /**
      * Tres postulaciones a la misma convocatoria (una Aprobada); la segunda es de una aprendiz «Peña».
      *
@@ -74,7 +82,10 @@ final class ListaPostulacionesTest extends BaseDePrueba
         return ['admin' => $admin, 'convocatoria' => $convocatoria, 'ids' => $ids, 'sufijo' => $sufijo];
     }
 
-    /** @return list<int> Los id_postulacion de las filas de la página. */
+    /**
+     * @param array{filas: list<array<string, mixed>>} $resultado
+     * @return list<int> Los id_postulacion de las filas de la página.
+     */
     private function idsDe(array $resultado): array
     {
         return array_map(static fn (array $fila): int => (int) $fila['id_postulacion'], $resultado['filas']);
@@ -170,13 +181,12 @@ final class ListaPostulacionesTest extends BaseDePrueba
     {
         $admin = $this->crearAdmin();
         $convocatoria = $this->crearConvocatoriaActiva(10);
-        $catalogo = $this->baseDatosDeLaApp()->pdo();
-        $eps = (string) $catalogo->query('SELECT MIN(id_eps) FROM eps')?->fetchColumn();
-        $banco = (string) $catalogo->query('SELECT MIN(id_banco) FROM entidades_bancarias')?->fetchColumn();
-        $tipo = (string) $catalogo->query('SELECT MIN(id_tipo_cuenta) FROM tipos_cuenta')?->fetchColumn();
+        $eps = $this->primerId('eps', 'id_eps');
+        $banco = $this->primerId('entidades_bancarias', 'id_banco');
+        $tipo = $this->primerId('tipos_cuenta', 'id_tipo_cuenta');
         $this->postular($admin, $this->crearAprendiz(), $convocatoria, false, [
             'telefono' => '3001112233', 'direccion' => 'Calle 1', 'fecha_nacimiento' => '2002-03-15',
-            'id_eps' => (int) $eps, 'id_entidad_bancaria' => (int) $banco, 'id_tipo_cuenta' => (int) $tipo,
+            'id_eps' => $eps, 'id_entidad_bancaria' => $banco, 'id_tipo_cuenta' => $tipo,
             'numero_cuenta' => '0012345678', 'titular_cuenta' => 'Titular Ñandú', 'motivo' => 'Lo necesito.',
             'acepta_datos' => true, 'fecha_envio' => '2026-11-15 09:30:00',
         ]);

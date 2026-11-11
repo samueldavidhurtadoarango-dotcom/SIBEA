@@ -25,6 +25,7 @@ use BenefitRack\Controladores\ContrasenaControlador;
 use BenefitRack\Controladores\ConvocatoriasControlador;
 use BenefitRack\Controladores\DocumentosControlador;
 use BenefitRack\Controladores\PostulacionAprendizControlador;
+use BenefitRack\Controladores\PostulacionesAdminControlador;
 use BenefitRack\Controladores\UsuariosControlador;
 use BenefitRack\Filtros\FiltroCsrf;
 use BenefitRack\Filtros\FiltroPrimerIngreso;
@@ -142,6 +143,13 @@ final class Fabrica
                 $this->vista(),
                 new RepositorioDocumentos($this->baseDatos()),
                 new AlmacenDocumentos($this->carpetaAlmacenamiento())
+            ),
+            // Las postulaciones del administrador usan baseDatos(): la base sabe qué administrador consulta (@app_id_usuario).
+            PostulacionesAdminControlador::class => new PostulacionesAdminControlador(
+                $this->sesion(),
+                $this->vista(),
+                new RepositorioPostulaciones($this->baseDatos()),
+                new RepositorioCatalogos($this->baseDatos())
             ),
             default => throw new InvalidArgumentException("No sé crear el controlador: $claseControlador"),
         };
