@@ -229,6 +229,7 @@ textarea:focus-visible, summary:focus-visible, [tabindex]:focus-visible {
 .br-migas { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--br-gris); }
 .br-migas a { color: var(--br-gris); text-decoration: none; }
 .br-migas [aria-current="page"] { color: var(--br-azul); font-weight: 600; }
+.br-cabecera__derecha { display: flex; align-items: center; gap: 12px; }
 .br-usuario {
   display: flex; align-items: center; gap: 10px; padding: 4px 12px 4px 4px;
   border: 1px solid var(--br-borde); border-radius: 12px; background: var(--br-blanco);
@@ -532,7 +533,7 @@ textarea:focus-visible, summary:focus-visible, [tabindex]:focus-visible {
   padding: 14px 20px; border-top: 1px solid var(--br-borde); font-size: 14px; color: var(--br-gris);}
 .br-listado .br-tabla-envoltura { border-top: 1px solid var(--br-borde);}
 .br-listado > .br-vacio { margin: 0 20px 20px;}
-.br-filtros { display: grid; grid-template-columns: minmax(220px, 1.4fr) repeat(auto-fit, minmax(170px, 1fr)); gap: 10px;}
+.br-filtros { display: grid; grid-template-columns: minmax(220px, 1.4fr) repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; align-items: end;}
 .br-buscador { position: relative;}
 .br-buscador svg { position: absolute; left: 14px; top: 50%; width: 18px; height: 18px; transform: translateY(-50%); color: var(--br-gris); pointer-events: none;}
 .br-buscador .br-entrada { padding-left: 42px;}
@@ -974,3 +975,33 @@ textarea:focus-visible, summary:focus-visible, [tabindex]:focus-visible {
 .br-historial__cambio { font-weight: 600; }
 .br-historial__quien { color: var(--br-gris); }
 .br-decision__paso--rechazado .br-decision__numero { background: var(--br-rojo); border-color: var(--br-rojo); color: var(--br-blanco); }
+
+/* ---------- Línea de pasos de «Mi proceso», reglas de contraseña y cabecera de tarjeta (copiado de vistas/_comun/estilo.css) ---------- */
+.br-pasos { list-style: none; margin: 0; padding: 0; display: flex; align-items: flex-start; }
+.br-pasos__paso { flex: 1 1 0; min-width: 0; display: grid; justify-items: center; gap: 6px; text-align: center; position: relative; font-size: 13px; }
+.br-pasos__paso + .br-pasos__paso::before {
+  content: ''; position: absolute; top: 13px; right: 50%; width: 100%; height: 2px; background: var(--br-borde);
+}
+.br-pasos__paso--hecho + .br-pasos__paso::before { background: var(--br-lima); }
+.br-pasos__punto {
+  position: relative; z-index: 1; width: 28px; height: 28px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700;
+  background: var(--br-fondo-3); color: var(--br-gris); border: 2px solid var(--br-borde);
+}
+.br-pasos__paso--hecho .br-pasos__punto { background: var(--br-verde); border-color: var(--br-verde); color: var(--br-blanco); }
+.br-pasos__paso--actual .br-pasos__punto { background: var(--br-blanco); border-color: var(--br-enlace); color: var(--br-enlace); }
+.br-pasos__nombre { font-weight: 600; }
+.br-pasos__fecha { color: var(--br-gris); font-size: 12px; }
+.br-pasos__punto svg { width: 14px; height: 14px; }
+.br-tarjeta > .br-pasos { margin-top: 20px; }
+.br-pasos__paso--actual .br-pasos__fecha { color: var(--br-enlace); font-weight: 600; }
+.br-tarjeta__cabecera { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 16px; }
+.br-reglas-caja { display: grid; gap: 8px; padding: 12px 14px; background: var(--br-fondo); border: 1px solid var(--br-borde); border-radius: 10px; }
+.br-reglas-caja > p { font-size: 13px; font-weight: 600; }
+.br-reglas { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.br-reglas li { display: flex; align-items: flex-start; gap: 8px; font-size: 14px; color: var(--br-gris); }
+.br-reglas svg { flex: none; width: 18px; height: 18px; margin-top: 2px; }
+.br-reglas li[data-estado="cumplida"] { color: var(--br-doc-ok-texto); }
+.br-reglas li[data-estado="cumplida"] svg { color: var(--br-doc-ok-marca); }
+.br-reglas li[data-estado="incumplida"] { color: var(--br-rojo-texto); font-weight: 500; }
+.br-reglas li[data-estado="incumplida"] svg { color: var(--br-rojo); }
