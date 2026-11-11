@@ -36,4 +36,23 @@ final class HojaDeEstilosTest extends TestCase
     {
         $this->assertStringContainsString('align-items: end', $this->regla('.br-filtros'));
     }
+
+    /**
+     * Defecto visto en «Mi proceso»: la línea de pasos (br-pasos) no tenía estilos y sus íconos salían enormes.
+     * Regla general: toda clase br-* que usan las vistas tiene que existir en la hoja de estilos.
+     */
+    public function test_toda_clase_br_que_usan_las_vistas_existe_en_la_hoja_de_estilos(): void
+    {
+        $usadas = [];
+        $vistas = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator(dirname(__DIR__, 3) . '/vistas', \FilesystemIterator::SKIP_DOTS));
+        foreach ($vistas as $archivo) {
+            preg_match_all('/\bbr-[a-z0-9_]+(?:-[a-z0-9_]+)*/', (string) file_get_contents($archivo->getPathname()), $coincidencias);
+            $usadas = array_merge($usadas, $coincidencias[0]);
+        }
+        preg_match_all('/\.(br-[a-z0-9_-]+)/', $this->css(), $definidas);
+
+        $faltan = array_diff(array_unique($usadas), $definidas[1]);
+
+        $this->assertSame([], array_values($faltan), 'Clases usadas en las vistas y sin estilos');
+    }
 }
