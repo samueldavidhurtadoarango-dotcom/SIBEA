@@ -89,6 +89,27 @@ final class FiltrosTest extends TestCase
         $this->assertFalse($llamado);
     }
 
+    public function test_un_post_a_ingresar_sin_token_vuelve_al_formulario_con_aviso_en_vez_de_403(): void
+    {
+        $filtro = new FiltroCsrf($this->vista, $this->sesion);
+
+        $respuesta = $filtro->aplicar($this->peticion('POST', '/ingresar', ['_csrf' => 'viejo']));
+
+        $this->assertNotNull($respuesta);
+        $this->assertSame('/ingresar', $respuesta->destino());
+        $this->assertSame('Tu sesión terminó. Vuelve a intentarlo.', $this->sesion->tomarMensajes()[0]['texto']);
+    }
+
+    public function test_en_otra_ruta_el_token_invalido_sigue_siendo_403_aunque_haya_sesion(): void
+    {
+        $filtro = new FiltroCsrf($this->vista, $this->sesion);
+
+        $respuesta = $filtro->aplicar($this->peticion('POST', '/salir', ['_csrf' => 'viejo']));
+
+        $this->assertNotNull($respuesta);
+        $this->assertSame(403, $respuesta->codigo());
+    }
+
     public function test_un_post_con_token_falso_recibe_403(): void
     {
         Csrf::token();
