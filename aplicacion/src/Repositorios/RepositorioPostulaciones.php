@@ -148,6 +148,33 @@ class RepositorioPostulaciones
     }
 
     /**
+     * Las postulaciones de UN aprendiz (la pantalla «Mi proceso»), la más reciente primero. SEGURIDAD: se filtra por
+     * el id del aprendiz de la sesión, nunca por uno que mande el navegador. A propósito NO se pide
+     * justificacion_rechazo ni observaciones: son notas internas de Bienestar y el aprendiz no debe verlas.
+     *
+     * @param int $id Id del aprendiz.
+     * @return list<array<string, mixed>> id_postulacion, estado, convocatoria, beneficio, valor_pago, duracion_meses,
+     *                                    fecha_envio, fecha_validacion y fecha_resultado (cuando se aprobó o rechazó).
+     */
+    public function delAprendiz(int $id): array
+    {
+        $consulta = $this->baseDatos->pdo()->prepare(
+            "SELECT p.id_postulacion, p.estado, c.nombre AS convocatoria, b.nombre AS beneficio, c.valor_pago, c.duracion_meses,
+                    p.fecha_creacion AS fecha_envio, p.fecha_validacion,
+                    (SELECT MAX(h.fecha) FROM historial_estados h
+                      WHERE h.id_postulacion = p.id_postulacion AND h.estado_nuevo IN ('Aprobada', 'Rechazada')) AS fecha_resultado
+               FROM postulaciones p
+               JOIN convocatorias c ON c.id_convocatoria = p.id_convocatoria
+               JOIN beneficios b ON b.id_beneficio = c.id_beneficio
+              WHERE p.id_usuario = ?
+              ORDER BY p.fecha_creacion DESC, p.id_postulacion DESC"
+        );
+        $consulta->execute([$id]);
+
+        return array_values($consulta->fetchAll());
+    }
+
+    /**
      * Cada cambio de estado de la postulación (lo escribe la base con el trigger tr_postulacion_estado), el más
      * reciente primero. La primera fila (estado anterior vacío) es el envío del aprendiz.
      *

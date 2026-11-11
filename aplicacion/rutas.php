@@ -19,6 +19,7 @@ use BenefitRack\Controladores\CargaUsuariosControlador;
 use BenefitRack\Controladores\ContrasenaControlador;
 use BenefitRack\Controladores\ConvocatoriasControlador;
 use BenefitRack\Controladores\DocumentosControlador;
+use BenefitRack\Controladores\MiProcesoControlador;
 use BenefitRack\Controladores\PostulacionAprendizControlador;
 use BenefitRack\Controladores\PostulacionesAdminControlador;
 use BenefitRack\Controladores\UsuariosControlador;
@@ -79,6 +80,9 @@ return static function (Enrutador $enrutador, Fabrica $fabrica): void {
     $enrutador->agregar('GET', '/convocatorias/{id}/postulacion', [PostulacionAprendizControlador::class, 'formulario'], $aprendiz);
     $enrutador->agregar('POST', '/convocatorias/{id}/postulacion', [PostulacionAprendizControlador::class, 'revisar'], [...$aprendiz, $fabrica->filtroCsrf()]);
     $enrutador->agregar('POST', '/convocatorias/{id}/postulacion/enviar', [PostulacionAprendizControlador::class, 'enviar'], [...$aprendiz, $fabrica->filtroCsrf()]);
+
+    // Mi proceso (M7): la pantalla de inicio del aprendiz (la misma lista de filtros $aprendiz de arriba).
+    $enrutador->agregar('GET', '/mi-proceso', [MiProcesoControlador::class, 'ver'], $aprendiz);
 
     // Documentos de las postulaciones (M5b): con sesión de cualquier rol; el controlador deja pasar solo al dueño o a un administrador.
     $enrutador->agregar('GET', '/documentos/{id}', [DocumentosControlador::class, 'descargar'], [$fabrica->filtroSesion(), $fabrica->filtroPrimerIngreso()]);

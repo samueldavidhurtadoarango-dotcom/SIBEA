@@ -24,6 +24,7 @@ use BenefitRack\Controladores\CargaUsuariosControlador;
 use BenefitRack\Controladores\ContrasenaControlador;
 use BenefitRack\Controladores\ConvocatoriasControlador;
 use BenefitRack\Controladores\DocumentosControlador;
+use BenefitRack\Controladores\MiProcesoControlador;
 use BenefitRack\Controladores\PostulacionAprendizControlador;
 use BenefitRack\Controladores\PostulacionesAdminControlador;
 use BenefitRack\Controladores\UsuariosControlador;
@@ -43,6 +44,7 @@ use BenefitRack\Servicios\ServicioAcceso;
 use BenefitRack\Servicios\ServicioCargaUsuarios;
 use BenefitRack\Servicios\ServicioContrasena;
 use BenefitRack\Servicios\ServicioConvocatorias;
+use BenefitRack\Servicios\ServicioMiProceso;
 use BenefitRack\Servicios\ServicioPostulacion;
 use BenefitRack\Servicios\ServicioRevision;
 use BenefitRack\Servicios\ServicioUsuarios;
@@ -154,6 +156,12 @@ final class Fabrica
                 new RepositorioPostulaciones($this->baseDatos()),
                 new RepositorioCatalogos($this->baseDatos()),
                 new ServicioRevision(new RepositorioPostulaciones($this->baseDatos()), new RepositorioDocumentos($this->baseDatos()))
+            ),
+            // «Mi proceso» usa baseDatos(): solo lee, pero siempre a nombre de la persona de la sesión (@app_id_usuario).
+            MiProcesoControlador::class => new MiProcesoControlador(
+                $this->sesion(),
+                $this->vista(),
+                new ServicioMiProceso(new RepositorioConvocatorias($this->baseDatos()), new RepositorioPostulaciones($this->baseDatos()))
             ),
             default => throw new InvalidArgumentException("No sé crear el controlador: $claseControlador"),
         };
