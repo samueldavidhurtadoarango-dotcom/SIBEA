@@ -82,7 +82,7 @@
   };
 
   function marcarReglas(formulario) {
-    var texto = formulario.querySelector('[data-campo-nueva]').value;
+    var texto = formulario.querySelector('[data-campo-nueva]').value.trim(); // el servidor también recorta (Peticion::campo)
     formulario.querySelectorAll('[data-regla]').forEach(function (regla) {
       var estado = REGLAS_CLAVE[regla.dataset.regla](texto) ? 'cumplida' : 'pendiente';
       regla.dataset.estado = estado;

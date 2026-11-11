@@ -71,6 +71,12 @@ final class ValidadorContrasenaTest extends TestCase
         $this->assertCount(2, $resultado->errores());
     }
 
+    public function test_un_resultado_invalido_no_entrega_la_contrasena_en_los_datos(): void
+    {
+        $this->assertSame([], $this->validar('abc', 'abc')->datos());
+        $this->assertSame([], $this->validar('Bienestar2026', 'otra')->datos());
+    }
+
     public function test_la_letra_con_tilde_cuenta_como_mayuscula_y_minuscula(): void
     {
         $this->assertTrue($this->validar('Ñandú2026', 'Ñandú2026')->esValido());

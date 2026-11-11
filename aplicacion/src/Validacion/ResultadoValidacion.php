@@ -53,7 +53,9 @@ final class ResultadoValidacion
     }
 
     /**
-     * @return array<string, mixed> Los datos ya limpios.
+     * Solo tiene sentido cuando esValido() es true: con errores no se debe usar (los validadores no los entregan).
+     *
+     * @return array<string, mixed> Los datos ya limpios (vacío si el resultado trae errores).
      */
     public function datos(): array
     {

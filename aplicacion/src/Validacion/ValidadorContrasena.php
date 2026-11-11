@@ -25,7 +25,7 @@ final class ValidadorContrasena extends Validador
      */
     public function validar(string $nueva, string $confirmacion): ResultadoValidacion
     {
-        $resultado = new ResultadoValidacion(['nueva' => $nueva]);
+        $resultado = new ResultadoValidacion();
 
         $faltantes = $this->reglasQueFaltan($nueva);
         if ($faltantes !== []) {
@@ -35,7 +35,8 @@ final class ValidadorContrasena extends Validador
             $resultado->agregar('confirmar', 'Las contraseñas no coinciden. Escribe la misma en los dos campos.');
         }
 
-        return $resultado;
+        // Los datos solo se entregan si todo es válido: con errores, la contraseña no sale de aquí.
+        return $resultado->esValido() ? new ResultadoValidacion(['nueva' => $nueva]) : $resultado;
     }
 
     /**

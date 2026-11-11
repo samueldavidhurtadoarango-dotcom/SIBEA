@@ -174,6 +174,38 @@ final class PrimerIngresoTest extends BaseDePrueba
         $this->assertSame(1, $this->marcaDe($id));
     }
 
+    private function hashDe(int $id): string
+    {
+        return (string) $this->baseDatosDeLaApp()->pdo()->query("SELECT password_hash FROM usuarios WHERE id_usuario = $id")->fetchColumn();
+    }
+
+    public function test_quien_no_debe_cambiar_es_redirigido_en_get_y_en_post_y_su_clave_no_cambia(): void
+    {
+        $id = $this->crearAprendiz(); // ya eligió su clave: debe_cambiar_contrasena = 0
+        $antes = $this->hashDe($id);
+        $fabrica = $this->fabrica();
+        $fabrica->sesion()->iniciarPara($id, 'Aprendiz', false, 'Ana');
+
+        $get = $this->enviar($fabrica, 'GET', '/contrasena/nueva');
+        $post = $this->enviar($fabrica, 'POST', '/contrasena/nueva', $this->cambio('Bienestar2026', 'Bienestar2026'));
+
+        $this->assertSame('/mi-proceso', $get->destino());
+        $this->assertSame('/mi-proceso', $post->destino());
+        $this->assertSame($antes, $this->hashDe($id));
+    }
+
+    public function test_despues_del_cambio_el_filtro_de_primer_ingreso_deja_pasar(): void
+    {
+        $id = $this->crearAprendiz(['debe_cambiar_contrasena' => 1]);
+        $fabrica = $this->ingresarConTemporal($id);
+        $peticion = new Peticion('GET', '/mi-proceso', [], [], '127.0.0.1');
+        $this->assertSame('/contrasena/nueva', $fabrica->filtroPrimerIngreso()->aplicar($peticion)?->destino());
+
+        $this->enviar($fabrica, 'POST', '/contrasena/nueva', $this->cambio('Bienestar2026', 'Bienestar2026'));
+
+        $this->assertNull($fabrica->filtroPrimerIngreso()->aplicar($peticion));
+    }
+
     public function test_la_contrasena_con_espacios_en_los_bordes_sirve_en_el_ingreso(): void
     {
         // Peticion::campo() recorta los espacios: se guarda y se compara igual, así que nunca queda una clave "imposible".

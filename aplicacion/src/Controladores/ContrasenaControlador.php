@@ -41,6 +41,10 @@ final class ContrasenaControlador
      */
     public function formulario(Peticion $peticion): Respuesta
     {
+        if (!$this->sesion->debeCambiarContrasena()) {
+            return Respuesta::redirigir($this->sesion->rutaDeInicio());
+        }
+
         return $this->pantallaFormulario([]);
     }
 
@@ -53,6 +57,12 @@ final class ContrasenaControlador
      */
     public function guardar(Peticion $peticion): Respuesta
     {
+        // Seguridad: esta pantalla es solo para quien tiene la contraseña temporal. Si no, cualquiera con una
+        // sesión abierta (PC sin vigilar, cookie robada) podría fijar una clave sin conocer la actual.
+        if (!$this->sesion->debeCambiarContrasena()) {
+            return Respuesta::redirigir($this->sesion->rutaDeInicio());
+        }
+
         // Se lee con campo() igual que el ingreso (recorta espacios): lo que se guarda es lo que el ingreso va a comparar.
         $nueva = $peticion->campo('nueva');
         $confirmacion = $peticion->campo('confirmar');

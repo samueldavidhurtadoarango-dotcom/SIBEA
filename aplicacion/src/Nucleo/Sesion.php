@@ -130,6 +130,10 @@ final class Sesion
     public function marcarContrasenaCambiada(): void
     {
         $_SESSION['debe_cambiar_contrasena'] = false;
+        // OWASP: al cambiar una credencial se renueva el id de sesión (si alguien conocía el anterior, ya no sirve).
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_regenerate_id(true);
+        }
     }
 
     /**
