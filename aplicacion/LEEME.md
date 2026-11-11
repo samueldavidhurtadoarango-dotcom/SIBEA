@@ -47,10 +47,15 @@ Carga **uno por uno y en este orden** los tres archivos de `../base-de-datos/`:
    para «encender» una extensión):
    - `extension=zip`  (para leer y crear archivos Excel)
    - `extension=gd`   (para el Excel)
-   - `upload_max_filesize = 5M`  (cada documento pesa máximo 5 MB)
-   - `post_max_size = 16M`  (el formulario lleva 3 documentos a la vez)
+   - `upload_max_filesize` debe valer **al menos `5M`** (cada documento pesa máximo 5 MB) y `post_max_size`
+     **al menos `16M`** (el formulario lleva 3 documentos a la vez). Si ya valen más (XAMPP trae `40M`),
+     **déjalos como están**: no hay que bajarlos.
 2. **Reinicia Apache** en el panel de XAMPP (si no, PHP no lee los cambios).
-3. Desde la carpeta `aplicacion/`: `php composer.phar install` (o `composer install`). Descarga la
+3. **Consigue Composer** (el instalador de librerías de PHP) si no lo tienes: descarga el instalador oficial de
+   <https://getcomposer.org/download/> (Composer-Setup.exe en Windows; en la instalación, elige el `php.exe` de
+   `C:\xampp\php`). En el computador del proyecto ya hay un `composer.phar` dentro de Laravel Herd:
+   `C:\Users\samue\.config\herd\bin\composer.phar` (se usa como `php C:\Users\samue\.config\herd\bin\composer.phar ...`).
+4. Desde la carpeta `aplicacion/`: `composer install` (o `php ruta\a\composer.phar install`). Descarga la
    librería del Excel y las herramientas de prueba a `vendor/` (esa carpeta no se sube a git).
 
 ### 1.4 La configuración
@@ -84,6 +89,8 @@ Listen 8080
 </VirtualHost>
 ```
 
+Para que Apache lea este archivo, en `C:\xampp\apache\conf\httpd.conf` la línea
+`Include conf/extra/httpd-vhosts.conf` **no debe estar comentada** (sin `#` al inicio; en XAMPP suele venir así).
 Reinicia Apache y abre <http://localhost:8080>.
 
 **Opción B: el servidor de prueba de PHP** (la más simple para estudiar):
