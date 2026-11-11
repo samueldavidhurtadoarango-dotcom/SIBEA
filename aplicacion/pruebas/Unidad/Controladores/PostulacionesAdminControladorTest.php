@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace BenefitRack\Pruebas\Unidad\Controladores;
 
 use BenefitRack\Controladores\PostulacionesAdminControlador;
+use BenefitRack\Nucleo\ErrorDeNegocio;
 use BenefitRack\Nucleo\Peticion;
 use BenefitRack\Nucleo\Sesion;
 use BenefitRack\Nucleo\Vista;
 use BenefitRack\Repositorios\RepositorioCatalogos;
 use BenefitRack\Repositorios\RepositorioPostulaciones;
 use BenefitRack\Servicios\FiltroPostulaciones;
+use BenefitRack\Servicios\ServicioRevision;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
@@ -19,6 +21,7 @@ final class PostulacionesAdminControladorTest extends TestCase
 {
     private Sesion $sesion;
     private RepositorioPostulaciones&MockObject $postulaciones;
+    private ServicioRevision&MockObject $revision;
     private PostulacionesAdminControlador $controlador;
 
     protected function setUp(): void
@@ -28,6 +31,7 @@ final class PostulacionesAdminControladorTest extends TestCase
         $this->sesion->iniciarPara(1, 'Administrador', false, 'Admin Prueba');
 
         $this->postulaciones = $this->createMock(RepositorioPostulaciones::class);
+        $this->revision = $this->createMock(ServicioRevision::class);
         $catalogos = $this->createMock(RepositorioCatalogos::class);
         $catalogos->method('beneficios')->willReturn([['id' => 1, 'nombre' => 'Alimentación']]);
         $catalogos->method('programas')->willReturn([['id' => 4, 'nombre' => 'Contabilidad']]);
@@ -37,6 +41,7 @@ final class PostulacionesAdminControladorTest extends TestCase
             new Vista(dirname(__DIR__, 3) . '/vistas', $this->sesion),
             $this->postulaciones,
             $catalogos,
+            $this->revision,
         );
     }
 

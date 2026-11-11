@@ -31,4 +31,19 @@ final class PeticionConsultaListaTest extends TestCase
     {
         $this->assertSame(['a'], $this->peticion(['columnas' => ['a', ['x'], 5]])->consultaLista('columnas'));
     }
+
+    public function test_campo_mapa_devuelve_los_textos_por_clave_y_sin_espacios(): void
+    {
+        $peticion = new Peticion('POST', '/x', ['estado' => ['12' => ' Validado ', '13' => 'Rechazado', '14' => ['x']]], [], '127.0.0.1');
+
+        $this->assertSame(['12' => 'Validado', '13' => 'Rechazado'], $peticion->campoMapa('estado'));
+    }
+
+    public function test_campo_mapa_de_algo_que_no_es_un_arreglo_es_vacio(): void
+    {
+        $peticion = new Peticion('POST', '/x', ['estado' => 'Validado'], [], '127.0.0.1');
+
+        $this->assertSame([], $peticion->campoMapa('estado'));
+        $this->assertSame([], $peticion->campoMapa('no_existe'));
+    }
 }

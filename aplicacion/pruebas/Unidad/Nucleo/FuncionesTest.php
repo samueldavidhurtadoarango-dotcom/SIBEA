@@ -27,4 +27,13 @@ final class FuncionesTest extends TestCase
         $this->assertSame('16 mar 2026', formato_fecha('2026-03-16 14:30:00'));
         $this->assertSame('', formato_fecha(null));
     }
+
+    public function test_formato_fecha_hora_usa_reloj_de_12_horas_en_espanol(): void
+    {
+        $this->assertSame("5 nov 2026, 9:40 a. m.", formato_fecha_hora("2026-11-05 09:40:00"));
+        $this->assertSame("5 nov 2026, 4:12 p. m.", formato_fecha_hora("2026-11-05 16:12:30"));
+        $this->assertSame("5 nov 2026, 12:05 a. m.", formato_fecha_hora("2026-11-05 00:05:00"));
+        $this->assertSame("5 nov 2026, 12:30 p. m.", formato_fecha_hora("2026-11-05 12:30:00"));
+        $this->assertSame("", formato_fecha_hora(null));
+    }
 }
