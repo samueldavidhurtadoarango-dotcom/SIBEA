@@ -77,20 +77,41 @@ final class Fabrica
     }
 
     /**
-     * La conexión se abre solo cuando alguien la necesita. En cuanto se abre,
-     * se le dice a la base quién actúa: la persona de la sesión o NULL si es
-     * un visitante o está iniciando sesión.
+     * Conexión para el trabajo normal: la base queda sabiendo que actúa la
+     * persona de la sesión (o NULL si es un visitante). Se abre solo cuando
+     * alguien la necesita y es una sola por petición.
      *
      * @return BaseDatos La conexión de esta petición (siempre la misma).
      */
     public function baseDatos(): BaseDatos
     {
-        if ($this->baseDatos === null) {
-            $this->baseDatos = BaseDatos::conectar($this->configuracion);
-            $this->baseDatos->fijarUsuario($this->sesion()->idUsuario(), $this->ip);
-        }
+        $conexion = $this->conexion();
+        $conexion->fijarUsuario($this->sesion()->idUsuario(), $this->ip);
 
-        return $this->baseDatos;
+        return $conexion;
+    }
+
+    /**
+     * Conexión para el flujo de inicio de sesión: SIEMPRE con @app_id_usuario = NULL,
+     * aunque el navegador ya tenga una sesión abierta (dos pestañas, botón «Atrás»).
+     * Si no, el contador de intentos fallidos y el bloqueo (README de la base, sección 3)
+     * correrían a nombre de OTRA persona y la base los rechazaría.
+     * El arm de AccesoControlador en esta clase DEBE usar este método, no baseDatos().
+     *
+     * @return BaseDatos La misma conexión de la petición, ya con el usuario en NULL.
+     */
+    public function baseDatosParaIngreso(): BaseDatos
+    {
+        $conexion = $this->conexion();
+        $conexion->fijarUsuario(null, $this->ip);
+
+        return $conexion;
+    }
+
+    /** Abre la conexión la primera vez y después reutiliza la misma. */
+    private function conexion(): BaseDatos
+    {
+        return $this->baseDatos ??= BaseDatos::conectar($this->configuracion);
     }
 
     /**

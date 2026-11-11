@@ -30,6 +30,9 @@ abstract class BaseDePrueba extends TestCase
     /** Contraseña en claro de todos los usuarios que crean los ayudantes. */
     public const CLAVE_PRUEBA = 'Clave-de-prueba-1';
 
+    /** Único puerto permitido: la instancia temporal. La recarga BORRA la base, así que nunca otro (3306 es la real de XAMPP). */
+    private const PUERTO_PERMITIDO = '3398';
+
     private static ?PDO $pdoRoot = null;
 
     /**
@@ -42,6 +45,11 @@ abstract class BaseDePrueba extends TestCase
     {
         if (self::puerto() === null || self::clienteMysql() === null) {
             self::markTestSkipped('Falta BR_PRUEBA_BD_PUERTO o BR_PRUEBA_MYSQL: no hay base temporal para las pruebas de integración.');
+        }
+
+        if (self::puerto() !== self::PUERTO_PERMITIDO) {
+            // Falla fuerte (no se salta): un puerto equivocado podría borrar la base real.
+            throw new RuntimeException('BR_PRUEBA_BD_PUERTO debe ser ' . self::PUERTO_PERMITIDO . ' (la base temporal de pruebas). Se rechaza el puerto ' . self::puerto() . ' para no borrar la base real.');
         }
 
         $carpeta = dirname(__DIR__, 3) . '/base-de-datos/';
@@ -160,14 +168,16 @@ abstract class BaseDePrueba extends TestCase
             self::clienteMysql(), '-u', 'root', '-h', '127.0.0.1', '-P', (string) self::puerto(),
             '--default-character-set=utf8mb4',
         ];
-        $clave = (string) getenv('BR_PRUEBA_BD_ROOT_CLAVE');
-        if ($clave !== '') {
-            $orden[] = '-p' . $clave;
+        $entrada = fopen($archivo, 'rb');
+        if ($entrada === false) {
+            throw new RuntimeException("No se pudo abrir el script SQL: $archivo");
         }
 
-        $entrada = fopen($archivo, 'rb');
-        $proceso = proc_open($orden, [0 => $entrada, 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $tuberias);
-        if ($entrada === false || !is_resource($proceso)) {
+        // La clave de root viaja en MYSQL_PWD (variable de entorno del proceso hijo),
+        // no en la línea de comandos, donde cualquiera podría verla.
+        $entorno = array_merge(getenv(), ['MYSQL_PWD' => (string) getenv('BR_PRUEBA_BD_ROOT_CLAVE')]);
+        $proceso = proc_open($orden, [0 => $entrada, 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $tuberias, null, $entorno);
+        if (!is_resource($proceso)) {
             throw new RuntimeException("No se pudo ejecutar el cliente mysql con $archivo");
         }
         stream_get_contents($tuberias[1]);
