@@ -15,6 +15,7 @@
 declare(strict_types=1);
 
 use BenefitRack\Controladores\AccesoControlador;
+use BenefitRack\Controladores\ContrasenaControlador;
 use BenefitRack\Nucleo\Enrutador;
 use BenefitRack\Nucleo\Fabrica;
 
@@ -25,4 +26,8 @@ return static function (Enrutador $enrutador, Fabrica $fabrica): void {
     // Ruling R2: el POST de ingreso también exige token CSRF (si venció, el filtro vuelve al formulario con un aviso).
     $enrutador->agregar('POST', '/ingresar', [AccesoControlador::class, 'ingresar'], [$fabrica->filtroCsrf()]);
     $enrutador->agregar('POST', '/salir', [AccesoControlador::class, 'salir'], [$fabrica->filtroSesion(), $fabrica->filtroCsrf()]);
+
+    // Cambio de contraseña en el primer ingreso (M2). Sin filtro de primer ingreso: es justo a donde ese filtro manda (si no, bucle).
+    $enrutador->agregar('GET', '/contrasena/nueva', [ContrasenaControlador::class, 'formulario'], [$fabrica->filtroSesion()]);
+    $enrutador->agregar('POST', '/contrasena/nueva', [ContrasenaControlador::class, 'guardar'], [$fabrica->filtroSesion(), $fabrica->filtroCsrf()]);
 };

@@ -135,11 +135,7 @@ final class AccesoControlador
     /** A dónde va cada persona: el administrador a las postulaciones, el aprendiz a su proceso, el visitante a ingresar. */
     private function destinoSegunRol(): string
     {
-        return match ($this->sesion->rol()) {
-            'Administrador' => '/admin/postulaciones',
-            'Aprendiz' => '/mi-proceso',
-            default => '/ingresar',
-        };
+        return $this->sesion->rutaDeInicio();
     }
 
     /**

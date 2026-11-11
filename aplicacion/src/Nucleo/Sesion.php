@@ -92,6 +92,19 @@ final class Sesion
     }
 
     /**
+     * @return string La pantalla de inicio de cada rol: el administrador a las postulaciones,
+     *                el aprendiz a su proceso y quien no ha ingresado, al formulario de ingreso.
+     */
+    public function rutaDeInicio(): string
+    {
+        return match ($this->rol()) {
+            'Administrador' => '/admin/postulaciones',
+            'Aprendiz' => '/mi-proceso',
+            default => '/ingresar',
+        };
+    }
+
+    /**
      * @return string El nombre para la barra superior (vacío si no hay).
      */
     public function nombre(): string

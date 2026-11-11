@@ -54,6 +54,18 @@ final class SesionTest extends TestCase
         $this->assertArrayNotHasKey('_csrf', $_SESSION);
     }
 
+    public function test_la_pantalla_de_inicio_depende_del_rol(): void
+    {
+        $sesion = new Sesion();
+        $this->assertSame('/ingresar', $sesion->rutaDeInicio());
+
+        $sesion->iniciarPara(1, 'Administrador', false);
+        $this->assertSame('/admin/postulaciones', $sesion->rutaDeInicio());
+
+        $sesion->iniciarPara(2, 'Aprendiz', false);
+        $this->assertSame('/mi-proceso', $sesion->rutaDeInicio());
+    }
+
     public function test_cerrar_borra_todo(): void
     {
         $sesion = new Sesion();

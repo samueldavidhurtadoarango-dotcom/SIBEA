@@ -101,4 +101,19 @@ class RepositorioUsuarios
 
         return $consulta->rowCount() === 1;
     }
+
+    /**
+     * Guarda la contraseña nueva (solo el hash) de una persona.
+     *
+     * No toca debe_cambiar_contrasena: la base lo baja a 0 sola cuando la conexión tiene
+     * @app_id_usuario igual a este id (la persona cambia SU contraseña) y lo sube a 1 si otro la cambia.
+     *
+     * @param int    $id   Id del usuario.
+     * @param string $hash Resultado de password_hash().
+     * @return void
+     */
+    public function cambiarContrasena(int $id, string $hash): void
+    {
+        $this->baseDatos->pdo()->prepare('UPDATE usuarios SET password_hash = ? WHERE id_usuario = ?')->execute([$hash, $id]);
+    }
 }

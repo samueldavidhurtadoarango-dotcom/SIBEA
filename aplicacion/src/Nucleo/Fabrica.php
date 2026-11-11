@@ -20,12 +20,14 @@ declare(strict_types=1);
 namespace BenefitRack\Nucleo;
 
 use BenefitRack\Controladores\AccesoControlador;
+use BenefitRack\Controladores\ContrasenaControlador;
 use BenefitRack\Filtros\FiltroCsrf;
 use BenefitRack\Filtros\FiltroPrimerIngreso;
 use BenefitRack\Filtros\FiltroRol;
 use BenefitRack\Filtros\FiltroSesion;
 use BenefitRack\Repositorios\RepositorioUsuarios;
 use BenefitRack\Servicios\ServicioAcceso;
+use BenefitRack\Servicios\ServicioContrasena;
 use InvalidArgumentException;
 
 final class Fabrica
@@ -64,6 +66,13 @@ final class Fabrica
                 $this->sesion(),
                 $this->vista(),
                 new ServicioAcceso(new RepositorioUsuarios($this->baseDatosParaIngreso()))
+            ),
+            // El cambio de contraseña usa baseDatos(): la sesión fija @app_id_usuario = la propia persona,
+            // y solo así la base baja debe_cambiar_contrasena a 0.
+            ContrasenaControlador::class => new ContrasenaControlador(
+                $this->sesion(),
+                $this->vista(),
+                new ServicioContrasena(new RepositorioUsuarios($this->baseDatos()))
             ),
             default => throw new InvalidArgumentException("No sé crear el controlador: $claseControlador"),
         };

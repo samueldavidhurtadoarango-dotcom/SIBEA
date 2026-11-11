@@ -67,6 +67,37 @@
     ojo.setAttribute('aria-label', visible ? 'Ocultar contraseña' : 'Mostrar contraseña');
   });
 
+  // Reglas de la contraseña nueva, marcadas mientras la persona escribe (pantalla «Crea tu contraseña»).
+  // Son las mismas que valida el servidor (ValidadorContrasena.php); el servidor es quien decide de verdad.
+  var REGLAS_CLAVE = {
+    longitud: function (texto) { return Array.from(texto).length >= 8; },
+    mayuscula: function (texto) { return /\p{Lu}/u.test(texto); },
+    minuscula: function (texto) { return /\p{Ll}/u.test(texto); },
+    numero: function (texto) { return /[0-9]/.test(texto); }
+  };
+  // Trazo del ícono y texto para lectores de pantalla de cada estado (el color solo no basta).
+  var MARCAS_REGLA = {
+    cumplida: { trazo: 'm8 12.5 3 3 5-6', aviso: 'Cumplida: ' },
+    pendiente: { trazo: '', aviso: 'Pendiente: ' }
+  };
+
+  function marcarReglas(formulario) {
+    var texto = formulario.querySelector('[data-campo-nueva]').value;
+    formulario.querySelectorAll('[data-regla]').forEach(function (regla) {
+      var estado = REGLAS_CLAVE[regla.dataset.regla](texto) ? 'cumplida' : 'pendiente';
+      regla.dataset.estado = estado;
+      regla.querySelector('[data-marca]').setAttribute('d', MARCAS_REGLA[estado].trazo);
+      regla.querySelector('[data-aviso]').textContent = MARCAS_REGLA[estado].aviso;
+    });
+  }
+
+  document.addEventListener('input', function (evento) {
+    var campo = evento.target;
+    if (campo instanceof HTMLInputElement && campo.hasAttribute('data-campo-nueva')) {
+      marcarReglas(campo.form);
+    }
+  });
+
   // 2. Los avisos de éxito se ocultan a los 6 segundos.
   document.querySelectorAll('.br-alerta--exito').forEach(function (alerta) {
     setTimeout(function () { alerta.hidden = true; }, 6000);

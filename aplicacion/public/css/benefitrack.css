@@ -366,3 +366,30 @@ textarea:focus-visible, summary:focus-visible, [tabindex]:focus-visible {
 .br-aviso-ingreso--error { background: var(--br-rojo-fondo); border-color: #F2C4C0; color: #8A2C26; }
 .br-aviso-ingreso--bloqueada { background: #EAF2F8; border-color: var(--br-chip-borde); color: var(--br-azul); }
 .br-aviso-ingreso--inactiva { background: var(--br-antiguedad-fondo); border-color: #F3DF9C; color: var(--br-pendiente-texto); }
+
+
+/* ---------- Cambio de contraseña (maqueta 02-contrasena): encabezado, botón, errores y estado de éxito ---------- */
+.br-acceso__encabezado { display: grid; gap: 6px; }
+.br-acceso__encabezado p { color: var(--br-gris); line-height: 1.5; }
+.br-acceso__encabezado .br-acceso__cuenta { font-size: 14px; overflow-wrap: anywhere; }
+.br-acceso__formulario { display: grid; gap: 20px; }
+.br-acceso__estado { display: grid; gap: 16px; justify-items: start; }
+.br-acceso__sello { width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--br-verde-claro); color: var(--br-verde); }
+.br-acceso__sello svg { width: 28px; height: 28px; }
+.br-acceso__ayuda { margin: 0; padding-top: 20px; border-top: 1px solid var(--br-fondo-3); display: flex; align-items: flex-start; gap: 10px; font-size: 14px; color: var(--br-gris); }
+.br-acceso__ayuda svg { flex: none; width: 18px; height: 18px; margin-top: 2px; }
+.br-boton {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 52px; padding: 0 18px; border: 1px solid transparent; border-radius: 10px;
+  font-size: 16px; font-weight: 600; text-decoration: none; cursor: pointer;
+}
+.br-boton--primario { background: var(--br-verde); border-color: var(--br-verde); color: var(--br-blanco); }
+.br-boton--primario:hover { background: var(--br-verde-hover); border-color: var(--br-verde-hover); }
+.br-boton--ancho { width: 100%; }
+.br-error-campo { display: flex; align-items: flex-start; gap: 6px; margin: 0; color: var(--br-rojo-texto); font-size: 14px; font-weight: 500; }
+.br-error-campo svg { flex: none; width: 16px; height: 16px; margin-top: 3px; }
+.br-resumen-errores { padding: 14px 16px; background: var(--br-rojo-fondo); border: 1px solid var(--br-rojo); border-left-width: 4px; border-radius: 10px; color: var(--br-rojo-texto); display: grid; gap: 8px; }
+.br-resumen-errores h2 { font-size: 17px; color: var(--br-rojo-texto); }
+.br-resumen-errores ul { margin: 0; padding-left: 20px; display: grid; gap: 2px; }
+.br-resumen-errores a { color: var(--br-rojo-texto); font-weight: 600; display: inline-flex; align-items: center; min-height: 32px; text-underline-offset: 3px; }
+.br-acceso .br-campo input[aria-invalid="true"] { border-color: var(--br-rojo); border-width: 2px; }
