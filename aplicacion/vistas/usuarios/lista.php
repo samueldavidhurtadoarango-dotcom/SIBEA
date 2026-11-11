@@ -48,7 +48,7 @@ $icono = '<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="curren
 
 <section class="br-tarjeta br-listado" aria-label="Lista de aprendices">
     <div class="br-listado__herramientas">
-        <form method="get" action="/admin/usuarios" role="search" class="br-filtros">
+        <form method="get" action="/admin/usuarios" role="search" class="br-filtros br-filtros--buscar">
             <div class="br-buscador">
                 <label for="buscar" class="br-solo-lectores">Buscar por nombre, documento o correo</label>
                 <?= $icono ?><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>

@@ -534,6 +534,7 @@ textarea:focus-visible, summary:focus-visible, [tabindex]:focus-visible {
 .br-listado .br-tabla-envoltura { border-top: 1px solid var(--br-borde);}
 .br-listado > .br-vacio { margin: 0 20px 20px;}
 .br-filtros { display: grid; grid-template-columns: minmax(220px, 1.4fr) repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; align-items: end;}
+.br-filtros--buscar { grid-template-columns: minmax(0, 1fr) auto;}
 .br-buscador { position: relative;}
 .br-buscador svg { position: absolute; left: 14px; top: 50%; width: 18px; height: 18px; transform: translateY(-50%); color: var(--br-gris); pointer-events: none;}
 .br-buscador .br-entrada { padding-left: 42px;}
@@ -646,7 +647,7 @@ textarea:focus-visible, summary:focus-visible, [tabindex]:focus-visible {
 }
 .br-formulario > .br-campo { align-content: start;}
 .br-tabla__cupos { min-width: 128px;}
-.br-tabla__cupos .br-progreso { width: 112px; max-width: 100%; margin: 6px 0 4px;}
+.br-tabla__cupos .br-progreso { display: block; width: 112px; max-width: 100%; margin: 6px 0 4px;}
 .br-tabla__cupos--lleno .br-cifra, .br-tabla__cupos--lleno .br-tabla__sub { color: var(--br-rojo-texto);}
 .br-tabla__cupos--lleno .br-cifra { font-weight: 600;}
 .br-tabla__cupos--lleno .br-progreso { color: var(--br-rojo);}
