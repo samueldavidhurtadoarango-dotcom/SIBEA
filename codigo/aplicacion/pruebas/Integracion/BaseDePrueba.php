@@ -52,10 +52,8 @@ abstract class BaseDePrueba extends TestCase
             throw new RuntimeException('BR_PRUEBA_BD_PUERTO debe ser ' . self::PUERTO_PERMITIDO . ' (la base temporal de pruebas). Se rechaza el puerto ' . self::puerto() . ' para no borrar la base real.');
         }
 
-        $carpeta = dirname(__DIR__, 3) . '/base-de-datos/';
-        foreach (['benefitrack_v2.sql', 'datos_iniciales.sql', 'usuario_aplicacion.sql'] as $script) {
-            self::cargarScript($carpeta . $script);
-        }
+        // Un solo script crea todo: tablas, reglas, catálogos y el usuario benefitrack_app.
+        self::cargarScript(dirname(__DIR__, 3) . '/base-de-datos/benefitrack_v2.sql');
         self::$pdoRoot = null; // la base se recreó: la conexión vieja ya no sirve
     }
 
@@ -69,7 +67,7 @@ abstract class BaseDePrueba extends TestCase
             'puerto' => (int) self::puerto(),
             'nombre' => 'benefitrack_v2',
             'usuario' => 'benefitrack_app',
-            'clave' => 'CAMBIE_ESTA_CLAVE', // la que trae usuario_aplicacion.sql
+            'clave' => 'CAMBIE_ESTA_CLAVE', // la clave de ejemplo que trae benefitrack_v2.sql
         ]]);
     }
 

@@ -8,7 +8,7 @@ VALUES (5, 'CONC-ADM', 'Ana', 'Admin', 'adm@conc.test', 'hash', 1),
        (21, 'CONC-A1', 'Aprendiz', 'Uno', 'a1@conc.test', 'hash', 2),
        (22, 'CONC-A2', 'Aprendiz', 'Dos', 'a2@conc.test', 'hash', 2),
        (23, 'CONC-A3', 'Aprendiz', 'Tres', 'a3@conc.test', 'hash', 2);
--- Sin id fijo: si ya se cargó datos_iniciales.sql, el id 1 ya está ocupado.
+-- Sin id fijo: benefitrack_v2.sql ya carga los beneficios iniciales (ids 1 a 3).
 INSERT INTO beneficios (id_institucion, nombre, descripcion, categoria)
 VALUES (1, 'Beneficio concurrencia', 'Prueba', 'Alimentación');
 SET @ben_conc = LAST_INSERT_ID();
