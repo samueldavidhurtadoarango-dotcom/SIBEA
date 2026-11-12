@@ -13,6 +13,13 @@
  *
  * Los datos de conexión (host, puerto y nombre de la base) salen de config/config.local.php;
  * el usuario es siempre root y su clave se pregunta (en XAMPP suele estar vacía: Enter).
+ * La contraseña debe cumplir las mismas 4 reglas que en la aplicación (ValidadorContrasena, regla R11):
+ * mínimo 8 caracteres, una mayúscula, una minúscula y un número; se pide dos veces.
+ *
+ * LIMITACIÓN CONOCIDA: lo que se escribe como contraseña SE VE en la pantalla. En Windows, PHP no trae una forma
+ * fiable de apagar el eco de la consola (en Linux sería `stty -echo`), y no se quiso depender de PowerShell ni de
+ * extensiones. Por eso: ejecútala en un computador de confianza, sin nadie mirando, y cierra la consola al terminar
+ * (puedes borrar su historial). Después de ingresar, cambia la contraseña desde la aplicación si lo prefieres.
  * Solo corre en consola, nunca desde el navegador.
  */
 
@@ -25,6 +32,7 @@ if (PHP_SAPI !== 'cli') {
 require dirname(__DIR__) . '/vendor/autoload.php';
 
 use BenefitRack\Nucleo\Configuracion;
+use BenefitRack\Validacion\ValidadorContrasena;
 
 /** Pregunta un dato por consola y devuelve lo que se escribió (sin espacios sobrantes). */
 function preguntar(string $pregunta): string
@@ -32,6 +40,20 @@ function preguntar(string $pregunta): string
     echo $pregunta . ': ';
 
     return trim((string) fgets(STDIN));
+}
+
+/**
+ * Comprueba la contraseña con las mismas reglas que la aplicación (ValidadorContrasena) y termina si no las cumple.
+ *
+ * @param string $clave        La contraseña escrita.
+ * @param string $confirmacion La misma contraseña, escrita otra vez.
+ */
+function validarClave(string $clave, string $confirmacion): void
+{
+    $resultado = (new ValidadorContrasena())->validar($clave, $confirmacion);
+    if (!$resultado->esValido()) {
+        exit(implode("\n", $resultado->errores()) . "\n");
+    }
 }
 
 /**
@@ -46,7 +68,7 @@ function pedirDatos(): array
         'nombre' => preguntar('Nombre'),
         'apellido' => preguntar('Apellido'),
         'correo' => strtolower(preguntar('Correo')),
-        'clave' => preguntar('Contraseña (mínimo 8 caracteres; se verá al escribirla)'),
+        'clave' => preguntar('Contraseña (mínimo 8 caracteres, con mayúscula, minúscula y número; se verá al escribirla)'),
     ];
 
     if (!ctype_digit($datos['documento']) || $datos['nombre'] === '' || $datos['apellido'] === '') {
@@ -55,9 +77,7 @@ function pedirDatos(): array
     if (filter_var($datos['correo'], FILTER_VALIDATE_EMAIL) === false) {
         exit("El correo no tiene forma de correo.\n");
     }
-    if (strlen($datos['clave']) < 8) {
-        exit("La contraseña debe tener al menos 8 caracteres.\n");
-    }
+    validarClave($datos['clave'], preguntar('Repite la contraseña'));
 
     return $datos;
 }
