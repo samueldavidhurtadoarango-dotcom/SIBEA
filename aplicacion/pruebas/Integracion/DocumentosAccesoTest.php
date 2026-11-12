@@ -72,7 +72,8 @@ final class DocumentosAccesoTest extends BaseDePrueba
 
         $this->assertSame(200, $respuesta->codigo());
         $this->assertSame('application/pdf', $respuesta->cabecera('Content-Type'));
-        $this->assertStringStartsWith('inline;', (string) $respuesta->cabecera('Content-Disposition'));
+        // Los PDF se entregan como descarga (decisión R19: el sandbox impide verlos en línea).
+        $this->assertStringStartsWith('attachment;', (string) $respuesta->cabecera('Content-Disposition'));
         $this->assertSame('nosniff', $respuesta->cabecera('X-Content-Type-Options'));
     }
 
