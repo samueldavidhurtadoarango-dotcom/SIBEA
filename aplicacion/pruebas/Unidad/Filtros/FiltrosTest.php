@@ -17,6 +17,7 @@ use BenefitRack\Nucleo\Peticion;
 use BenefitRack\Nucleo\Respuesta;
 use BenefitRack\Nucleo\Sesion;
 use BenefitRack\Nucleo\Vista;
+use BenefitRack\Repositorios\RepositorioUsuarios;
 use PHPUnit\Framework\TestCase;
 
 final class FiltrosTest extends TestCase
@@ -37,9 +38,18 @@ final class FiltrosTest extends TestCase
         return new Peticion($metodo, $ruta, $campos, [], '127.0.0.1');
     }
 
+    /** El filtro de sesión con un repositorio falso que dice que la persona sigue activa y con su rol. */
+    private function filtroSesion(): FiltroSesion
+    {
+        $repositorio = $this->createMock(RepositorioUsuarios::class);
+        $repositorio->method('estadoParaSesion')->willReturn(['estado' => 'Activo', 'rol' => 'Aprendiz', 'debe_cambiar_contrasena' => 0]);
+
+        return new FiltroSesion($this->sesion, fn (): RepositorioUsuarios => $repositorio);
+    }
+
     public function test_sin_sesion_redirige_a_ingresar_con_mensaje(): void
     {
-        $respuesta = (new FiltroSesion($this->sesion))->aplicar($this->peticion('GET', '/mi-proceso'));
+        $respuesta = $this->filtroSesion()->aplicar($this->peticion('GET', '/mi-proceso'));
 
         $this->assertNotNull($respuesta);
         $this->assertSame('/ingresar', $respuesta->destino());
@@ -51,7 +61,7 @@ final class FiltrosTest extends TestCase
     {
         $this->sesion->iniciarPara(3, 'Aprendiz', false);
 
-        $this->assertNull((new FiltroSesion($this->sesion))->aplicar($this->peticion('GET', '/mi-proceso')));
+        $this->assertNull($this->filtroSesion()->aplicar($this->peticion('GET', '/mi-proceso')));
     }
 
     public function test_un_aprendiz_en_ruta_de_admin_recibe_403(): void

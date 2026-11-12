@@ -139,7 +139,7 @@ final class PrimerIngresoTest extends BaseDePrueba
 
     public function test_un_administrador_va_a_postulaciones_despues_del_cambio(): void
     {
-        $id = $this->crearAdmin();
+        $id = $this->crearAdminConContrasenaTemporal();
         $fabrica = $this->fabrica();
         $fabrica->sesion()->iniciarPara($id, 'Administrador', true, 'Admin');
 

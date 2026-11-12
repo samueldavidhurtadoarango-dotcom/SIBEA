@@ -197,7 +197,8 @@ final class AccesoTest extends BaseDePrueba
     public function test_salir_cierra_la_sesion_y_vuelve_a_ingresar(): void
     {
         $fabrica = $this->fabrica();
-        $fabrica->sesion()->iniciarPara(3, 'Aprendiz', false);
+        $id = $this->crearAprendiz(); // la sesión se revalida contra la base: el usuario debe existir
+        $fabrica->sesion()->iniciarPara($id, 'Aprendiz', false);
 
         $respuesta = $this->enviar($fabrica, 'POST', '/salir', ['_csrf' => Csrf::token()]);
 
@@ -208,12 +209,13 @@ final class AccesoTest extends BaseDePrueba
     public function test_salir_sin_token_es_403_y_no_cierra_la_sesion(): void
     {
         $fabrica = $this->fabrica();
-        $fabrica->sesion()->iniciarPara(3, 'Aprendiz', false);
+        $id = $this->crearAprendiz(); // la sesión se revalida contra la base: el usuario debe existir
+        $fabrica->sesion()->iniciarPara($id, 'Aprendiz', false);
 
         $respuesta = $this->enviar($fabrica, 'POST', '/salir');
 
         $this->assertSame(403, $respuesta->codigo());
-        $this->assertSame(3, $fabrica->sesion()->idUsuario());
+        $this->assertSame($id, $fabrica->sesion()->idUsuario());
     }
 
     public function test_un_post_a_ingresar_con_la_sesion_vencida_vuelve_al_formulario_con_aviso(): void

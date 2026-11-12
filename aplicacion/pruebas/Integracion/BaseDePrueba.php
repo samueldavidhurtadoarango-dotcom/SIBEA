@@ -102,6 +102,18 @@ abstract class BaseDePrueba extends TestCase
         return $this->insertarUsuario(2, $datos + ['debe_cambiar_contrasena' => 0]);
     }
 
+
+    /**
+     * Crea un administrador con contraseña temporal (debe_cambiar_contrasena = 1): la base solo lo deja así
+     * cuando lo crea OTRO administrador, por eso el alta se hace a nombre de uno que ya existe.
+     *
+     * @return int El id del nuevo administrador.
+     */
+    protected function crearAdminConContrasenaTemporal(): int
+    {
+        return $this->insertarUsuario(1, ['debe_cambiar_contrasena' => 1], $this->crearAdmin());
+    }
+
     /**
      * Crea una convocatoria Activa del beneficio 1 (Alimentación), abierta desde ayer por 30 días.
      *
@@ -125,7 +137,7 @@ abstract class BaseDePrueba extends TestCase
      *
      * @param array<string, string|int|null> $cambios
      */
-    private function insertarUsuario(int $idRol, array $cambios): int
+    private function insertarUsuario(int $idRol, array $cambios, ?int $idActor = null): int
     {
         $sufijo = bin2hex(random_bytes(4));
         $columnas = $cambios + [
@@ -138,7 +150,7 @@ abstract class BaseDePrueba extends TestCase
         ];
 
         $pdo = $this->pdoRoot();
-        $pdo->exec('SET @app_id_usuario = NULL');
+        $pdo->exec('SET @app_id_usuario = ' . ($idActor ?? 'NULL')); // un entero: no hay nada que inyectar
         $nombres = implode(', ', array_keys($columnas));
         $marcas = implode(', ', array_fill(0, count($columnas), '?'));
         $pdo->prepare("INSERT INTO usuarios ($nombres) VALUES ($marcas)")->execute(array_values($columnas));
