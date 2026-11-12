@@ -34,15 +34,15 @@ Puede hacerse a mano abriendo dos consolas de `mysql` (por ejemplo, dos ventanas
 
 1. En cualquiera de las dos: ejecutar `benefitrack_v2.sql` y luego `preparar.sql`.
 2. **Prueba B1**
-   1. Consola A: `source base-de-datos/pruebas/concurrencia/b1_sesion_a.sql` (queda esperando 4 s).
-   2. Antes de que pasen los 4 s, consola B: `source base-de-datos/pruebas/concurrencia/b1_sesion_b.sql`.
-   3. Al terminar ambas: `source base-de-datos/pruebas/concurrencia/b1_resultado.sql`.
+   1. Consola A: `source codigo/base-de-datos/pruebas/concurrencia/b1_sesion_a.sql` (queda esperando 4 s).
+   2. Antes de que pasen los 4 s, consola B: `source codigo/base-de-datos/pruebas/concurrencia/b1_sesion_b.sql`.
+   3. Al terminar ambas: `source codigo/base-de-datos/pruebas/concurrencia/b1_resultado.sql`.
 3. **Prueba I1**: igual con `i1_sesion_a.sql`, `i1_sesion_b.sql` e `i1_resultado.sql`.
 
 O de una vez, desde Git Bash:
 
 ```sh
-sh base-de-datos/pruebas/concurrencia/ejecutar.sh "/c/xampp/mysql/bin/mysql.exe -u root -P 3306 -h 127.0.0.1"
+sh codigo/base-de-datos/pruebas/concurrencia/ejecutar.sh "/c/xampp/mysql/bin/mysql.exe -u root -P 3306 -h 127.0.0.1"
 ```
 
 ## Resultado real ANTES de la corrección

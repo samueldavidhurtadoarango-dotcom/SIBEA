@@ -90,8 +90,8 @@ exactamente `aplicacion/public`.
 Listen 8080
 <VirtualHost *:8080>
     ServerName localhost
-    DocumentRoot "C:/Users/TU_USUARIO/BenefitRack/aplicacion/public"
-    <Directory "C:/Users/TU_USUARIO/BenefitRack/aplicacion/public">
+    DocumentRoot "C:/Users/TU_USUARIO/BenefitRack/codigo/aplicacion/public"
+    <Directory "C:/Users/TU_USUARIO/BenefitRack/codigo/aplicacion/public">
         Require all granted
         # Toda dirección que no sea un archivo real (css, js) la atiende index.php.
         FallbackResource /index.php
@@ -106,7 +106,7 @@ Reinicia Apache y abre <http://localhost:8080>.
 **Opción B: el servidor de prueba de PHP** (la más simple para estudiar):
 
 ```
-cd aplicacion
+cd codigo\aplicacion
 php -S 127.0.0.1:8080 -t public
 ```
 
@@ -180,7 +180,7 @@ servicio → repositorio → BD → vista → respuesta.
 | `pruebas/` | `Unidad/` (sin base de datos) e `Integracion/` (con una MariaDB temporal). |
 
 Cuando un comentario de `vistas/` dice, por ejemplo, «Reproduce la maqueta 09-postulacion/formulario»,
-se refiere a esa pantalla aprobada, que aparece en el catálogo `../entregables/Pantallas_BenefitRack.pdf`.
+se refiere a esa pantalla aprobada, que aparece en el catálogo `../../documentacion/entregables/Pantallas_BenefitRack.pdf`.
 
 Reglas de comentarios del proyecto: cada archivo empieza con un bloque que dice qué hace y en qué paso
 del recorrido está; cada método público lleva `/** ... */` con qué recibe y qué devuelve; se comentan
@@ -250,4 +250,4 @@ Servicios 95,9 %, Validacion 99,5 %.
 Pagos, reporte de aprobados, avisos (campanita) y correos, pedir un documento adicional al aprendiz,
 recuperar la contraseña por correo, el dashboard con cifras, auditoría y catálogos en pantalla. Por
 ahora, si alguien olvida su contraseña, el administrador se la restablece desde **Usuarios**. Todas
-las pantallas de la fase 2 ya están diseñadas en `../entregables/Pantallas_BenefitRack.pdf`.
+las pantallas de la fase 2 ya están diseñadas en `../../documentacion/entregables/Pantallas_BenefitRack.pdf`.

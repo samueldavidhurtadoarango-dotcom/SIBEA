@@ -3,7 +3,7 @@
 -- Proyecto formativo SENA (ADSO) - Gestión de beneficios para aprendices
 -- =====================================================================
 -- Compatible con MariaDB 10.4 (XAMPP) y MariaDB 11.x.
--- Fuente de verdad: specs/001-correccion-entregables.md (decisiones D1-D19).
+-- Fuente de verdad: documentacion/specs/001-correccion-entregables.md (decisiones D1-D19).
 --
 -- Variables de sesión que usa la base de datos (las fija la aplicación
 -- al abrir cada conexión):

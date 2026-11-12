@@ -1,19 +1,19 @@
 *.tmp
 ~$*
-base-de-datos/pruebas/concurrencia/*.out
+codigo/base-de-datos/pruebas/concurrencia/*.out
 
 # Bocetos de la sesión de brainstorming
 .superpowers/
 
 # Aplicación PHP
-aplicacion/vendor/
-aplicacion/config/config.local.php
-aplicacion/.phpunit.cache/
-aplicacion/.php-cs-fixer.cache
-aplicacion/almacenamiento/documentos/*
-!aplicacion/almacenamiento/documentos/.gitkeep
-aplicacion/almacenamiento/temporal/*
-!aplicacion/almacenamiento/temporal/.gitkeep
-aplicacion/almacenamiento/sesiones/*
-!aplicacion/almacenamiento/sesiones/.gitkeep
-aplicacion/.phpunit.result.cache
+codigo/aplicacion/vendor/
+codigo/aplicacion/config/config.local.php
+codigo/aplicacion/.phpunit.cache/
+codigo/aplicacion/.php-cs-fixer.cache
+codigo/aplicacion/almacenamiento/documentos/*
+!codigo/aplicacion/almacenamiento/documentos/.gitkeep
+codigo/aplicacion/almacenamiento/temporal/*
+!codigo/aplicacion/almacenamiento/temporal/.gitkeep
+codigo/aplicacion/almacenamiento/sesiones/*
+!codigo/aplicacion/almacenamiento/sesiones/.gitkeep
+codigo/aplicacion/.phpunit.result.cache
