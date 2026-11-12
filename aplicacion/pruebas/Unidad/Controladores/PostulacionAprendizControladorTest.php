@@ -232,6 +232,19 @@ final class PostulacionAprendizControladorTest extends TestCase
         $this->assertArrayNotHasKey('postulacion_pendiente', $_SESSION);
     }
 
+    public function test_una_convocatoria_inactiva_da_404_en_formulario_revisar_y_enviar(): void
+    {
+        $inactiva = ['estado' => 'Inactiva'] + $this->convocatoria();
+        $convocatorias = $this->createMock(RepositorioConvocatorias::class);
+        $convocatorias->method('buscar')->willReturn($inactiva);
+        $convocatorias->method('abierta')->willReturn(false);
+        $controlador = $this->controladorCon($convocatorias);
+
+        $this->assertSame(404, $controlador->formulario($this->get())->codigo());
+        $this->assertSame(404, $controlador->revisar($this->post($this->camposBuenos(), $this->archivosBuenos()))->codigo());
+        $this->assertSame(404, $controlador->enviar($this->post([], []))->codigo());
+    }
+
     public function test_un_post_con_errores_descarta_tambien_la_revision_anterior(): void
     {
         $this->controlador->revisar($this->post($this->camposBuenos(), $this->archivosBuenos()));

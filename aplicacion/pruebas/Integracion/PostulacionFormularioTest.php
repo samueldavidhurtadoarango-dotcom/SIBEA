@@ -122,14 +122,14 @@ final class PostulacionFormularioTest extends BaseDePrueba
         $this->assertStringContainsString('Revisar y enviar', $respuesta->cuerpo());
     }
 
-    public function test_una_convocatoria_inactiva_muestra_cerrada(): void
+    public function test_una_convocatoria_inactiva_es_404(): void
     {
         $id = $this->crearConvocatoriaActiva();
         $this->ajustarConvocatoria($id, "estado = 'Inactiva'");
 
-        $cuerpo = $this->enviar($this->fabricaDeAprendiz(), 'GET', "/convocatorias/$id/postulacion")->cuerpo();
+        $respuesta = $this->enviar($this->fabricaDeAprendiz(), 'GET', "/convocatorias/$id/postulacion");
 
-        $this->assertStringContainsString('Esta convocatoria ya cerró', $cuerpo);
+        $this->assertSame(404, $respuesta->codigo());
     }
 
     public function test_una_convocatoria_que_no_existe_es_404(): void

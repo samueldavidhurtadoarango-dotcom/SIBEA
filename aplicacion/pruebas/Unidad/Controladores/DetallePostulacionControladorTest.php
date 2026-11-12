@@ -142,6 +142,8 @@ final class DetallePostulacionControladorTest extends TestCase
         $cuerpo = $this->mostrar('Pendiente', ['Validado', 'Validado', 'Rechazado']);
 
         $this->assertStringContainsString('solo se puede rechazar', $cuerpo);
+        // R17: la marca «No válido» se puede corregir mientras la postulación siga Pendiente.
+        $this->assertStringContainsString('corregir esa marca a «Válido»', $cuerpo);
         $this->assertStringContainsString('Foto borrosa', $cuerpo);
         $this->assertMatchesRegularExpression('/data-prueba="confirmar-datos"[^>]*disabled/', $cuerpo);
         $this->assertStringNotContainsString('Pedir documento', $cuerpo);
