@@ -54,10 +54,10 @@ final class SesionRevalidadaTest extends BaseDePrueba
         $repositorio = new RepositorioUsuarios($bd);
 
         $estado = $repositorio->estadoParaSesion($id);
-
-        $this->assertSame('Activo', $estado['estado'] ?? null);
-        $this->assertSame('Aprendiz', $estado['rol'] ?? null);
-        $this->assertSame(1, (int) ($estado['debe_cambiar_contrasena'] ?? -1));
+        $this->assertNotNull($estado);
+        $this->assertSame('Activo', $estado['estado']);
+        $this->assertSame('Aprendiz', $estado['rol']);
+        $this->assertSame(1, (int) $estado['debe_cambiar_contrasena']);
         $this->assertNull($repositorio->estadoParaSesion(999999));
     }
 
