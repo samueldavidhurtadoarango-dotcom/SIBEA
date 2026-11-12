@@ -2,28 +2,16 @@
 
 /**
  * PUNTO DE ENTRADA: toda petición del navegador llega primero aquí.
- * Arma la aplicación, la ejecuta y envía la respuesta.
+ * Carga las librerías y le pasa la carpeta de la aplicación a Arranque, que arma todo, atiende la petición
+ * y, si el arranque falla, responde una página 500 sencilla (el detalle va solo al error_log).
+ * En producción, php.ini debe tener display_errors=Off (ver LEEME.md).
  */
 
 declare(strict_types=1);
 
-use BenefitRack\Nucleo\{Aplicacion, Configuracion, Enrutador, Fabrica, Peticion, ZonaHoraria};
+use BenefitRack\Nucleo\Arranque;
 
 $raiz = dirname(__DIR__);
 require $raiz . '/vendor/autoload.php';
 
-$configuracion = Configuracion::desdeArchivo($raiz . '/config/config.local.php');
-// La hora de PHP debe ser la de Colombia (XAMPP trae la de Berlín).
-ZonaHoraria::aplicar($configuracion);
-$peticion = Peticion::desdeGlobales();
-
-// La fábrica reparte la sesión, la vista, la conexión y los controladores.
-$fabrica = new Fabrica($configuracion, $raiz . '/vistas', $peticion->ip());
-$fabrica->sesion()->iniciar();
-
-// La tabla de rutas usa la fábrica para pedir sus filtros (sesión, rol, CSRF...).
-$enrutador = new Enrutador();
-(require $raiz . '/rutas.php')($enrutador, $fabrica);
-
-$aplicacion = new Aplicacion($enrutador, $fabrica->vista(), $configuracion, $fabrica);
-$aplicacion->ejecutar($peticion)->enviar();
+Arranque::atender($raiz)->enviar();
