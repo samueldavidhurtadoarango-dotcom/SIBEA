@@ -60,4 +60,21 @@ final class Configuracion
 
         return $valor;
     }
+
+    /**
+     * Como obtener(), pero si la clave no existe devuelve un valor por defecto en vez de fallar.
+     * Sirve para ajustes opcionales (zona horaria, tiempos de la sesión).
+     *
+     * @param string $clave      Clave con punto, por ejemplo "app.zona_horaria".
+     * @param mixed  $porDefecto Lo que se devuelve si la clave no está en el archivo.
+     * @return mixed El valor guardado o el de por defecto.
+     */
+    public function obtenerOpcional(string $clave, mixed $porDefecto): mixed
+    {
+        try {
+            return $this->obtener($clave);
+        } catch (InvalidArgumentException) {
+            return $porDefecto;
+        }
+    }
 }

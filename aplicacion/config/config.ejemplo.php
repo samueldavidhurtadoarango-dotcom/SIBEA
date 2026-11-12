@@ -21,5 +21,7 @@ return [
         'url_base' => 'http://localhost:8080',
         // true solo en tu computador: muestra el detalle de los errores.
         'depuracion' => false,
+        // Zona horaria de PHP (XAMPP trae Europe/Berlin; sin esta clave se usa America/Bogota).
+        'zona_horaria' => 'America/Bogota',
     ],
 ];

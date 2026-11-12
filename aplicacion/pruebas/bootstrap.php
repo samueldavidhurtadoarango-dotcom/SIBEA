@@ -13,3 +13,6 @@ declare(strict_types=1);
 require dirname(__DIR__) . '/vendor/autoload.php';
 
 error_reporting(E_ALL);
+
+// Las pruebas corren con la misma hora que la aplicación (XAMPP trae «Europe/Berlin»).
+BenefitRack\Nucleo\ZonaHoraria::aplicar(new BenefitRack\Nucleo\Configuracion([]));
