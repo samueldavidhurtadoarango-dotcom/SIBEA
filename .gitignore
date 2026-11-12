@@ -4,3 +4,16 @@ base-de-datos/pruebas/concurrencia/*.out
 
 # Bocetos de la sesión de brainstorming
 .superpowers/
+
+# Aplicación PHP
+aplicacion/vendor/
+aplicacion/config/config.local.php
+aplicacion/.phpunit.cache/
+aplicacion/.php-cs-fixer.cache
+aplicacion/almacenamiento/documentos/*
+!aplicacion/almacenamiento/documentos/.gitkeep
+aplicacion/almacenamiento/temporal/*
+!aplicacion/almacenamiento/temporal/.gitkeep
+aplicacion/almacenamiento/sesiones/*
+!aplicacion/almacenamiento/sesiones/.gitkeep
+aplicacion/.phpunit.result.cache

@@ -93,6 +93,13 @@ END//
 
 DELIMITER ;
 
+-- Cuántos datos iniciales hay ANTES de que las pruebas creen los suyos
+-- (los casos R14 a R16 los comparan). Antes de ejecutar este archivo se
+-- carga datos_iniciales.sql DOS veces (ver README.md).
+SELECT COUNT(*) INTO @ini_beneficios FROM beneficios;
+SELECT COUNT(*) INTO @ini_bancos     FROM entidades_bancarias;
+SELECT COUNT(*) INTO @ini_programas  FROM programas;
+
 -- =====================================================================
 -- Bloque A. Estructura del script (CA1, D7, D10, D11, D12)
 -- =====================================================================
@@ -2014,6 +2021,108 @@ CALL pr_esperar_exito('Q44', 'Un administrador actualiza los contadores de la mi
 
 SET @app_id_usuario = 5;
 SET @app_justificacion = 'Cambio hecho por las pruebas automáticas';
+
+-- =====================================================================
+-- Bloque R. Primer ingreso y datos iniciales (D20)
+-- =====================================================================
+-- Dos aprendices nuevos, creados por root sin sesión (como la semilla).
+SET @app_id_usuario = NULL;
+INSERT INTO usuarios (documento, nombre, apellido, correo, password_hash, id_rol)
+VALUES ('PRUEBA-R20-A1', 'Aprendiz', 'Veinte Uno', 'r20a1@benefitrack.test', 'hash-vieja', @rol_aprendiz);
+SET @r20a1 = LAST_INSERT_ID();
+INSERT INTO usuarios (documento, nombre, apellido, correo, password_hash, id_rol)
+VALUES ('PRUEBA-R20-A2', 'Aprendiz', 'Veinte Dos', 'r20a2@benefitrack.test', 'hash-vieja', @rol_aprendiz);
+SET @r20a2 = LAST_INSERT_ID();
+
+CALL pr_verificar('R01', 'Un usuario nuevo nace con debe_cambiar_contrasena = 1',
+  (SELECT debe_cambiar_contrasena = 1 FROM usuarios WHERE id_usuario = @r20a1),
+  'Se lee debe_cambiar_contrasena del usuario recién creado');
+
+-- Primer administrador: root sin sesión puede crearlo sin obligación de cambiar la clave.
+INSERT INTO usuarios (documento, nombre, apellido, correo, password_hash, id_rol, debe_cambiar_contrasena)
+VALUES ('PRUEBA-R20-ADM', 'Admin', 'Primero', 'r20adm@benefitrack.test', 'hash-adm', @rol_admin, 0);
+SET @r20adm = LAST_INSERT_ID();
+CALL pr_verificar('R02', 'root, sin sesión, crea el primer administrador con debe_cambiar_contrasena = 0',
+  (SELECT debe_cambiar_contrasena = 0 FROM usuarios WHERE id_usuario = @r20adm),
+  'Se lee debe_cambiar_contrasena del administrador creado por root');
+
+-- Un administrador con sesión no puede saltarse el primer ingreso de un aprendiz.
+SET @app_id_usuario = 5;
+INSERT INTO usuarios (documento, nombre, apellido, correo, password_hash, id_rol, debe_cambiar_contrasena)
+VALUES ('PRUEBA-R20-A3', 'Aprendiz', 'Veinte Tres', 'r20a3@benefitrack.test', 'hash-vieja', @rol_aprendiz, 0);
+SET @r20a3 = LAST_INSERT_ID();
+CALL pr_verificar('R03', 'Con sesión, un usuario nuevo nace con debe_cambiar_contrasena = 1 aunque llegue en 0',
+  (SELECT debe_cambiar_contrasena = 1 FROM usuarios WHERE id_usuario = @r20a3),
+  'Se lee debe_cambiar_contrasena del usuario creado con sesión');
+
+-- El propio usuario cambia su contraseña: la obligación se apaga.
+SET @app_id_usuario = @r20a1;
+CALL pr_esperar_exito('R04', 'El propio usuario cambia su contraseña',
+  "UPDATE usuarios SET password_hash = 'hash-nueva' WHERE id_usuario = @r20a1");
+CALL pr_verificar('R05', 'Al cambiar su propia contraseña queda debe_cambiar_contrasena = 0',
+  (SELECT debe_cambiar_contrasena = 0 FROM usuarios WHERE id_usuario = @r20a1),
+  'Se lee debe_cambiar_contrasena después del cambio propio');
+
+-- Un administrador restablece la contraseña: el aprendiz vuelve a tener que cambiarla.
+SET @app_id_usuario = 5;
+CALL pr_esperar_exito('R06', 'Un administrador restablece la contraseña de un aprendiz',
+  "UPDATE usuarios SET password_hash = 'hash-temporal' WHERE id_usuario = @r20a1");
+CALL pr_verificar('R07', 'Al restablecerla un administrador queda debe_cambiar_contrasena = 1',
+  (SELECT debe_cambiar_contrasena = 1 FROM usuarios WHERE id_usuario = @r20a1),
+  'Se lee debe_cambiar_contrasena después del restablecimiento');
+
+-- Aunque mande 0 junto con la clave, un administrador no apaga la obligación.
+CALL pr_esperar_exito('R08', 'Un administrador restablece la clave mandando 0 a la vez',
+  "UPDATE usuarios SET password_hash = 'hash-temporal-2', debe_cambiar_contrasena = 0 WHERE id_usuario = @r20a1");
+CALL pr_verificar('R09', 'La base ignora ese 0 y deja debe_cambiar_contrasena = 1',
+  (SELECT debe_cambiar_contrasena = 1 FROM usuarios WHERE id_usuario = @r20a1),
+  'Se lee debe_cambiar_contrasena después de intentar mandar 0');
+
+-- Cambiar solo la marca, sin tocar la contraseña, no se permite a nadie.
+SET @app_id_usuario = @r20a2;
+CALL pr_esperar_error('R10', 'El aprendiz no apaga debe_cambiar_contrasena sin cambiar la contraseña',
+  "UPDATE usuarios SET debe_cambiar_contrasena = 0 WHERE id_usuario = @r20a2",
+  'debe_cambiar_contrasena solo cambia junto con la contraseña');
+SET @app_id_usuario = 5;
+CALL pr_esperar_error('R11', 'Un administrador no cambia solo debe_cambiar_contrasena',
+  "UPDATE usuarios SET debe_cambiar_contrasena = 0 WHERE id_usuario = @r20a2",
+  'debe_cambiar_contrasena solo cambia junto con la contraseña');
+SET @app_id_usuario = NULL;
+CALL pr_esperar_error('R12', 'Ni root cambia solo debe_cambiar_contrasena',
+  "UPDATE usuarios SET debe_cambiar_contrasena = 0 WHERE id_usuario = @r20a2",
+  'debe_cambiar_contrasena solo cambia junto con la contraseña');
+
+-- Cambiar otro dato (no la clave) no toca la marca.
+SET @app_id_usuario = @r20a1;
+UPDATE usuarios SET password_hash = 'hash-propia-3' WHERE id_usuario = @r20a1;   -- queda en 0
+UPDATE usuarios SET telefono = '3000000000' WHERE id_usuario = @r20a1;
+CALL pr_verificar('R13', 'Cambiar el teléfono no vuelve a poner debe_cambiar_contrasena',
+  (SELECT debe_cambiar_contrasena = 0 FROM usuarios WHERE id_usuario = @r20a1),
+  'Se lee debe_cambiar_contrasena después de cambiar el teléfono');
+SET @app_id_usuario = NULL;
+
+-- Datos iniciales: se cargaron dos veces antes de las pruebas y no se duplicaron.
+CALL pr_verificar('R14', 'datos_iniciales.sql deja exactamente 3 beneficios',
+  @ini_beneficios = 3 AND (SELECT COUNT(*) FROM beneficios
+                            WHERE nombre IN ('Alimentación','Plan de datos','Cívica')) = 3,
+  CONCAT('Beneficios antes de las pruebas: ', @ini_beneficios));
+CALL pr_verificar('R15', 'datos_iniciales.sql deja exactamente 11 bancos',
+  @ini_bancos = 11 AND (SELECT COUNT(*) FROM entidades_bancarias
+                         WHERE nombre IN ('Bancolombia','Banco de Bogotá','Davivienda','BBVA Colombia',
+                                          'Banco de Occidente','Banco Popular','Banco Caja Social',
+                                          'Banco AV Villas','Banco Agrario','Nequi','Daviplata')) = 11,
+  CONCAT('Bancos antes de las pruebas: ', @ini_bancos));
+CALL pr_verificar('R16', 'datos_iniciales.sql deja exactamente 5 programas del Centro Textil',
+  @ini_programas = 5 AND (SELECT COUNT(*) FROM programas
+                           WHERE id_institucion = 1
+                             AND nombre IN ('Análisis y Desarrollo de Software','Confección Industrial',
+                                            'Gestión de la Producción Industrial','Diseño de Modas',
+                                            'Gestión Administrativa')) = 5,
+  CONCAT('Programas antes de las pruebas: ', @ini_programas));
+CALL pr_verificar('R17', 'Cada beneficio inicial tiene categoría igual a su nombre y descripción',
+  (SELECT COUNT(*) FROM beneficios WHERE nombre IN ('Alimentación','Plan de datos','Cívica')
+      AND categoria = nombre AND TRIM(descripcion) <> '' AND estado = 'Activo') = 3,
+  'Se revisa categoría, descripción y estado de los 3 beneficios');
 
 -- =====================================================================
 -- Fin: deshacer los datos de prueba e imprimir el resumen

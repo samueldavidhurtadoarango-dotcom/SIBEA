@@ -1,0 +1,8 @@
+# Todo lo que no sea un archivo real (css, js, img) lo atiende index.php.
+RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.php [L]
+
+# Sin listado de carpetas.
+Options -Indexes

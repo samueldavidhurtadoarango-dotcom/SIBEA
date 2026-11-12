@@ -139,6 +139,10 @@ CREATE TABLE usuarios (
   estado             ENUM('Activo','Inactivo','Bloqueado') NOT NULL DEFAULT 'Activo',
   intentos_fallidos  INT          NOT NULL DEFAULT 0,
   fecha_bloqueo      DATETIME     NULL,
+  -- 1 = en su próximo ingreso debe cambiar la contraseña (D20). La pone la base:
+  -- 1 al crear la cuenta o al restablecerla un administrador; 0 cuando el propio
+  -- usuario cambia su contraseña (ver tr_usuario_validar).
+  debe_cambiar_contrasena TINYINT(1) NOT NULL DEFAULT 1,
   fecha_registro     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (id_usuario),
   UNIQUE KEY uk_usuario_documento (documento),
@@ -147,7 +151,8 @@ CREATE TABLE usuarios (
   CONSTRAINT fk_usuario_rol      FOREIGN KEY (id_rol)      REFERENCES roles (id_rol),
   CONSTRAINT fk_usuario_programa FOREIGN KEY (id_programa) REFERENCES programas (id_programa),
   CONSTRAINT fk_usuario_eps      FOREIGN KEY (id_eps)      REFERENCES eps (id_eps),
-  CONSTRAINT chk_usuario_intentos CHECK (intentos_fallidos >= 0)
+  CONSTRAINT chk_usuario_intentos CHECK (intentos_fallidos >= 0),
+  CONSTRAINT chk_usuario_debe_cambiar CHECK (debe_cambiar_contrasena IN (0, 1))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Sesiones abiertas de los usuarios.
@@ -637,6 +642,14 @@ BEGIN
     CALL pr_exigir_administrador('crear un usuario que no esté Activo');
   END IF;
 
+  -- Primer ingreso (D20): toda cuenta nace con la obligación de cambiar la
+  -- contraseña. Solo root sin usuario de sesión (mantenimiento: el primer
+  -- administrador, ver README) puede crearla ya en 0. Con sesión se ignora el
+  -- valor recibido: nadie se salta el primer ingreso de otra persona.
+  IF @app_id_usuario IS NOT NULL OR NOT (SUBSTRING_INDEX(USER(), '@', 1) <=> 'root') THEN
+    SET NEW.debe_cambiar_contrasena = 1;
+  END IF;
+
   -- La fecha de bloqueo la pone la base, nunca la aplicación.
   IF NEW.estado = 'Bloqueado' THEN
     SET NEW.fecha_bloqueo = SYSDATE();  -- hora real, ver tr_usuario_validar
@@ -714,6 +727,17 @@ BEGIN
       SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'Un administrador no puede cambiar la contraseña ni el correo de otro administrador';
     END IF;
+  END IF;
+
+  -- Primer ingreso (D20): la marca la decide la base, no quien llama.
+  --   * cambia la contraseña su dueño -> 0 (ya la eligió él);
+  --   * la cambia otra persona (un administrador que la restablece) o root -> 1;
+  --   * cambiar solo la marca, sin cambiar la contraseña, se rechaza.
+  IF NOT (OLD.password_hash <=> NEW.password_hash) THEN
+    SET NEW.debe_cambiar_contrasena = IF(@app_id_usuario <=> OLD.id_usuario, 0, 1);
+  ELSEIF NOT (OLD.debe_cambiar_contrasena <=> NEW.debe_cambiar_contrasena) THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'debe_cambiar_contrasena solo cambia junto con la contraseña';
   END IF;
 
   SET v_cambia_rol    = NOT (OLD.id_rol <=> NEW.id_rol);

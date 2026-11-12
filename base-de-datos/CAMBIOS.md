@@ -20,7 +20,7 @@ especificación no menciona, se indica como **Error del original**.
 | Al final había un bloque de "AJUSTES" que modificaba tablas ya creadas (`ALTER TABLE`) y reemplazaba triggers. | Cada tabla se crea una sola vez con su forma final. | Evita que la estructura dependa del orden de los parches. |
 | Tablas creadas en orden alfabético con las llaves foráneas desactivadas. | Tablas creadas en orden de dependencias (primero catálogos, luego usuarios, convocatorias, postulaciones, pagos...). | El script no necesita desactivar las llaves foráneas para funcionar. |
 | Nombres de índices y restricciones mezclados (`fk_...` usado también para índices simples). | Prefijos claros: `uk_` (único), `idx_` (índice), `fk_` (llave foránea), `chk_` (regla CHECK). | Se entiende de un vistazo qué es cada cosa. |
-| Las reglas de negocio vivían solo en la aplicación (o no existían). | Las reglas clave se fuerzan en la base con triggers que lanzan errores en español (`SQLSTATE '45000'`). | La aplicación no puede saltarse las reglas por error. **Ojo:** los triggers no protegen contra quien tiene permisos totales (por ejemplo `root`), que puede borrar triggers o escribir directamente en las tablas. Por eso la aplicación debe conectarse con un usuario de permisos limitados (`usuario_aplicacion.sql`, ver la sección 16). |
+| Las reglas de negocio vivían solo en la aplicación (o no existían). | Las reglas clave se fuerzan en la base con triggers que lanzan errores en español (`SQLSTATE '45000'`). | La aplicación no puede saltarse las reglas por error. **Ojo:** los triggers no protegen contra quien tiene permisos totales (por ejemplo `root`), que puede borrar triggers o escribir directamente en las tablas. Por eso la aplicación debe conectarse con un usuario de permisos limitados (`usuario_aplicacion.sql`, ver la sección 17). |
 | Los triggers guardaban un usuario fijo o el aprendiz dueño. | Todos usan la variable de sesión `@app_id_usuario`. | **D9** (ver la sección 4). |
 
 ---
@@ -54,6 +54,7 @@ especificación no menciona, se indica como **Error del original**.
 - `id_eps` ya viene en la tabla (antes se añadía con un parche).
 - Se quita el índice `idx_usuario_documento`, que repetía el índice único del documento.
 - Regla: `intentos_fallidos` no puede ser negativo.
+- Columna nueva **`debe_cambiar_contrasena`** (`TINYINT(1)`, por defecto 1): indica que el usuario debe cambiar su contraseña en el próximo ingreso. La administra la base (**D20**, sección 16).
 - Cuarta ronda: cambiar el rol o el estado exige un administrador activo, crear un Administrador
   también, y una cuenta bloqueada por intentos fallidos se desbloquea sola a los 15 minutos (ver la
   sección 8).
@@ -172,8 +173,8 @@ especificación no menciona, se indica como **Error del original**.
 
 | Trigger | Cuándo | Qué hace | Decisión |
 |---|---|---|---|
-| `tr_usuario_validar_insercion` | antes de insertar | Crear un usuario con rol Administrador, o con un estado distinto de Activo, exige un administrador activo. La base pone `fecha_bloqueo` (hora actual si nace Bloqueado, `NULL` si no). El registro de aprendices sigue libre. | D7, D9 |
-| `tr_usuario_validar` | antes de actualizar | Todo cambio de rol (`id_rol`) o de estado exige un administrador activo (o `root`) y `@app_justificacion`, salvo los automáticos del inicio de sesión (sin usuario de sesión): Activo → Bloqueado con `intentos_fallidos` >= 3 y Bloqueado → Activo pasados 15 minutos desde `fecha_bloqueo` (nunca si es `NULL`). Al pasar a Bloqueado, la base guarda `fecha_bloqueo` = hora real e ignora la fecha recibida. Todo desbloqueo deja `intentos_fallidos = 0` y `fecha_bloqueo = NULL`. Mientras sigue Bloqueado, cambiar `fecha_bloqueo` exige administrador. Los datos de la cuenta (contraseña, correo, documento, contacto...) los cambia su dueño; los de otro usuario, solo un administrador activo, y nunca la contraseña ni el correo de otro administrador; sin sesión, solo `root`. | D7, D9, D13, D15, D19 |
+| `tr_usuario_validar_insercion` | antes de insertar | Crear un usuario con rol Administrador, o con un estado distinto de Activo, exige un administrador activo. La base pone `fecha_bloqueo` (hora actual si nace Bloqueado, `NULL` si no). El registro de aprendices sigue libre. Toda cuenta nace con `debe_cambiar_contrasena = 1`; solo `root` sin usuario de sesión puede crearla en 0 (el primer administrador). | D7, D9, D20 |
+| `tr_usuario_validar` | antes de actualizar | Todo cambio de rol (`id_rol`) o de estado exige un administrador activo (o `root`) y `@app_justificacion`, salvo los automáticos del inicio de sesión (sin usuario de sesión): Activo → Bloqueado con `intentos_fallidos` >= 3 y Bloqueado → Activo pasados 15 minutos desde `fecha_bloqueo` (nunca si es `NULL`). Al pasar a Bloqueado, la base guarda `fecha_bloqueo` = hora real e ignora la fecha recibida. Todo desbloqueo deja `intentos_fallidos = 0` y `fecha_bloqueo = NULL`. Mientras sigue Bloqueado, cambiar `fecha_bloqueo` exige administrador. Los datos de la cuenta (contraseña, correo, documento, contacto...) los cambia su dueño; los de otro usuario, solo un administrador activo, y nunca la contraseña ni el correo de otro administrador; sin sesión, solo `root`. La base decide `debe_cambiar_contrasena`: al cambiar la contraseña la pone en 0 si la cambia su dueño y en 1 en cualquier otro caso (un administrador que la restablece, o `root`); cambiar solo esa marca se rechaza. | D7, D9, D13, D15, D19, D20 |
 | `tr_usuario_auditar` | después de actualizar | Cada cambio de rol o de estado queda en `auditoria` con quién, valor anterior y nuevo, origen (`Sistema`, `Mantenimiento` o `Usuario`) y justificación. Sumar `intentos_fallidos` solo no se audita. | D9, D15 |
 
 **Migraciones**
@@ -925,7 +926,56 @@ ajustaron 6 triggers (`tr_usuario_validar`, `tr_postulacion_inicial`, `tr_postul
 
 ---
 
-## 16. Pendientes (solo documentados, no implementados todavía)
+## 16. Duodécima ronda: primer ingreso y datos iniciales (explicado fácil)
+
+La aplicación necesita dos cosas que la base no tenía (D20).
+
+**1. Cambiar la contraseña al primer ingreso.** Cuando un administrador crea una cuenta o restablece una
+contraseña, le da al aprendiz una contraseña temporal. El aprendiz tiene que cambiarla la primera vez
+que entra. Para saberlo, la tabla `usuarios` tiene una columna nueva:
+`debe_cambiar_contrasena` (1 = debe cambiarla, 0 = ya la cambió).
+
+La regla vive en la base, no en la aplicación, para que nadie se la salte:
+
+- Una cuenta nueva nace en **1**. Con usuario de sesión, aunque llegue un 0, la base pone 1.
+- Si el **dueño** cambia su contraseña, la columna pasa a **0**.
+- Si la cambia **otra persona** (un administrador que la restablece) o `root`, queda en **1**, aunque
+  quien llama mande 0.
+- **Cambiar solo la columna**, sin cambiar la contraseña, se rechaza para todos
+  («debe_cambiar_contrasena solo cambia junto con la contraseña»). Así nadie apaga la obligación sin
+  elegir una contraseña nueva.
+- Excepción deliberada: **`root` sin usuario de sesión** puede *crear* una cuenta ya en 0. Sirve para el
+  primer administrador (ver el README), que no recibe contraseña temporal de nadie.
+
+Se ajustaron dos triggers: `tr_usuario_validar_insercion` y `tr_usuario_validar`. Los permisos que ya
+tenía `tr_usuario_validar` no cambian: un administrador sigue sin poder cambiar la contraseña de otro
+administrador.
+
+**2. Datos iniciales.** Sin beneficios, bancos y programas no se puede crear una convocatoria ni llenar el
+formulario. El archivo nuevo `datos_iniciales.sql` los carga como `root`: 3 beneficios (Alimentación,
+Plan de datos y Cívica), 11 bancos y 5 programas de ejemplo del Centro Textil. Usa
+`INSERT ... ON DUPLICATE KEY UPDATE`, así que se puede ejecutar dos veces sin duplicar nada. El orden de
+carga es `benefitrack_v2.sql` → `datos_iniciales.sql` → `usuario_aplicacion.sql`.
+
+**Un ajuste a las pruebas de concurrencia.** `pruebas/concurrencia/preparar.sql` creaba un beneficio con
+el id 1 fijo; con los datos iniciales cargados ese id ya existe. Ahora no fija el id.
+
+**Pruebas nuevas.** Bloque R (R01 a R17) en `pruebas/pruebas_reglas.sql`: cuenta nueva en 1; el primer
+administrador de `root` en 0; cuenta nueva con sesión en 1 aunque llegue 0; cambio propio deja 0;
+restablecimiento por un administrador deja 1 (también si manda 0); cambiar solo la marca se rechaza
+(aprendiz, administrador y `root`); cambiar el teléfono no toca la marca; y los datos iniciales
+(3 beneficios, 11 bancos, 5 programas, cargados dos veces).
+
+Primero se escribieron las pruebas y se comprobó que fallaban (falta la columna), y después se cambió el
+script. Resultado: **417 casos, 417 OK**; con `benefitrack_app`, U1 a U14 en OK; las pruebas de
+concurrencia B1 e I1 y la de `otro_usuario` dicen CORRECTO; el script corre dos veces seguidas sin
+errores.
+
+Se agregó 1 columna y 1 restricción CHECK. No se agregaron triggers (siguen siendo 55); se ajustaron 2.
+
+---
+
+## 17. Pendientes (solo documentados, no implementados todavía)
 
 - **Usuario de la aplicación.** Las protecciones de la sección 6 dependen de que la aplicación use
   el usuario limitado de `usuario_aplicacion.sql` y no `root`. Con `root` se pueden borrar

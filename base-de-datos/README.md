@@ -3,6 +3,7 @@
 | Archivo | Qué es |
 |---|---|
 | `benefitrack_v2.sql` | Script que crea la base `benefitrack_v2` completa: tablas, reglas, triggers y datos iniciales. |
+| `datos_iniciales.sql` | Los catálogos con que empieza la aplicación: 3 beneficios, 11 bancos y 5 programas. Se puede ejecutar varias veces sin duplicar. |
 | `pruebas/pruebas_reglas.sql` | Pruebas de las reglas de negocio. Imprime OK o FALLO por cada caso. |
 | `pruebas/pruebas_usuario_aplicacion.sql` | Pruebas que se ejecutan conectado como el usuario limitado `benefitrack_app`. |
 | `pruebas/otro_usuario/` | Prueba de que un usuario distinto de `root` no puede gestionar sin `@app_id_usuario`. |
@@ -41,12 +42,24 @@ C:\xampp\mysql\bin\mysql.exe -u root --default-character-set=utf8mb4 < base-de-d
 Si su usuario `root` tiene contraseña, agregue `-p` y escríbala cuando la pida.
 Si no aparece ningún mensaje de error, el script terminó bien.
 
+**Orden de carga** (los tres como `root`):
+
+1. `benefitrack_v2.sql`: crea la base (y borra la anterior, ver la atención de arriba).
+2. `datos_iniciales.sql`: carga beneficios, bancos y programas. Se puede repetir sin duplicar nada.
+3. `usuario_aplicacion.sql`: crea el usuario limitado de la aplicación (cambie `CAMBIE_ESTA_CLAVE`).
+
+```bat
+C:\xampp\mysql\bin\mysql.exe -u root --default-character-set=utf8mb4 < base-de-datos\datos_iniciales.sql
+```
+
+En phpMyAdmin es igual: pestaña **Importar** con cada archivo, en ese orden.
+
 La instalación, el mantenimiento y las pruebas se hacen con un usuario de MariaDB llamado
 **`root`**: es el único que la base deja trabajar sin `@app_id_usuario` (ver la sección 3).
 
 ### Crear el primer administrador
 
-La semilla **no trae ningún usuario**, tampoco administradores. Como crear un Administrador exige
+El script **no trae ningún usuario**, tampoco administradores. Como crear un Administrador exige
 un administrador activo, el primero se crea a mano **conectado como `root`** y con
 `@app_id_usuario` en `NULL` (en phpMyAdmin, pestaña **SQL** con la base `benefitrack_v2`
 seleccionada; o en la consola `mysql.exe -u root`):
@@ -54,11 +67,16 @@ seleccionada; o en la consola `mysql.exe -u root`):
 ```sql
 USE benefitrack_v2;
 SET @app_id_usuario = NULL;
-INSERT INTO usuarios (documento, nombre, apellido, correo, password_hash, id_rol)
+INSERT INTO usuarios (documento, nombre, apellido, correo, password_hash, id_rol, debe_cambiar_contrasena)
 VALUES ('1000000000', 'Administrador', 'Inicial', 'admin@benefitrack.local',
         '$2y$10$EJEMPLOEJEMPLOEJEMPLOuNoUseEsteHashEnProduccion000000',
-        (SELECT id_rol FROM roles WHERE nombre = 'Administrador'));
+        (SELECT id_rol FROM roles WHERE nombre = 'Administrador'), 0);
 ```
+
+El `0` final es `debe_cambiar_contrasena`: solo `root`, sin usuario de sesión, puede crear una cuenta con
+ese valor en `0` (el primer administrador, que ya eligió su contraseña). Toda cuenta que cree un
+administrador desde la aplicación nace con `1` (debe cambiar la contraseña al primer ingreso), aunque
+intente mandar `0`.
 
 `password_hash` **no es la contraseña**: es el resultado de cifrarla con la aplicación (por
 ejemplo, `password_hash('su clave', PASSWORD_BCRYPT)` en PHP). El valor de arriba es solo de
@@ -69,7 +87,8 @@ administrador crea los demás desde la aplicación.
 
 ## 2. Ejecutar las pruebas
 
-Las pruebas se ejecutan **después** del script, sobre la base recién creada.
+Las pruebas se ejecutan **después** de `benefitrack_v2.sql` y de `datos_iniciales.sql` (este último
+**dos veces**, para que el caso R14 a R16 compruebe que no duplica nada), sobre la base recién creada.
 Todos los datos de prueba se crean dentro de una transacción que se deshace al final,
 así que la base queda igual que antes y las pruebas se pueden repetir.
 
@@ -89,7 +108,7 @@ C:\xampp\mysql\bin\mysql.exe -u root --default-character-set=utf8mb4 --table < b
 La salida muestra la misma tabla de resumen. Resultado esperado:
 
 ```
-| TOTAL | OK | 400 casos: 400 OK, 0 FALLO | TODAS LAS PRUEBAS PASAN |
+| TOTAL | OK | 417 casos: 417 OK, 0 FALLO | TODAS LAS PRUEBAS PASAN |
 ```
 
 Si algún caso dice `FALLO`, la columna `detalle` explica qué pasó (por ejemplo, el
@@ -331,7 +350,7 @@ responde con el error 1142, por ejemplo:
 `INSERT command denied to user 'benefitrack_app'@'localhost' for table 'auditoria'`.
 
 Para comprobar los controles con ese usuario (después de `benefitrack_v2.sql`,
-`usuario_aplicacion.sql` y `pruebas\concurrencia\preparar.sql`, como `root`):
+`datos_iniciales.sql`, `usuario_aplicacion.sql` y `pruebas\concurrencia\preparar.sql`, como `root`):
 
 ```bat
 C:\xampp\mysql\bin\mysql.exe -u benefitrack_app -p --default-character-set=utf8mb4 --force --table < base-de-datos\pruebas\pruebas_usuario_aplicacion.sql
