@@ -3,7 +3,7 @@
 /**
  * VISTA "postulacion/enviada": «Listo, tu postulación fue enviada».
  * Paso 5 del recorrido (la dibuja PostulacionAprendizControlador dentro del marco "aprendiz", después de enviar).
- * Reproduce la maqueta vistas/09-postulacion/html/enviada: confirma el envío con la fecha, avisa que ya no se
+ * Reproduce la maqueta 09-postulacion/enviada: confirma el envío con la fecha, avisa que ya no se
  * puede editar y explica qué sigue.
  * Recibe: $convocatoria (beneficio y nombre) y $fechaEnvio («AAAA-MM-DD»).
  */

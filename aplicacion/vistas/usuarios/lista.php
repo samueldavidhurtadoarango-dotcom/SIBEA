@@ -3,7 +3,7 @@
 /**
  * VISTA "usuarios/lista": la lista de aprendices con buscador y páginas de 20.
  * Paso 5 del recorrido (la dibuja UsuariosControlador dentro del marco "admin").
- * Reproduce la maqueta vistas/06-usuarios/html/lista (sin la columna «Último ingreso»: la base no la guarda).
+ * Reproduce la maqueta 06-usuarios/lista (sin la columna «Último ingreso»: la base no la guarda).
  * Recibe: $pendientes (contraseñas por entregar), $buscar (texto buscado), $pagina (filas, total, pagina, paginas, porPagina) y $tokenCsrf.
  * Las acciones de cambiar estado y restablecer son formularios POST dentro de dos ventanas (modales de Bootstrap).
  */

@@ -3,7 +3,7 @@
 /**
  * VISTA "postulacion/revisar": «Revisa tu postulación antes de enviarla».
  * Paso 5 del recorrido (la dibuja PostulacionAprendizControlador dentro del marco "aprendiz").
- * Reproduce la maqueta vistas/09-postulacion/html/revisar-y-enviar. Solo muestra lo ya validado: «Corregir» vuelve
+ * Reproduce la maqueta 09-postulacion/revisar-y-enviar. Solo muestra lo ya validado: «Corregir» vuelve
  * al formulario y «Enviar postulación» (POST con token CSRF) crea la postulación (tarea siguiente).
  * Recibe: $convocatoria, $perfil, $datos (ya limpios), $archivos (campo => nombre_original, bytes), $documentos
  * (campo => nombre legible), $eps, $banco, $tipoCuenta (los nombres elegidos), $volver, $accionEnviar y $tokenCsrf.

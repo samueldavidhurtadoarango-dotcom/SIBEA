@@ -3,7 +3,7 @@
 /**
  * PARCIAL "menu_admin": el menú del administrador (lateral en computador, desplegable en celular).
  * Paso 5 del recorrido: lo incluye el marco admin. Misma estructura que la maqueta
- * aprobada (vistas/_comun/menu-admin.html). En el MVP solo hay tres opciones.
+ * aprobada (menú del catálogo de pantallas). En el MVP solo hay tres opciones.
  * Recibe: $rutaActual (la URL pedida), para marcar con aria-current el enlace de la página donde se está.
  */
 

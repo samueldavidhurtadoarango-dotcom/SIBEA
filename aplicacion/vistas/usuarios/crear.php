@@ -3,7 +3,7 @@
 /**
  * VISTA "usuarios/crear": formulario «Crear una cuenta de aprendiz».
  * Paso 5 del recorrido (la dibuja UsuariosControlador dentro del marco "admin").
- * Reproduce la maqueta vistas/06-usuarios/html/crear-uno. Cambia el aviso azul: la contraseña
+ * Reproduce la maqueta 06-usuarios/crear-uno. Cambia el aviso azul: la contraseña
  * temporal no se envía por correo, se muestra una vez y se entrega con el Excel de entrega.
  * Recibe: $errores (mensaje por campo), $valores (lo ya escrito), $errorGeneral, $programas
  * (lista de id y nombre) y $tokenCsrf.

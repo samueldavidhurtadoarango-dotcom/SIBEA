@@ -3,7 +3,7 @@
 /**
  * VISTA "usuarios/resultado": cuántas cuentas se crearon y qué falló, con las dos descargas.
  * Paso 5 del recorrido (la dibuja CargaUsuariosControlador dentro del marco "admin").
- * Reproduce el aviso verde de la maqueta vistas/06-usuarios/html/resultado. Cambia el texto: la
+ * Reproduce el aviso verde de la maqueta 06-usuarios/resultado. Cambia el texto: la
  * contraseña temporal no llega por correo, se entrega con el Excel de entrega (el mismo de
  * /admin/usuarios/entrega: viven en la sesión hasta que se descarga).
  * Recibe: $creadas, $conErrores, $pendientes (contraseñas que lleva el Excel de entrega) y $tokenCsrf.

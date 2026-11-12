@@ -2,7 +2,7 @@
 
 /**
  * PARCIAL "mi_proceso/tarjeta_postulacion": una postulación del aprendiz, según su estado de pantalla.
- * Paso 5 del recorrido. Reproduce vistas/01-mi-proceso/html/{en-revision,seleccionado,no-seleccionado}.html
+ * Paso 5 del recorrido. Reproduce 01-mi-proceso/{en-revision,seleccionado,no-seleccionado}
  * (los pagos y novedades son de la fase 2 y no se muestran). Si es «no-seleccionado» NO se muestra ningún motivo:
  * el servicio ya lo quitó y además esta vista no lo imprime nunca.
  * Recibe: $postulacion (una fila ya traducida por ServicioMiProceso::resumen(), con estadoVista y pasos).

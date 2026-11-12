@@ -3,7 +3,7 @@
 /**
  * VISTA "postulacion/cerrada": la convocatoria ya no recibe postulaciones, o el aprendiz ya se postuló.
  * Paso 5 del recorrido (la dibuja PostulacionAprendizControlador dentro del marco "aprendiz").
- * Reproduce la maqueta vistas/09-postulacion/html/convocatoria-cerrada; con $yaPostulada cambia el título
+ * Reproduce la maqueta 09-postulacion/convocatoria-cerrada; con $yaPostulada cambia el título
  * a «Ya te postulaste a esta convocatoria» (la base no permite dos postulaciones a la misma convocatoria).
  * Recibe: $convocatoria y $yaPostulada (true si el aprendiz ya se postuló).
  */

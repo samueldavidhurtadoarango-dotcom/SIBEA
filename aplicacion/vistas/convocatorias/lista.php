@@ -3,7 +3,7 @@
 /**
  * VISTA "convocatorias/lista": la lista de convocatorias con pestañas por estado.
  * Paso 5 del recorrido (la dibuja ConvocatoriasControlador dentro del marco "admin").
- * Reproduce las maquetas vistas/07-convocatorias/html/lista, cerrar y vacio. El cierre usa una ventana
+ * Reproduce las maquetas 07-convocatorias/lista, cerrar y vacio. El cierre usa una ventana
  * (modal de Bootstrap, como la lista de usuarios) que pide el motivo solo cuando el cierre es anticipado.
  * Recibe: $filas (convocatorias del filtro), $contadores (cuántas hay por pestaña), $filtro (pestaña
  * actual) y $tokenCsrf. Los estados usan los colores de la maqueta (las etiquetas br-etiqueta--*).
@@ -41,7 +41,7 @@ $notaDeEstado = static function (array $fila): string {
 </div>
 
 <?php if ($contadores['todas'] === 0) : ?>
-    <!-- Estado vacío (maqueta vacio.html): todavía no se ha creado ninguna. -->
+    <!-- Estado vacío (maqueta vacio): todavía no se ha creado ninguna. -->
     <div class="br-vacio">
         <span class="br-vacio__icono" aria-hidden="true"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="26" height="26"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M16 3v4M8 3v4M3 10h18M12 13v5M9.5 15.5h5"></path></svg></span>
         <h2>Aún no hay convocatorias.</h2>

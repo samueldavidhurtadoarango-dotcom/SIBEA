@@ -3,7 +3,7 @@
 /**
  * VISTA "postulaciones/lista": la lista de postulaciones del administrador (su pantalla de inicio).
  * Paso 5 del recorrido (la dibuja PostulacionesAdminControlador dentro del marco "admin").
- * Reproduce la maqueta vistas/00-existentes/postulaciones: buscador, filtros, tabla con páginas de 20, el estado
+ * Reproduce la maqueta 00-existentes/postulaciones: buscador, filtros, tabla con páginas de 20, el estado
  * vacío «No encontramos postulaciones con estos filtros» y la ventana «Descargar en Excel» con las columnas.
  * Recibe: $filtro (FiltroPostulaciones), $pagina (filas, total, pagina, paginas, porPagina), $beneficios, $programas,
  * $estados, $grupos (grupos de columnas del Excel) y $columnas (clave => título).

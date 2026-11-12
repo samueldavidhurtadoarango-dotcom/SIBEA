@@ -2,7 +2,7 @@
 
 /**
  * MARCO "admin": envuelve las páginas del administrador.
- * Paso 5 del recorrido. Estructura de la maqueta aprobada (vistas/_comun/menu-admin.html):
+ * Paso 5 del recorrido. Estructura de la maqueta aprobada (menú del catálogo de pantallas):
  * menú lateral (computador) o barra desplegable (celular), cabecera con la persona y el contenido.
  * Recibe: $contenido (HTML ya seguro), $mensajes, $rutaActual, $usuarioNombre, $tokenCsrf y opcional $titulo.
  */

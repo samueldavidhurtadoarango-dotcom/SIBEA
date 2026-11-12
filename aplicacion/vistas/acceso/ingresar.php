@@ -3,7 +3,7 @@
 /**
  * VISTA "acceso/ingresar": la pantalla de inicio de sesión.
  * Paso 5 del recorrido (la dibuja AccesoControlador dentro del marco "publica").
- * Reproduce la maqueta vistas/00-existentes/login/html (6 estados):
+ * Reproduce la maqueta 00-existentes/login (6 estados):
  *   normal, validacion, datos-incorrectos, cuenta-bloqueada, cuenta-inactiva y
  *   cargando (este último lo activa benefitrack.js al enviar el formulario).
  * Recibe: $estado, $correo (lo que escribió), $errores (mensajes por campo), $tokenCsrf.

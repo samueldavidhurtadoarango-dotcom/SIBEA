@@ -3,7 +3,7 @@
 /**
  * VISTA "contrasena/nueva": «Crea tu contraseña» (cambio obligatorio del primer ingreso).
  * Paso 5 del recorrido (la dibuja ContrasenaControlador dentro del marco "publica").
- * Reproduce la maqueta vistas/02-contrasena/html/primer-ingreso y error-validacion.
+ * Reproduce la maqueta 02-contrasena/primer-ingreso y error-validacion.
  * Recibe: $errores (mensaje por campo: 'nueva', 'confirmar'), $nombre y $tokenCsrf.
  * Las contraseñas NUNCA se vuelven a dibujar: si hay errores, se escribe de nuevo.
  * Las reglas se marcan en vivo con benefitrack.js (atributos data-reglas y data-regla).
