@@ -89,6 +89,7 @@ final class FiltroSesionTest extends TestCase
 
         $this->assertSame('/ingresar', $respuesta?->destino());
         $this->assertNull($this->sesion->rol());
+        $this->assertSame(self::AVISO_CUENTA, $this->sesion->tomarMensajes()[0]['texto']);
     }
 
     public function test_si_la_base_dice_que_debe_cambiar_la_contrasena_se_actualiza_la_sesion(): void

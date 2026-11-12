@@ -36,11 +36,21 @@ final class DocumentosControladorTest extends TestCase
         $this->relativa = "documentos/$nombre.png";
         file_put_contents($this->base . '/' . $this->relativa, 'bytes-de-la-imagen');
 
+        $relativaPdf = 'documentos/' . bin2hex(random_bytes(16)) . '.pdf';
+        file_put_contents($this->base . '/' . $relativaPdf, '%PDF-1.4 falso');
+
         $this->documentos = $this->createMock(RepositorioDocumentos::class);
-        $this->documentos->method('buscarConDueno')->willReturnCallback(fn (int $id): ?array => $id === 15 ? [
-            'id_documento' => 15, 'id_postulacion' => 3, 'nombre_archivo' => 'cedula.png',
-            'ruta_archivo' => $this->relativa, 'extension' => 'png', 'id_usuario' => self::DUENO,
-        ] : null);
+        $this->documentos->method('buscarConDueno')->willReturnCallback(fn (int $id): ?array => match ($id) {
+            15 => [
+                'id_documento' => 15, 'id_postulacion' => 3, 'nombre_archivo' => 'cedula.png',
+                'ruta_archivo' => $this->relativa, 'extension' => 'png', 'id_usuario' => self::DUENO,
+            ],
+            16 => [
+                'id_documento' => 16, 'id_postulacion' => 3, 'nombre_archivo' => 'certificado.pdf',
+                'ruta_archivo' => $relativaPdf, 'extension' => 'pdf', 'id_usuario' => self::DUENO,
+            ],
+            default => null,
+        });
 
         $this->controlador = new DocumentosControlador(
             $this->sesion,
@@ -76,6 +86,19 @@ final class DocumentosControladorTest extends TestCase
         $this->assertSame('inline; filename="cedula.png"', $respuesta->cabecera('Content-Disposition'));
         $this->assertSame('nosniff', $respuesta->cabecera('X-Content-Type-Options'));
         $this->assertSame('no-store', $respuesta->cabecera('Cache-Control'));
+    }
+
+    public function test_un_pdf_se_entrega_como_descarga_en_sandbox(): void
+    {
+        $this->sesion->iniciarPara(self::DUENO, 'Aprendiz', false, 'Luisa');
+
+        $respuesta = $this->controlador->descargar($this->pedir('16'));
+
+        // El visor de PDF del navegador no funciona dentro de «sandbox»: por eso el PDF se descarga y no se muestra.
+        $this->assertSame('attachment; filename="certificado.pdf"', $respuesta->cabecera('Content-Disposition'));
+        $this->assertSame('application/pdf', $respuesta->cabecera('Content-Type'));
+        $this->assertSame("sandbox; frame-ancestors 'none'", $respuesta->cabecera('Content-Security-Policy'));
+        $this->assertSame('nosniff', $respuesta->cabecera('X-Content-Type-Options'));
     }
 
     public function test_otro_aprendiz_recibe_403_y_no_el_archivo(): void

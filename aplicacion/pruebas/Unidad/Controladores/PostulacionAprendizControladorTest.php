@@ -245,6 +245,29 @@ final class PostulacionAprendizControladorTest extends TestCase
         $this->assertSame(404, $controlador->enviar($this->post([], []))->codigo());
     }
 
+    public function test_una_convocatoria_que_pasa_a_inactiva_borra_los_archivos_pendientes_al_revisar_y_al_enviar(): void
+    {
+        foreach (['revisar', 'enviar'] as $accion) {
+            $this->controlador->revisar($this->post($this->camposBuenos(), $this->archivosBuenos()));
+            $pendientes = $this->sesion->postulacionPendiente(self::ID_CONVOCATORIA)['archivos'] ?? [];
+            $this->assertNotEmpty($pendientes);
+
+            // Mientras la persona revisaba, el administrador pasó la convocatoria a Inactiva.
+            $convocatorias = $this->createMock(RepositorioConvocatorias::class);
+            $convocatorias->method('buscar')->willReturn(['estado' => 'Inactiva'] + $this->convocatoria());
+            $controlador = $this->controladorCon($convocatorias);
+            $respuesta = $accion === 'revisar'
+                ? $controlador->revisar($this->post($this->camposBuenos(), $this->archivosBuenos()))
+                : $controlador->enviar($this->post([], []));
+
+            $this->assertSame(404, $respuesta->codigo());
+            $this->assertNull($this->sesion->postulacionPendiente(self::ID_CONVOCATORIA));
+            foreach ($pendientes as $archivo) {
+                $this->assertFileDoesNotExist($archivo['ruta']);
+            }
+        }
+    }
+
     public function test_un_post_con_errores_descarta_tambien_la_revision_anterior(): void
     {
         $this->controlador->revisar($this->post($this->camposBuenos(), $this->archivosBuenos()));

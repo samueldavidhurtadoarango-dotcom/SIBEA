@@ -46,6 +46,17 @@ final class SesionRevalidadaTest extends BaseDePrueba
         (new RepositorioUsuarios($bd))->cambiarEstado($idAprendiz, 'Inactivo', 'Prueba de sesión revalidada');
     }
 
+    /** Cuántas postulaciones tiene el aprendiz (la consulta la hace un administrador). */
+    private function postulacionesDe(int $idAprendiz): int
+    {
+        $bd = $this->baseDatosDeLaApp();
+        $bd->fijarUsuario($this->crearAdmin(), '127.0.0.1');
+        $consulta = $bd->pdo()->prepare('SELECT COUNT(*) FROM postulaciones WHERE id_usuario = ?');
+        $consulta->execute([$idAprendiz]);
+
+        return (int) $consulta->fetchColumn();
+    }
+
     public function test_estado_para_sesion_trae_estado_rol_y_marca_de_primer_ingreso(): void
     {
         $id = $this->crearAprendiz(['debe_cambiar_contrasena' => 1]);
@@ -94,6 +105,7 @@ final class SesionRevalidadaTest extends BaseDePrueba
         $respuesta = $this->enviar($fabrica, 'POST', "/convocatorias/$idConvocatoria/postulacion/enviar", ['_csrf' => Csrf::token()]);
 
         $this->assertSame('/ingresar', $respuesta->destino());
+        $this->assertSame(0, $this->postulacionesDe($id), 'no debe haberse creado ninguna postulación');
     }
 
     public function test_si_la_base_dice_que_cambio_el_rol_la_sesion_se_cierra(): void

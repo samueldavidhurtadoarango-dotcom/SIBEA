@@ -54,7 +54,7 @@ final class RespuestaSeguridadTest extends TestCase
         $respuesta = Respuesta::archivo($ruta, 'a.pdf', 'application/pdf', true);
         unlink($ruta);
 
-        $this->assertSame('sandbox', $respuesta->cabecera('Content-Security-Policy'));
+        $this->assertSame("sandbox; frame-ancestors 'none'", $respuesta->cabecera('Content-Security-Policy'));
         $this->assertSame('nosniff', $respuesta->cabecera('X-Content-Type-Options'));
     }
 
@@ -66,7 +66,7 @@ final class RespuestaSeguridadTest extends TestCase
         $respuesta = Respuesta::archivo($ruta, 'a.pdf', 'application/pdf', true)->sinCache();
         unlink($ruta);
 
-        $this->assertSame('sandbox', $respuesta->cabecera('Content-Security-Policy'));
+        $this->assertSame("sandbox; frame-ancestors 'none'", $respuesta->cabecera('Content-Security-Policy'));
         $this->assertSame('DENY', $respuesta->cabecera('X-Frame-Options'));
         $this->assertSame('no-store', $respuesta->cabecera('Cache-Control'));
     }
