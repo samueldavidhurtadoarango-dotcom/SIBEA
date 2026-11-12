@@ -372,9 +372,9 @@ final class Sesion
             unset($_SESSION['postulacion_pendiente']);
         }
     }
+
     /**
-     * Seguridad: PHP guarda las sesiones en la carpeta temporal de XAMPP (C:
-mpp	mp), que comparte con phpMyAdmin
+     * Seguridad: PHP guarda las sesiones en la carpeta temporal de XAMPP (C:/xampp/tmp), que comparte con phpMyAdmin
      * y otras aplicaciones. Su limpieza automática borra los archivos a los 24 minutos y no respetaría nuestros
      * 30 minutos / 8 horas. Con una carpeta propia solo viven aquí nuestras sesiones.
      */
@@ -383,8 +383,9 @@ mpp	mp), que comparte con phpMyAdmin
         if ($this->carpetaSesiones === null) {
             return;
         }
-        if (!is_dir($this->carpetaSesiones)) {
-            mkdir($this->carpetaSesiones, 0700, true);
+        // Se crea la carpeta si no existe. El segundo is_dir() cubre el caso de dos peticiones que la crean a la vez.
+        if (!is_dir($this->carpetaSesiones) && !@mkdir($this->carpetaSesiones, 0700, true) && !is_dir($this->carpetaSesiones)) {
+            throw new \RuntimeException("No se pudo crear la carpeta de sesiones: {$this->carpetaSesiones}");
         }
         session_save_path($this->carpetaSesiones);
     }
