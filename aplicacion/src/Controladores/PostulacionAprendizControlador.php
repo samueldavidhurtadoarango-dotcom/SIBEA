@@ -86,6 +86,7 @@ final class PostulacionAprendizControlador
         $id = (int) $peticion->parametro('id');
         $convocatoria = $this->convocatoriaVisible($id);
         if ($convocatoria === null) {
+            $this->descartarPendiente($id); // pudo pasar a Inactiva mientras revisaba: los documentos esperando sobran
             return $this->noEncontrada();
         }
         // Seguridad: aunque el formulario no se pudo abrir, alguien puede mandar el POST a mano. Se revisa otra vez.
@@ -120,6 +121,7 @@ final class PostulacionAprendizControlador
         $id = (int) $peticion->parametro('id');
         $convocatoria = $this->convocatoriaVisible($id);
         if ($convocatoria === null) {
+            $this->descartarPendiente($id); // pudo pasar a Inactiva mientras revisaba: los documentos esperando sobran
             return $this->noEncontrada();
         }
         if (($cerrada = $this->cerrada($convocatoria)) !== null) {
@@ -337,8 +339,8 @@ final class PostulacionAprendizControlador
     }
 
     /**
-     * Busca la convocatoria que el aprendiz puede ver: una «Inactiva» (borrador del administrador) se trata
-     * como si no existiera, para no mostrar la página «cerrada» de algo que nunca se publicó.
+     * Busca la convocatoria que el aprendiz puede ver: una «Inactiva» (no publicada, o una Activa que el
+     * administrador volvió a Inactiva) se trata como si no existiera, para no mostrar la página «cerrada».
      *
      * @return array<string, mixed>|null La convocatoria, o null si no existe o está Inactiva.
      */
