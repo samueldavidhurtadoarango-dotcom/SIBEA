@@ -1,7 +1,7 @@
 -- =====================================================================
 -- BenefitRack - Pruebas de las reglas de negocio en la base de datos
 -- =====================================================================
--- Cubre los criterios de aceptación de specs/001-correccion-entregables.md
+-- Cubre los criterios de aceptación de documentacion/specs/001-correccion-entregables.md
 -- y las decisiones D1-D12 que se fuerzan con triggers y restricciones.
 --
 -- Cómo funciona:

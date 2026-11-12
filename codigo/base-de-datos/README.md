@@ -25,7 +25,7 @@ Primero encienda MySQL en el panel de control de XAMPP (botón **Start** de MySQ
 
 1. Abra <http://localhost/phpmyadmin>.
 2. Sin seleccionar ninguna base, entre a la pestaña **Importar**.
-3. En **Archivo a importar** elija `base-de-datos/benefitrack_v2.sql`.
+3. En **Archivo a importar** elija `codigo/base-de-datos/benefitrack_v2.sql`.
 4. Deje el conjunto de caracteres en `utf-8` y pulse **Importar** (abajo).
 5. Debe aparecer el mensaje de importación exitosa y, a la izquierda, la base `benefitrack_v2` con 23 tablas.
 
@@ -34,7 +34,7 @@ Primero encienda MySQL en el panel de control de XAMPP (botón **Start** de MySQ
 Abra la consola (botón **Shell** de XAMPP, o `cmd`) y ejecute, desde la carpeta del proyecto:
 
 ```bat
-C:\xampp\mysql\bin\mysql.exe -u root --default-character-set=utf8mb4 < base-de-datos\benefitrack_v2.sql
+C:\xampp\mysql\bin\mysql.exe -u root --default-character-set=utf8mb4 < codigo\base-de-datos\benefitrack_v2.sql
 ```
 
 Si su usuario `root` tiene contraseña, agregue `-p` y escríbala cuando la pida.
@@ -47,7 +47,7 @@ Si no aparece ningún mensaje de error, el script terminó bien.
 3. `usuario_aplicacion.sql`: crea el usuario limitado de la aplicación (cambie `CAMBIE_ESTA_CLAVE`).
 
 ```bat
-C:\xampp\mysql\bin\mysql.exe -u root --default-character-set=utf8mb4 < base-de-datos\datos_iniciales.sql
+C:\xampp\mysql\bin\mysql.exe -u root --default-character-set=utf8mb4 < codigo\base-de-datos\datos_iniciales.sql
 ```
 
 En phpMyAdmin es igual: pestaña **Importar** con cada archivo, en ese orden.
@@ -93,14 +93,14 @@ así que la base queda igual que antes y las pruebas se pueden repetir.
 ### Opción A: phpMyAdmin
 
 1. Seleccione la base `benefitrack_v2` a la izquierda.
-2. Pestaña **Importar**, elija `base-de-datos/pruebas/pruebas_reglas.sql` y pulse **Importar**.
+2. Pestaña **Importar**, elija `codigo/base-de-datos/pruebas/pruebas_reglas.sql` y pulse **Importar**.
 3. El último resultado es la tabla de resumen: una fila por caso con `OK` o `FALLO`
    y, al final, la fila `TOTAL` con el veredicto (`TODAS LAS PRUEBAS PASAN`).
 
 ### Opción B: línea de comandos
 
 ```bat
-C:\xampp\mysql\bin\mysql.exe -u root --default-character-set=utf8mb4 --table < base-de-datos\pruebas\pruebas_reglas.sql
+C:\xampp\mysql\bin\mysql.exe -u root --default-character-set=utf8mb4 --table < codigo\base-de-datos\pruebas\pruebas_reglas.sql
 ```
 
 La salida muestra la misma tabla de resumen. Resultado esperado:
@@ -339,7 +339,7 @@ y **cambie la contraseña** (`CAMBIE_ESTA_CLAVE`) antes de usarlo; guárdela en 
 aplicación, nunca en el repositorio:
 
 ```bat
-C:\xampp\mysql\bin\mysql.exe -u root --default-character-set=utf8mb4 < base-de-datos\usuario_aplicacion.sql
+C:\xampp\mysql\bin\mysql.exe -u root --default-character-set=utf8mb4 < codigo\base-de-datos\usuario_aplicacion.sql
 ```
 
 Los triggers siguen funcionando con ese usuario, porque se ejecutan con los permisos de quien los
@@ -351,7 +351,7 @@ Para comprobar los controles con ese usuario (después de `benefitrack_v2.sql`,
 `datos_iniciales.sql`, `usuario_aplicacion.sql` y `pruebas\concurrencia\preparar.sql`, como `root`):
 
 ```bat
-C:\xampp\mysql\bin\mysql.exe -u benefitrack_app -p --default-character-set=utf8mb4 --force --table < base-de-datos\pruebas\pruebas_usuario_aplicacion.sql
+C:\xampp\mysql\bin\mysql.exe -u benefitrack_app -p --default-character-set=utf8mb4 --force --table < codigo\base-de-datos\pruebas\pruebas_usuario_aplicacion.sql
 ```
 
 Los `ERROR 1644` que aparecen son los rechazos esperados; las filas U1 a U14 deben decir `OK` (también aparecen un `ERROR 1142`, el rechazo esperado de U9, y un `ERROR 1644` «Un documento nuevo debe empezar en estado Pendiente», el rechazo esperado de U12).
@@ -374,7 +374,7 @@ dos conexiones al mismo tiempo. El procedimiento y los resultados reales están 
 
 Comprueba que, con `@app_id_usuario` en `NULL`, **cualquier** usuario distinto de `root` queda
 rechazado en las acciones de gestión (no solo `benefitrack_app`). Necesita la base ya creada; no la
-borra. Desde la carpeta `base-de-datos` (con Git Bash o cualquier `sh`):
+borra. Desde la carpeta `codigo/base-de-datos` (con Git Bash o cualquier `sh`):
 
 ```sh
 sh pruebas/otro_usuario/ejecutar.sh "C:/xampp/mysql/bin/mysql.exe" 127.0.0.1 3306

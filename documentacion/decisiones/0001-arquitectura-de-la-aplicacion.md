@@ -2,13 +2,13 @@
 
 - **Estado:** propuesta (espera la aprobación de Samuel junto con la spec 003)
 - **Fecha:** 2026-11-10
-- **Relacionado:** `specs/003-aplicacion-mvp.md`
+- **Relacionado:** `documentacion/specs/003-aplicacion-mvp.md`
 
 ## Contexto
 
 - El código tiene que poder **explicarlo Samuel en la sustentación**. El SENA permite usar IA, pero el aprendiz debe saber con claridad qué hace cada parte.
 - El equipo sabe **PHP, JavaScript y Bootstrap**. Hasta ahora ha trabajado con **archivos PHP sueltos**: nunca con MVC ni con frameworks.
-- Ya existen la **base de datos `benefitrack_v2`** (MariaDB 10.4 en XAMPP, 23 tablas, 55 triggers, procedimientos con permisos) y las **11 pantallas aprobadas** (catálogo en `entregables/Pantallas_BenefitRack.pdf`).
+- Ya existen la **base de datos `benefitrack_v2`** (MariaDB 10.4 en XAMPP, 23 tablas, 55 triggers, procedimientos con permisos) y las **11 pantallas aprobadas** (catálogo en `documentacion/entregables/Pantallas_BenefitRack.pdf`).
 - La BD ya hace cumplir muchas reglas de negocio (quién puede hacer qué, estados, cupos, bloqueo de cuenta). La aplicación debe avisarle quién es el usuario mediante `@app_id_usuario` (ver `base-de-datos/README.md` §3).
 - Entorno disponible: PHP 8.2 (XAMPP), Composer (incluido en Herd) y Apache de XAMPP.
 
