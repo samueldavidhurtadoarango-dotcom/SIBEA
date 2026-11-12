@@ -2,13 +2,11 @@
 
 | Archivo | Qué es |
 |---|---|
-| `benefitrack_v2.sql` | Script que crea la base `benefitrack_v2` completa: tablas, reglas, triggers y datos iniciales. |
-| `datos_iniciales.sql` | Los catálogos con que empieza la aplicación: 3 beneficios, 11 bancos y 5 programas. Se puede ejecutar varias veces sin duplicar. |
+| `benefitrack_v2.sql` | El **único** script de instalación. Crea la base `benefitrack_v2` completa: tablas, reglas, triggers, catálogos iniciales (3 beneficios, 11 bancos, 5 programas, EPS…) y el usuario limitado de la aplicación, `benefitrack_app`, con sus permisos. |
 | `pruebas/pruebas_reglas.sql` | Pruebas de las reglas de negocio. Imprime OK o FALLO por cada caso. |
 | `pruebas/pruebas_usuario_aplicacion.sql` | Pruebas que se ejecutan conectado como el usuario limitado `benefitrack_app`. |
 | `pruebas/otro_usuario/` | Prueba de que un usuario distinto de `root` no puede gestionar sin `@app_id_usuario`. |
 | `pruebas/concurrencia.md` y `pruebas/concurrencia/` | Pruebas con dos conexiones al mismo tiempo (cupos y último pago). |
-| `usuario_aplicacion.sql` | Ejemplo de usuario de MariaDB con permisos limitados para la aplicación. |
 
 Funciona en MariaDB 10.4 (la de XAMPP) y en MariaDB 11.x.
 
@@ -40,24 +38,37 @@ C:\xampp\mysql\bin\mysql.exe -u root --default-character-set=utf8mb4 < codigo\ba
 Si su usuario `root` tiene contraseña, agregue `-p` y escríbala cuando la pida.
 Si no aparece ningún mensaje de error, el script terminó bien.
 
-**Orden de carga** (los tres como `root`):
+**Un solo archivo, una sola vez, como `root`.** Es como armar un mueble que ya viene con todas las
+piezas en la misma caja: `benefitrack_v2.sql` crea las tablas y las reglas, carga los catálogos
+(beneficios, bancos, programas, EPS…) y crea el usuario `benefitrack_app` con el que se conecta la
+aplicación. No hay que cargar nada más.
 
-1. `benefitrack_v2.sql`: crea la base (y borra la anterior, ver la atención de arriba).
-2. `datos_iniciales.sql`: carga beneficios, bancos y programas. Se puede repetir sin duplicar nada.
-3. `usuario_aplicacion.sql`: crea el usuario limitado de la aplicación (cambie `CAMBIE_ESTA_CLAVE`).
+### Cambie la clave del usuario de la aplicación (obligatorio al instalar de verdad)
 
-```bat
-C:\xampp\mysql\bin\mysql.exe -u root --default-character-set=utf8mb4 < codigo\base-de-datos\datos_iniciales.sql
-```
+El script crea `benefitrack_app` con una clave **de ejemplo**: `CAMBIE_ESTA_CLAVE`. Es como la
+llave que viene pegada a un candado nuevo: sirve para probar, pero cualquiera que lea el script la
+conoce. Al instalar de verdad, apenas termine de cargar el script:
 
-En phpMyAdmin es igual: pestaña **Importar** con cada archivo, en ese orden.
+1. Elija una clave larga y propia.
+2. Ejecute, conectado como `root` (en phpMyAdmin, pestaña **SQL**; o en `mysql.exe -u root`):
+
+   ```sql
+   ALTER USER 'benefitrack_app'@'localhost' IDENTIFIED BY 'su-clave-larga-y-propia';
+   ```
+
+3. Escriba **esa misma clave** en `codigo/aplicacion/config/config.local.php` (el archivo que no se
+   sube a git). Si las dos no coinciden, la aplicación no puede entrar a la base.
+
+Si más adelante vuelve a cargar `benefitrack_v2.sql`, el usuario conserva la clave que usted le
+puso (el script solo lo crea si no existe) y recibe otra vez sus permisos.
 
 La instalación, el mantenimiento y las pruebas se hacen con un usuario de MariaDB llamado
 **`root`**: es el único que la base deja trabajar sin `@app_id_usuario` (ver la sección 3).
 
 ### Crear el primer administrador
 
-El script **no trae ningún usuario**, tampoco administradores. Como crear un Administrador exige
+El script crea el usuario de MariaDB `benefitrack_app`, pero **no trae ninguna cuenta de la
+aplicación** (filas de la tabla `usuarios`), tampoco administradores. Como crear un Administrador exige
 un administrador activo, el primero se crea a mano **conectado como `root`** y con
 `@app_id_usuario` en `NULL` (en phpMyAdmin, pestaña **SQL** con la base `benefitrack_v2`
 seleccionada; o en la consola `mysql.exe -u root`):
@@ -85,8 +96,8 @@ administrador crea los demás desde la aplicación.
 
 ## 2. Ejecutar las pruebas
 
-Las pruebas se ejecutan **después** de `benefitrack_v2.sql` y de `datos_iniciales.sql` (este último
-**dos veces**, para que el caso R14 a R16 compruebe que no duplica nada), sobre la base recién creada.
+Las pruebas se ejecutan **después** de cargar `benefitrack_v2.sql` **dos veces** seguidas (los casos
+R14 a R16 comprueban que los catálogos quedan completos y sin duplicar), sobre la base recién creada.
 Todos los datos de prueba se crean dentro de una transacción que se deshace al final,
 así que la base queda igual que antes y las pruebas se pueden repetir.
 
@@ -213,7 +224,7 @@ CALL pr_cambiar_estado_usuario(<id_usuario>, 'Inactivo', 'Retiro voluntario del 
 CALL pr_cambiar_rol_usuario(<id_usuario>, 'Administrador', 'Nuevo integrante de Bienestar');
 ```
 
-`benefitrack_app` tiene permiso `EXECUTE` sobre los dos (ver `usuario_aplicacion.sql`). Los
+`benefitrack_app` tiene permiso `EXECUTE` sobre los dos (ver la sección 9 de `benefitrack_v2.sql`). Los
 procedimientos responden con un error claro, y dejan `@app_justificacion` en `NULL`, si:
 
 - el estado no es `Activo`, `Inactivo` ni `Bloqueado` (o es `NULL`): `Estado no válido: ...`;
@@ -334,21 +345,18 @@ Por eso la aplicación **no debe conectarse como `root`**, sino con un usuario q
 - **no** puede insertar ni borrar en `asignaciones_beneficio` (solo cambiar su estado);
 - **no** puede borrar postulaciones, pagos, novedades ni notificaciones.
 
-El ejemplo está en `usuario_aplicacion.sql`. Ejecútelo como `root` después del script principal
-y **cambie la contraseña** (`CAMBIE_ESTA_CLAVE`) antes de usarlo; guárdela en el `.env` de la
-aplicación, nunca en el repositorio:
-
-```bat
-C:\xampp\mysql\bin\mysql.exe -u root --default-character-set=utf8mb4 < codigo\base-de-datos\usuario_aplicacion.sql
-```
+Ese usuario es `benefitrack_app` y lo crea la sección 9 de `benefitrack_v2.sql`, al final del
+script (los permisos se dan después de crear las tablas y los procedimientos). **Cambie su
+contraseña** (`CAMBIE_ESTA_CLAVE`) como se explica en la sección 1 y guárdela en
+`codigo/aplicacion/config/config.local.php`, nunca en el repositorio.
 
 Los triggers siguen funcionando con ese usuario, porque se ejecutan con los permisos de quien los
 creó (`root@localhost`). Si el usuario intenta escribir directamente en una tabla protegida, MariaDB
 responde con el error 1142, por ejemplo:
 `INSERT command denied to user 'benefitrack_app'@'localhost' for table 'auditoria'`.
 
-Para comprobar los controles con ese usuario (después de `benefitrack_v2.sql`,
-`datos_iniciales.sql`, `usuario_aplicacion.sql` y `pruebas\concurrencia\preparar.sql`, como `root`):
+Para comprobar los controles con ese usuario (después de `benefitrack_v2.sql` y
+`pruebas\concurrencia\preparar.sql`, como `root`):
 
 ```bat
 C:\xampp\mysql\bin\mysql.exe -u benefitrack_app -p --default-character-set=utf8mb4 --force --table < codigo\base-de-datos\pruebas\pruebas_usuario_aplicacion.sql

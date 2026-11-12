@@ -11,8 +11,7 @@ Responde siempre en español, con tildes y ñ. Escribe tus informes para Samuel:
 
 ## Dónde está todo
 
-- `codigo/base-de-datos/benefitrack_v2.sql`: el script que crea TODA la base (empieza con `DROP DATABASE IF EXISTS`).
-- `codigo/base-de-datos/datos_iniciales.sql` y `usuario_aplicacion.sql` (usuario limitado `benefitrack_app`).
+- `codigo/base-de-datos/benefitrack_v2.sql`: el ÚNICO script de instalación. Crea TODA la base (empieza con `DROP DATABASE IF EXISTS`), carga los catálogos iniciales (sección 8) y crea el usuario limitado `benefitrack_app` con sus permisos (sección 9, al final).
 - `codigo/base-de-datos/pruebas/`: `pruebas_reglas.sql`, `pruebas_usuario_aplicacion.sql`, `otro_usuario/` y `concurrencia/`.
 - `codigo/base-de-datos/README.md`: explicación de la base.
 - `codigo/aplicacion/`: PHP 8.2 por capas. El SQL vive SOLO en `src/Repositorios/`; las reglas en `src/Servicios/`; la validación en `src/Validacion/`; el HTML en `vistas/`; las pruebas en `pruebas/Unidad` y `pruebas/Integracion`.
@@ -62,8 +61,8 @@ No puedes lanzar otros agentes. Al terminar, pide en tu informe que el orquestad
 1. **Sin datos repetidos.** Cada cosa vive en una sola tabla (forma normal 3FN). Un catálogo, como las subsedes, va en su propia tabla, y las demás tablas lo referencian con una clave foránea. Nada de textos libres repetidos que deberían ser un catálogo.
 2. **Nombres al estilo de la BD.** Tablas en plural y en `snake_case`; clave primaria `id_<singular>`; claves foráneas con el mismo nombre que la clave a la que apuntan; tipos y `NOT NULL` coherentes con las tablas vecinas; `utf8mb4`.
 3. **Relaciones y reglas.** Claves foráneas con su `ON DELETE`/`ON UPDATE` pensado, índices en las columnas que se filtran, y triggers y procedimientos coherentes con los que ya existen (por ejemplo, `fn_es_administrador`, `pr_exigir_administrador`, auditoría y `@app_id_usuario`).
-4. **Permisos mínimos.** `benefitrack_app` debe tener solo lo que necesita; si agregas una tabla, revisa `usuario_aplicacion.sql`.
-5. **Todo lo que depende de la BD.** Si cambia un campo, revisa y ajusta también la plantilla de Excel para crear usuarios, el Excel que se descarga, `datos_iniciales.sql`, los validadores, los repositorios y las vistas. Una columna nueva sin su lugar en la app y en los Excel es un trabajo a medias.
+4. **Permisos mínimos.** `benefitrack_app` debe tener solo lo que necesita; si agregas una tabla, revisa sus `GRANT` en la sección 9 de `benefitrack_v2.sql`.
+5. **Todo lo que depende de la BD.** Si cambia un campo, revisa y ajusta también la plantilla de Excel para crear usuarios, el Excel que se descarga, los catálogos iniciales (sección 8 de `benefitrack_v2.sql`), los validadores, los repositorios y las vistas. Una columna nueva sin su lugar en la app y en los Excel es un trabajo a medias.
 6. **Datos personales sensibles (Ley 1581 de Colombia).** Datos como discapacidad, desplazamiento, etnia, salud, maternidad o condición de víctima son sensibles. Comprueba que:
    - el aprendiz dé una autorización explícita, guardada en la base con su fecha;
    - solo los vea quien los necesita (aprendiz dueño y administrador);
@@ -84,7 +83,7 @@ No puedes lanzar otros agentes. Al terminar, pide en tu informe que el orquestad
 
 ## Verificación antes de entregar (con la salida real)
 
-1. Cargar `benefitrack_v2.sql` **dos veces** seguidas sin errores, y después `datos_iniciales.sql` y `usuario_aplicacion.sql`.
+1. Cargar `benefitrack_v2.sql` **dos veces** seguidas sin errores (es el único script: trae catálogos y el usuario `benefitrack_app`).
 2. `pruebas/pruebas_reglas.sql` y `pruebas_usuario_aplicacion.sql`: cero FALLO.
 3. Si el cambio toca cupos, pagos o usuarios: `sh codigo/base-de-datos/pruebas/concurrencia/ejecutar.sh "<mysql> -u root -P 3398 -h 127.0.0.1"` y `otro_usuario/`, ambos CORRECTO.
 4. Suite de la app, desde `codigo/aplicacion` (con el PHP de XAMPP hay que activar `zip` y `gd`):
