@@ -70,7 +70,8 @@ final class DocumentosControlador
 
         $mime = self::TIPOS_MIME[(string) $documento['extension']] ?? 'application/octet-stream';
 
-        return Respuesta::archivo($ruta, (string) $documento['nombre_archivo'], $mime, true)->sinCache();
+        // Las imágenes se ven en el navegador; el PDF se descarga: el visor de PDF no funciona dentro de «sandbox».
+        return Respuesta::archivo($ruta, (string) $documento['nombre_archivo'], $mime, $mime !== 'application/pdf')->sinCache();
     }
 
     /** Un administrador ve cualquiera; un aprendiz, solo los de su propia postulación. */

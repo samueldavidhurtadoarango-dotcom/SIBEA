@@ -29,6 +29,9 @@ final class Respuesta
         'X-Content-Type-Options' => 'nosniff',
     ];
 
+    /** Política de los archivos y descargas: sin scripts ni formularios (sandbox) y sin marcos (los mismos de toda página). */
+    private const POLITICA_ARCHIVOS = "sandbox; frame-ancestors 'none'";
+
     /** @var array<string, string> Cabeceras HTTP (nombre => valor), ya con las de seguridad. */
     private readonly array $cabeceras;
 
@@ -44,7 +47,8 @@ final class Respuesta
         array $cabeceras,
         private readonly ?string $archivo = null,
     ) {
-        // Seguridad: TODA respuesta sale con estas cabeceras; una respuesta puede endurecer alguna (los documentos), no quitarla.
+        // Seguridad: TODA respuesta sale con estas cabeceras; las que se pasan aquí
+        // reemplazan a las de por defecto (los documentos usan su propia política de contenido, también sin marcos).
         $this->cabeceras = array_merge(self::CABECERAS_SEGURIDAD, $cabeceras);
     }
 
@@ -87,7 +91,7 @@ final class Respuesta
             'X-Content-Type-Options' => 'nosniff',
             // Seguridad: un documento subido por una persona nunca debe ejecutar nada en nuestro sitio:
             // "sandbox" lo deja sin scripts, sin formularios y sin acceso a la sesión.
-            'Content-Security-Policy' => 'sandbox',
+            'Content-Security-Policy' => self::POLITICA_ARCHIVOS,
         ], $ruta);
     }
 
@@ -109,6 +113,7 @@ final class Respuesta
             'Content-Length' => (string) strlen($contenido),
             'Content-Disposition' => 'attachment; filename="' . $nombreSeguro . '"',
             'X-Content-Type-Options' => 'nosniff',
+            'Content-Security-Policy' => self::POLITICA_ARCHIVOS,
         ]);
     }
 

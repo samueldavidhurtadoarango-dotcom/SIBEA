@@ -108,7 +108,8 @@ final class DetallePostulacionControladorTest extends TestCase
         $this->assertStringContainsString('Cupos: 0 de 30 usados', $cuerpo);
         $this->assertStringContainsString('Quedan 30', $cuerpo);
         $this->assertStringContainsString('Enviada · queda Pendiente', $cuerpo);
-        $this->assertStringContainsString('/documentos/100', $cuerpo); // enlace «Ver documento»
+        $this->assertStringContainsString('/documentos/100', $cuerpo); // enlace al documento
+        $this->assertStringContainsString('Descargar PDF', $cuerpo); // los PDF se descargan, no se muestran
     }
 
     public function test_el_detalle_de_una_postulacion_que_no_existe_es_404(): void

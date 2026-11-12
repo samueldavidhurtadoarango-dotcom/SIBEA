@@ -144,8 +144,10 @@ $iconoCerrar = $icono . '<path d="M6 6l12 12M18 6 6 18"></path></svg>';
                             <?php endif; ?>
                         </div>
                         <div class="br-documento__acciones">
-                            <!-- El archivo lo entrega DocumentosControlador (solo dueño o administrador); se abre en otra pestaña. -->
-                            <a href="/documentos/<?= $idDocumento ?>" target="_blank" rel="noopener" class="br-boton br-boton--secundario br-boton--chico">Ver documento<span class="br-solo-lectores"> (<?= e((string) $documento['tipo']) ?>)</span></a>
+                            <!-- El archivo lo entrega DocumentosControlador (solo dueño o administrador). Las imágenes se ven en otra
+                                 pestaña; el PDF se descarga (el visor de PDF no funciona con la protección «sandbox»). -->
+                            <?php $esPdf = strtolower((string) $documento['extension']) === 'pdf'; ?>
+                            <a href="/documentos/<?= $idDocumento ?>"<?= $esPdf ? '' : ' target="_blank" rel="noopener"' ?> class="br-boton br-boton--secundario br-boton--chico"><?= $esPdf ? 'Descargar PDF' : 'Ver documento' ?><span class="br-solo-lectores"> (<?= e((string) $documento['tipo']) ?>)</span></a>
                             <?php if ($pendiente) : ?>
                                 <div class="br-revision" role="group" aria-label="Revisión de <?= e((string) $documento['tipo']) ?>">
                                     <label class="br-revision__opcion br-revision__opcion--valido"><input type="radio" name="estado[<?= $idDocumento ?>]" value="Validado"<?= $marca === 'Validado' ? ' checked' : '' ?>><?= $iconoVisto ?>Válido</label>
