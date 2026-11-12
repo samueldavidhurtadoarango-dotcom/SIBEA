@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace BenefitRack\Pruebas\Unidad\Nucleo;
 
 use BenefitRack\Nucleo\Respuesta;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 /** Cabeceras de seguridad (B3) en toda respuesta y «sandbox» extra para los documentos subidos (B6). */
@@ -27,7 +28,7 @@ final class RespuestaSeguridadTest extends TestCase
         ];
     }
 
-    /** @dataProvider respuestas */
+    #[DataProvider('respuestas')]
     public function test_toda_respuesta_lleva_las_cabeceras_de_seguridad(Respuesta $respuesta): void
     {
         $this->assertSame('DENY', $respuesta->cabecera('X-Frame-Options'));

@@ -15,17 +15,37 @@ namespace BenefitRack\Nucleo;
 final class Respuesta
 {
     /**
+     * Cabeceras de seguridad de toda respuesta:
+     * - X-Frame-Options y frame-ancestors: nadie puede meter la página en un marco (clickjacking).
+     * - object-src y base-uri: sin plugins y sin cambiar la base de los enlaces (inyección de HTML).
+     * - Referrer-Policy: la dirección completa solo viaja dentro del mismo sitio.
+     * - nosniff: el navegador respeta el tipo de contenido declarado.
+     * No se usa default-src: bloquearía Google Fonts (hoja y letras) y los scripts de /js.
+     */
+    private const CABECERAS_SEGURIDAD = [
+        'X-Frame-Options' => 'DENY',
+        'Content-Security-Policy' => "frame-ancestors 'none'; object-src 'none'; base-uri 'self'",
+        'Referrer-Policy' => 'same-origin',
+        'X-Content-Type-Options' => 'nosniff',
+    ];
+
+    /** @var array<string, string> Cabeceras HTTP (nombre => valor), ya con las de seguridad. */
+    private readonly array $cabeceras;
+
+    /**
      * @param int                   $codigo    Código HTTP (200, 302, 404...).
      * @param string                $cuerpo    Contenido que se envía.
-     * @param array<string, string> $cabeceras Cabeceras HTTP (nombre => valor).
+     * @param array<string, string> $cabeceras Cabeceras HTTP (nombre => valor); ganan sobre las de seguridad por defecto.
      * @param string|null           $archivo   Ruta de un archivo a enviar en lugar del cuerpo.
      */
     private function __construct(
         private readonly int $codigo,
         private readonly string $cuerpo,
-        private readonly array $cabeceras,
+        array $cabeceras,
         private readonly ?string $archivo = null,
     ) {
+        // Seguridad: TODA respuesta sale con estas cabeceras; una respuesta puede endurecer alguna (los documentos), no quitarla.
+        $this->cabeceras = array_merge(self::CABECERAS_SEGURIDAD, $cabeceras);
     }
 
     /**
@@ -65,6 +85,9 @@ final class Respuesta
             'Content-Length' => (string) filesize($ruta),
             'Content-Disposition' => ($enLinea ? 'inline' : 'attachment') . '; filename="' . $nombreSeguro . '"',
             'X-Content-Type-Options' => 'nosniff',
+            // Seguridad: un documento subido por una persona nunca debe ejecutar nada en nuestro sitio:
+            // "sandbox" lo deja sin scripts, sin formularios y sin acceso a la sesión.
+            'Content-Security-Policy' => 'sandbox',
         ], $ruta);
     }
 
