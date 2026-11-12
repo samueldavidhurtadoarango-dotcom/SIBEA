@@ -14,4 +14,6 @@ aplicacion/almacenamiento/documentos/*
 !aplicacion/almacenamiento/documentos/.gitkeep
 aplicacion/almacenamiento/temporal/*
 !aplicacion/almacenamiento/temporal/.gitkeep
+aplicacion/almacenamiento/sesiones/*
+!aplicacion/almacenamiento/sesiones/.gitkeep
 aplicacion/.phpunit.result.cache

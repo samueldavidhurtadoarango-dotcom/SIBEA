@@ -61,7 +61,7 @@ final class Fabrica
      * @param Configuracion $configuracion Los ajustes de la aplicación.
      * @param string        $carpetaVistas Carpeta donde están las vistas (aplicacion/vistas).
      * @param string        $ip            IP de quien hace la petición (para la auditoría).
-     * @param \Closure|null $usuariosParaSesion Solo para pruebas: entrega el RepositorioUsuarios con el que el filtro de sesión
+     * @param (\Closure():RepositorioUsuarios)|null $usuariosParaSesion Solo para pruebas: entrega el RepositorioUsuarios con el que el filtro de sesión
      *                                          revalida la cuenta (null = el de verdad, con la conexión a la base).
      */
     public function __construct(
@@ -176,7 +176,7 @@ final class Fabrica
     public function sesion(): Sesion
     {
         // La caducidad de la sesión se configura (app.sesion_duracion_maxima_horas); PHP guarda sus datos ese tiempo.
-        return $this->sesion ??= new Sesion(null, $this->horasMaximasDeSesion() * 3600);
+        return $this->sesion ??= new Sesion(null, $this->horasMaximasDeSesion() * 3600, $this->carpetaAlmacenamiento() . '/sesiones');
     }
 
     /**

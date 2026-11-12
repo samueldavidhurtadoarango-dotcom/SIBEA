@@ -25,8 +25,9 @@ final class Sesion
      * @param \Closure():int|null $reloj              Quién dice la hora (null = la hora real). Existe para poder probar la expiración sin esperar.
      * @param int                 $segundosEnServidor Cuánto guarda PHP los datos de una sesión (debe ser al menos la duración máxima;
      *                                                por defecto PHP los borra a los 24 minutos y la sesión «moriría» antes de tiempo).
+     * @param string|null         $carpetaSesiones    Carpeta propia donde PHP guarda las sesiones (null = la de php.ini; así se usa en las pruebas).
      */
-    public function __construct(?\Closure $reloj = null, private readonly int $segundosEnServidor = 28800)
+    public function __construct(?\Closure $reloj = null, private readonly int $segundosEnServidor = 28800, private readonly ?string $carpetaSesiones = null)
     {
         $this->reloj = $reloj ?? static fn (): int => time();
     }
@@ -47,6 +48,7 @@ final class Sesion
         ini_set('session.use_strict_mode', '1');
         ini_set('session.use_only_cookies', '1');
         ini_set('session.gc_maxlifetime', (string) $this->segundosEnServidor);
+        $this->usarCarpetaPropia();
         session_name(self::NOMBRE_COOKIE);
         session_set_cookie_params([
             'lifetime' => 0,         // la cookie muere al cerrar el navegador
@@ -370,6 +372,23 @@ final class Sesion
             unset($_SESSION['postulacion_pendiente']);
         }
     }
+    /**
+     * Seguridad: PHP guarda las sesiones en la carpeta temporal de XAMPP (C:
+mpp	mp), que comparte con phpMyAdmin
+     * y otras aplicaciones. Su limpieza automática borra los archivos a los 24 minutos y no respetaría nuestros
+     * 30 minutos / 8 horas. Con una carpeta propia solo viven aquí nuestras sesiones.
+     */
+    private function usarCarpetaPropia(): void
+    {
+        if ($this->carpetaSesiones === null) {
+            return;
+        }
+        if (!is_dir($this->carpetaSesiones)) {
+            mkdir($this->carpetaSesiones, 0700, true);
+        }
+        session_save_path($this->carpetaSesiones);
+    }
+
     /** ¿La petición llegó por HTTPS? (el servidor lo avisa en $_SERVER['HTTPS']). */
     private function esHttps(): bool
     {
