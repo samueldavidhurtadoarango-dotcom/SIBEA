@@ -65,6 +65,16 @@ Carga **uno por uno y en este orden** los tres archivos de `../base-de-datos/`:
    `benefitrack_v2`, usuario `benefitrack_app` y **la clave que elegiste** en el paso 1.2.
    Deja `depuracion` en `false` (en `true` se muestran detalles de los errores: solo en tu computador).
 3. `config.local.php` no se sube a git porque tiene una clave.
+4. **Zona horaria.** `app.zona_horaria` (por defecto `America/Bogota`) fija la hora de PHP al arrancar. Importa
+   porque XAMPP trae `Europe/Berlin` en `php.ini`: sin este ajuste, las horas que escribe PHP irían 6 horas
+   corridas respecto a Colombia. Si no pones la clave, se usa `America/Bogota`; un nombre inventado hace
+   fallar el arranque con un mensaje claro.
+5. **Duración de la sesión.** `app.sesion_inactividad_minutos` (30) cierra la sesión tras ese tiempo sin
+   actividad y `app.sesion_duracion_maxima_horas` (8) la cierra aunque se siga usando. Al expirar, la persona
+   vuelve a `/ingresar` con el aviso «Tu sesión expiró por seguridad. Vuelve a ingresar.»
+6. **En producción, `display_errors=Off`** en `php.ini` (así PHP nunca pinta rutas ni claves en la página). Los
+   errores van al registro del servidor (`error_log`) y, si el arranque falla, la persona solo ve una página
+   «Algo salió mal» sin detalles.
 
 ### 1.5 Servir la aplicación (importante: la carpeta pública)
 
@@ -111,11 +121,12 @@ por consola, desde `aplicacion/`:
 php herramientas/crear_administrador.php
 ```
 
-Pide documento, nombre, apellido, correo y contraseña (mínimo 8 caracteres) y la clave de `root` de
+Pide documento, nombre, apellido, correo y contraseña (las mismas 4 reglas de la aplicación: mínimo 8
+caracteres, una mayúscula, una minúscula y un número; la pide dos veces) y la clave de `root` de
 MariaDB (en XAMPP suele estar vacía: Enter). Usa el host, puerto y base de `config/config.local.php`.
 Se conecta como `root` con `@app_id_usuario = NULL` (el único caso en que la base lo permite) y guarda
 solo el hash de la contraseña. Después entras en `/ingresar` y creas las demás cuentas desde
-**Usuarios**.
+**Usuarios**. Ojo: en esa consola la contraseña **se ve mientras la escribes** (PHP en Windows no puede ocultarla de forma fiable): hazlo a solas.
 
 ---
 
@@ -184,7 +195,15 @@ los pasos de seguridad, las reglas de negocio y las llamadas a la BD.
   (protección contra inyección de fórmulas).
 - Las contraseñas temporales se generan con `random_int` y en la BD solo queda el hash. El Excel de
   entrega con las contraseñas no se guarda en el servidor.
-- Los errores técnicos no se muestran: van al log; la persona ve un mensaje sencillo.
+- Los errores técnicos no se muestran: van al log; la persona ve un mensaje sencillo (también si falla el arranque).
+- En cada petición privada la sesión se **revalida contra la base**: si la cuenta se desactiva, se bloquea, se
+  borra o cambia de rol, la persona sale a `/ingresar` en su siguiente petición.
+- La sesión caduca por inactividad (30 min) y por duración máxima (8 h), configurables.
+- Toda respuesta lleva `X-Frame-Options: DENY`, `Content-Security-Policy` (`frame-ancestors 'none'; object-src 'none';
+  base-uri 'self'`), `Referrer-Policy: same-origin` y `X-Content-Type-Options: nosniff`. No se usa `default-src`
+  porque bloquearía Google Fonts (la letra de la marca).
+- Los documentos subidos se entregan con `Content-Security-Policy: sandbox` y `nosniff`: aunque alguien subiera un
+  archivo disfrazado, no puede ejecutar nada en el sitio.
 
 ## 5. Cómo correr las pruebas
 
