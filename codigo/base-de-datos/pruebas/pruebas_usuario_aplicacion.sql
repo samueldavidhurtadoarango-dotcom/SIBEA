@@ -18,9 +18,8 @@
 --     migraciones, y sin sesión no se cambia ninguna contraseña (U14).
 --
 -- Preparación (como root):
---   1. benefitrack_v2.sql
---   2. usuario_aplicacion.sql
---   3. pruebas/concurrencia/preparar.sql   (crea el administrador 5, el
+--   1. benefitrack_v2.sql                  (también crea benefitrack_app)
+--   2. pruebas/concurrencia/preparar.sql   (crea el administrador 5, el
 --      aprendiz 22 y la postulación 2 en estado Validada)
 -- Ejecución (como benefitrack_app, con --force para que siga después de
 -- cada error esperado):

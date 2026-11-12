@@ -95,7 +95,7 @@ DELIMITER ;
 
 -- Cuántos datos iniciales hay ANTES de que las pruebas creen los suyos
 -- (los casos R14 a R16 los comparan). Antes de ejecutar este archivo se
--- carga datos_iniciales.sql DOS veces (ver README.md).
+-- carga benefitrack_v2.sql DOS veces (ver README.md): trae los catálogos.
 SELECT COUNT(*) INTO @ini_beneficios FROM beneficios;
 SELECT COUNT(*) INTO @ini_bancos     FROM entidades_bancarias;
 SELECT COUNT(*) INTO @ini_programas  FROM programas;
@@ -2101,18 +2101,19 @@ CALL pr_verificar('R13', 'Cambiar el teléfono no vuelve a poner debe_cambiar_co
   'Se lee debe_cambiar_contrasena después de cambiar el teléfono');
 SET @app_id_usuario = NULL;
 
--- Datos iniciales: se cargaron dos veces antes de las pruebas y no se duplicaron.
-CALL pr_verificar('R14', 'datos_iniciales.sql deja exactamente 3 beneficios',
+-- Datos iniciales: benefitrack_v2.sql deja los catálogos completos. (Se carga dos
+-- veces antes de las pruebas para comprobar que funciona con el usuario ya creado.)
+CALL pr_verificar('R14', 'benefitrack_v2.sql deja exactamente 3 beneficios',
   @ini_beneficios = 3 AND (SELECT COUNT(*) FROM beneficios
                             WHERE nombre IN ('Alimentación','Plan de datos','Cívica')) = 3,
   CONCAT('Beneficios antes de las pruebas: ', @ini_beneficios));
-CALL pr_verificar('R15', 'datos_iniciales.sql deja exactamente 11 bancos',
+CALL pr_verificar('R15', 'benefitrack_v2.sql deja exactamente 11 bancos',
   @ini_bancos = 11 AND (SELECT COUNT(*) FROM entidades_bancarias
                          WHERE nombre IN ('Bancolombia','Banco de Bogotá','Davivienda','BBVA Colombia',
                                           'Banco de Occidente','Banco Popular','Banco Caja Social',
                                           'Banco AV Villas','Banco Agrario','Nequi','Daviplata')) = 11,
   CONCAT('Bancos antes de las pruebas: ', @ini_bancos));
-CALL pr_verificar('R16', 'datos_iniciales.sql deja exactamente 5 programas del Centro Textil',
+CALL pr_verificar('R16', 'benefitrack_v2.sql deja exactamente 5 programas del Centro Textil',
   @ini_programas = 5 AND (SELECT COUNT(*) FROM programas
                            WHERE id_institucion = 1
                              AND nombre IN ('Análisis y Desarrollo de Software','Confección Industrial',

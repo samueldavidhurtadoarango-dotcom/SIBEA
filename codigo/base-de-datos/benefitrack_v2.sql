@@ -5,6 +5,13 @@
 -- Compatible con MariaDB 10.4 (XAMPP) y MariaDB 11.x.
 -- Fuente de verdad: documentacion/specs/001-correccion-entregables.md (decisiones D1-D19).
 --
+-- Es el ÚNICO script de instalación: se carga una vez, conectado como
+-- root (en phpMyAdmin o por consola), y crea todo: las tablas, las reglas
+-- (triggers y procedimientos), los catálogos iniciales (sección 8) y el
+-- usuario limitado de la aplicación, benefitrack_app, con sus permisos
+-- (sección 9). Ese usuario trae la clave de ejemplo CAMBIE_ESTA_CLAVE:
+-- cámbiela al instalar de verdad (ver la sección 9 y README.md).
+--
 -- Variables de sesión que usa la base de datos (las fija la aplicación
 -- al abrir cada conexión):
 --   SET @app_id_usuario = <id del usuario que inició sesión>;   -- D9
@@ -2125,3 +2132,156 @@ INSERT INTO eps (nombre) VALUES
   ('Sanitas'),
   ('Savia Salud'),
   ('SURA');
+
+-- Catálogos con que empieza la aplicación: los beneficios, los bancos y los
+-- programas de formación. Sin ellos no se puede crear una convocatoria ni
+-- llenar el formulario de postulación. Cada INSERT usa ON DUPLICATE KEY
+-- UPDATE sobre el nombre (que es único): si este bloque se copia y se
+-- vuelve a ejecutar sobre una base en uso, no duplica nada; solo deja cada
+-- fila como está aquí (no borra lo que usted haya agregado por su cuenta).
+-- Los programas son ejemplos del Centro Textil: corríjalos si hace falta.
+
+-- Beneficios (id_institucion 1 = Centro Textil; la categoría es el mismo nombre).
+INSERT INTO beneficios (id_institucion, nombre, descripcion, categoria) VALUES
+  (1, 'Alimentación',  'Apoyo económico para la alimentación del aprendiz.',          'Alimentación'),
+  (1, 'Plan de datos', 'Apoyo para pagar un plan de datos móviles o de internet.',    'Plan de datos'),
+  (1, 'Cívica',        'Apoyo para los aprendices que participan en actividades cívicas.', 'Cívica')
+ON DUPLICATE KEY UPDATE
+  descripcion = VALUES(descripcion),
+  categoria   = VALUES(categoria);
+
+-- Bancos y billeteras donde el aprendiz recibe los pagos.
+INSERT INTO entidades_bancarias (nombre) VALUES
+  ('Bancolombia'),
+  ('Banco de Bogotá'),
+  ('Davivienda'),
+  ('BBVA Colombia'),
+  ('Banco de Occidente'),
+  ('Banco Popular'),
+  ('Banco Caja Social'),
+  ('Banco AV Villas'),
+  ('Banco Agrario'),
+  ('Nequi'),
+  ('Daviplata')
+ON DUPLICATE KEY UPDATE
+  nombre = VALUES(nombre);
+
+-- Programas de formación de ejemplo del Centro Textil.
+INSERT INTO programas (id_institucion, nombre) VALUES
+  (1, 'Análisis y Desarrollo de Software'),
+  (1, 'Confección Industrial'),
+  (1, 'Gestión de la Producción Industrial'),
+  (1, 'Diseño de Modas'),
+  (1, 'Gestión Administrativa')
+ON DUPLICATE KEY UPDATE
+  nombre = VALUES(nombre);
+
+-- =====================================================================
+-- SECCIÓN 9. USUARIO DE LA APLICACIÓN (benefitrack_app)
+-- =====================================================================
+-- !!! CAMBIE LA CLAVE DE EJEMPLO !!!
+-- Este usuario se crea con la clave de ejemplo CAMBIE_ESTA_CLAVE. Al
+-- instalar de verdad, apenas termine este script, ejecute como root:
+--   ALTER USER 'benefitrack_app'@'localhost' IDENTIFIED BY '<su clave larga y propia>';
+-- y escriba esa MISMA clave en codigo/aplicacion/config/config.local.php (nunca en
+-- el repositorio). Volver a cargar este script NO le devuelve la clave de
+-- ejemplo a un usuario que ya existe (CREATE USER IF NOT EXISTS lo deja
+-- como está); solo vuelve a darle sus permisos.
+--
+-- Va al final porque los GRANT necesitan que ya existan las tablas y los
+-- procedimientos.
+--
+-- La aplicación NO debe conectarse como root. Este usuario puede leer
+-- todo, pero NO puede:
+--   * insertar, modificar ni borrar en historial_estados ni auditoria
+--     (solo los triggers escriben ahí);
+--   * insertar ni borrar asignaciones_beneficio (las crea el trigger al
+--     aprobar; la aplicación solo cambia su estado);
+--   * borrar postulaciones, pagos, novedades ni notificaciones.
+-- Los triggers siguen funcionando porque se ejecutan con los permisos de
+-- quien los creó (root), no con los de este usuario.
+--
+-- 'localhost' frente a '127.0.0.1': en el XAMPP de Windows, conectarse con
+-- -h 127.0.0.1 se reconoce como 'localhost' (se probó: CURRENT_USER()
+-- devuelve benefitrack_app@localhost). Si su servidor usa skip-name-resolve
+-- o la aplicación se conecta desde otra máquina, cree el mismo usuario
+-- también para ese host (por ejemplo 'benefitrack_app'@'127.0.0.1') y
+-- repita los GRANT para él.
+--
+-- @app_id_usuario: con CUALQUIER usuario de conexión distinto de root
+-- (benefitrack_app o el que usted cree), las acciones de gestión exigen que
+-- la aplicación fije siempre SET @app_id_usuario = <id del administrador>.
+-- Si la variable está en NULL, la base rechaza la acción. Solo root (el
+-- usuario de mantenimiento) puede actuar con la variable en NULL.
+--
+-- La única excepción es el flujo de inicio de sesión: debe ejecutarse con
+-- SET @app_id_usuario = NULL (todavía no hay usuario de sesión); solo así
+-- el bloqueo tras 3 intentos y el desbloqueo a los 15 minutos son
+-- automáticos. Con la variable en NULL no se cambian contraseñas ni otros
+-- datos de una cuenta (ronda 11): en la recuperación de contraseña, después
+-- de comprobar el token, fije SET @app_id_usuario = <dueño del token>.
+--
+-- Datos de cada persona (ronda 11): un aprendiz solo cambia su contraseña,
+-- su cuenta bancaria, sus postulaciones, los documentos de sus
+-- postulaciones y el «leída» de sus notificaciones. El estado del correo
+-- de una notificación lo anota la aplicación en la sesión del
+-- administrador que causó el aviso.
+--
+-- @app_justificacion: todo cambio de rol o de estado de un usuario que no
+-- sea automático exige un motivo. Vía recomendada (este usuario tiene
+-- EXECUTE sobre ellos, ver más abajo):
+--   CALL pr_cambiar_estado_usuario(<id>, 'Inactivo', '<motivo>');
+--   CALL pr_cambiar_rol_usuario(<id>, 'Administrador', '<motivo>');
+-- Fijan el motivo solo para ese cambio y lo limpian aunque falle. Si se
+-- hace a mano (SET @app_justificacion = '<motivo>'; UPDATE ...), vuelva a
+-- poner la variable en NULL después, para no arrastrar un motivo viejo.
+-- El motivo queda en auditoria, que escriben solo los triggers: este
+-- usuario NO tiene INSERT sobre auditoria.
+-- =====================================================================
+
+CREATE USER IF NOT EXISTS 'benefitrack_app'@'localhost' IDENTIFIED BY 'CAMBIE_ESTA_CLAVE';
+
+-- Lectura de toda la base.
+GRANT SELECT ON benefitrack_v2.* TO 'benefitrack_app'@'localhost';
+
+-- Catálogos que administra el Administrador (roles queda solo lectura).
+GRANT INSERT, UPDATE ON benefitrack_v2.instituciones       TO 'benefitrack_app'@'localhost';
+GRANT INSERT, UPDATE ON benefitrack_v2.tipos_cuenta        TO 'benefitrack_app'@'localhost';
+GRANT INSERT, UPDATE ON benefitrack_v2.tipos_documento     TO 'benefitrack_app'@'localhost';
+GRANT INSERT, UPDATE ON benefitrack_v2.entidades_bancarias TO 'benefitrack_app'@'localhost';
+GRANT INSERT, UPDATE ON benefitrack_v2.eps                 TO 'benefitrack_app'@'localhost';
+GRANT INSERT, UPDATE ON benefitrack_v2.programas           TO 'benefitrack_app'@'localhost';
+
+-- Usuarios y acceso.
+GRANT INSERT, UPDATE         ON benefitrack_v2.usuarios                TO 'benefitrack_app'@'localhost';
+GRANT INSERT, UPDATE, DELETE ON benefitrack_v2.sesiones                TO 'benefitrack_app'@'localhost';
+GRANT INSERT, UPDATE         ON benefitrack_v2.recuperacion_contrasena TO 'benefitrack_app'@'localhost';
+GRANT INSERT, UPDATE         ON benefitrack_v2.informacion_bancaria    TO 'benefitrack_app'@'localhost';
+
+-- Beneficios, convocatorias y postulaciones.
+GRANT INSERT, UPDATE ON benefitrack_v2.beneficios                TO 'benefitrack_app'@'localhost';
+GRANT INSERT, UPDATE ON benefitrack_v2.convocatorias             TO 'benefitrack_app'@'localhost';
+GRANT INSERT, UPDATE ON benefitrack_v2.postulaciones             TO 'benefitrack_app'@'localhost';
+GRANT INSERT, UPDATE ON benefitrack_v2.documentos_postulacion    TO 'benefitrack_app'@'localhost';
+GRANT INSERT, UPDATE ON benefitrack_v2.solicitudes_documentacion TO 'benefitrack_app'@'localhost';
+
+-- Beneficiarios, pagos y novedades.
+GRANT UPDATE         ON benefitrack_v2.asignaciones_beneficio TO 'benefitrack_app'@'localhost';
+GRANT INSERT, UPDATE ON benefitrack_v2.pagos                  TO 'benefitrack_app'@'localhost';
+GRANT INSERT         ON benefitrack_v2.novedades              TO 'benefitrack_app'@'localhost';
+
+-- Notificaciones: marcar como leída (el titular) y actualizar el estado del
+-- correo (un administrador).
+GRANT UPDATE ON benefitrack_v2.notificaciones TO 'benefitrack_app'@'localhost';
+
+-- Migraciones desde Excel.
+GRANT INSERT, UPDATE ON benefitrack_v2.migraciones TO 'benefitrack_app'@'localhost';
+
+-- Vía recomendada para cambiar el estado o el rol de un usuario: los
+-- procedimientos fijan la justificación solo para ese cambio y la limpian.
+GRANT EXECUTE ON PROCEDURE benefitrack_v2.pr_cambiar_estado_usuario TO 'benefitrack_app'@'localhost';
+GRANT EXECUTE ON PROCEDURE benefitrack_v2.pr_cambiar_rol_usuario    TO 'benefitrack_app'@'localhost';
+
+-- historial_estados y auditoria: solo SELECT (ya concedido arriba).
+
+FLUSH PRIVILEGES;

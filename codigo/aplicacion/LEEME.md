@@ -24,18 +24,19 @@ página oficial <https://windows.php.net/download/> (versión *Thread Safe* x64 
 XAMPP). Mientras no lo hagas, **no dejes Apache encendido en redes compartidas** (wifi del
 centro, cafés): usa solo tu computador o el servidor de prueba de PHP (sección 1.5).
 
-### 1.2 La base de datos (en este orden, siempre)
+### 1.2 La base de datos (un solo archivo)
 
 Abre el panel de XAMPP, enciende **MySQL** y entra a phpMyAdmin (o usa la consola `mysql`).
-Carga **uno por uno y en este orden** los tres archivos de `../base-de-datos/`:
+Carga **un solo archivo**, una sola vez y como `root`: `../base-de-datos/benefitrack_v2.sql`
+(en phpMyAdmin, pestaña **Importar**). Ese archivo lo trae todo, como una caja con todas las piezas:
 
-1. `benefitrack_v2.sql` — crea las tablas, los triggers y las reglas (los cimientos).
-2. `datos_iniciales.sql` — beneficios, bancos, EPS y programas de ejemplo (sin esto no se puede crear
-   una convocatoria ni llenar el formulario).
-3. `usuario_aplicacion.sql` — crea el usuario `benefitrack_app`, con el que la aplicación se conecta
-   (la aplicación **nunca** usa `root`).
+- crea las tablas, los triggers y las reglas (los cimientos);
+- carga beneficios, bancos, EPS y programas de ejemplo (sin esto no se puede crear una convocatoria
+  ni llenar el formulario);
+- crea el usuario `benefitrack_app`, con el que la aplicación se conecta (la aplicación **nunca**
+  usa `root`).
 
-> **Cambia la contraseña del usuario de la aplicación.** El archivo trae una clave de ejemplo
+> **Cambia la contraseña del usuario de la aplicación.** El script trae una clave de ejemplo
 > (`CAMBIE_ESTA_CLAVE`). Antes de usar la aplicación de verdad, cámbiala en phpMyAdmin
 > (Cuentas de usuario → `benefitrack_app` → Cambiar contraseña) o con
 > `ALTER USER 'benefitrack_app'@'localhost' IDENTIFIED BY 'una-clave-larga-y-propia';`

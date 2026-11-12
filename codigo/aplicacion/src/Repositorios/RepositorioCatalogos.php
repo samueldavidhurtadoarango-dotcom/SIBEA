@@ -5,7 +5,7 @@
  *
  * Paso 4 del recorrido: aquí vive el SQL de las listas fijas que llenan los
  * desplegables (programas, beneficios, bancos, EPS y tipos de cuenta). Las
- * carga el script datos_iniciales.sql. Solo devuelve los registros activos.
+ * carga el script benefitrack_v2.sql (sección 8). Solo devuelve los registros activos.
  */
 
 declare(strict_types=1);
