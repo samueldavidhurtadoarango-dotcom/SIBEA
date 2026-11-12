@@ -23,6 +23,15 @@ Primera versión de BenefitRack que funciona de punta a punta: PHP puro con MVC 
 - Clases sin estilos en reglas de contraseña y cabecera de tarjeta. Una prueba nueva exige que toda clase `br-*` usada en las vistas exista en la hoja de estilos.
 - Cabecera del administrador (usuario y «Salir» en una fila), alineación de los filtros de postulaciones, barra de cupos de convocatorias en su línea y buscador de usuarios.
 
+### Seguridad (revisión final)
+- La sesión se comprueba contra la BD en cada petición: si el administrador desactiva una cuenta o le cambia el rol, el usuario queda fuera en su siguiente clic.
+- La sesión vence tras 30 minutos sin uso y siempre a las 8 horas; las sesiones se guardan en `aplicacion/almacenamiento/sesiones`.
+- Zona horaria `America/Bogota` (`app.zona_horaria`); XAMPP trae `Europe/Berlin`.
+- Cabeceras `X-Frame-Options`, `Content-Security-Policy`, `Referrer-Policy` y `nosniff` en todas las respuestas; los documentos subidos van con `sandbox` y los PDF se descargan en vez de abrirse en la pestaña.
+- El arranque (`Arranque`) atrapa cualquier fallo y muestra una página 500 sin detalles técnicos.
+- `crear_administrador.php` exige las mismas 4 reglas de contraseña.
+- Una convocatoria Inactiva responde 404 en el formulario de postulación y descarta los documentos a medio subir.
+
 ### Decisiones
 - Contraseña temporal aleatoria por aprendiz (10 caracteres, `random_int`); en la BD solo queda el hash y el Excel de entrega no se guarda.
 - El menú del administrador es Convocatorias · Postulaciones · Usuarios; tras iniciar sesión el administrador va a `/admin/postulaciones` y el aprendiz a `/mi-proceso`.
