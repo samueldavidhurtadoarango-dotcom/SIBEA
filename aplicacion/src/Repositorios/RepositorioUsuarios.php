@@ -56,6 +56,27 @@ class RepositorioUsuarios
     }
 
     /**
+     * Lo mínimo que el filtro de sesión necesita saber de una cuenta en CADA petición (M1).
+     *
+     * @param int $id Id del usuario de la sesión.
+     * @return array{estado: string, rol: string, debe_cambiar_contrasena: int}|null Su estado, su rol y la marca de
+     *         primer ingreso hoy en la base; null si la cuenta ya no existe.
+     */
+    public function estadoParaSesion(int $id): ?array
+    {
+        $consulta = $this->baseDatos->pdo()->prepare(
+            'SELECT u.estado, r.nombre AS rol, u.debe_cambiar_contrasena
+               FROM usuarios u
+               JOIN roles r ON r.id_rol = u.id_rol
+              WHERE u.id_usuario = ?'
+        );
+        $consulta->execute([$id]);
+        $fila = $consulta->fetch();
+
+        return is_array($fila) ? $fila : null;
+    }
+
+    /**
      * Suma un intento fallido. Si llega a 3, la misma sentencia pasa la cuenta a
      * 'Bloqueado' (la base reconoce ese cambio como automático y guarda la fecha).
      *

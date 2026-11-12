@@ -23,5 +23,9 @@ return [
         'depuracion' => false,
         // Zona horaria de PHP (XAMPP trae Europe/Berlin; sin esta clave se usa America/Bogota).
         'zona_horaria' => 'America/Bogota',
+        // La sesión se cierra tras estos minutos sin actividad...
+        'sesion_inactividad_minutos' => 30,
+        // ...y, aunque no pare de usarla, tras estas horas desde que ingresó.
+        'sesion_duracion_maxima_horas' => 8,
     ],
 ];

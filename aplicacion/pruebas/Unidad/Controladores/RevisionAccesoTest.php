@@ -9,12 +9,13 @@ use BenefitRack\Nucleo\Configuracion;
 use BenefitRack\Nucleo\Enrutador;
 use BenefitRack\Nucleo\Fabrica;
 use BenefitRack\Nucleo\Peticion;
+use BenefitRack\Repositorios\RepositorioUsuarios;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 /**
  * Quién puede entrar al detalle de una postulación y a sus decisiones. No necesita base de datos: los filtros
- * de sesión y de rol responden ANTES de que la fábrica arme el controlador (y abra la conexión).
+ * (con un repositorio de usuarios falso) responden ANTES de que la fábrica arme el controlador (y abra la conexión).
  */
 final class RevisionAccesoTest extends TestCase
 {
@@ -25,7 +26,12 @@ final class RevisionAccesoTest extends TestCase
     {
         $_SESSION = [];
         $configuracion = new Configuracion(['bd' => ['host' => '127.0.0.1', 'puerto' => 1, 'nombre' => 'x', 'usuario' => 'x', 'clave' => 'x']]);
-        $this->fabrica = new Fabrica($configuracion, dirname(__DIR__, 3) . '/vistas', '127.0.0.1');
+        // La sesión se revalida contra la base (M1): aquí un repositorio falso responde que la cuenta sigue activa con lo que dice la sesión.
+        $usuarios = $this->createMock(RepositorioUsuarios::class);
+        $usuarios->method('estadoParaSesion')->willReturnCallback(static fn (): array => [
+            'estado' => 'Activo', 'rol' => $_SESSION['rol'], 'debe_cambiar_contrasena' => (int) $_SESSION['debe_cambiar_contrasena'],
+        ]);
+        $this->fabrica = new Fabrica($configuracion, dirname(__DIR__, 3) . '/vistas', '127.0.0.1', fn (): RepositorioUsuarios => $usuarios);
         $enrutador = new Enrutador();
         (require dirname(__DIR__, 3) . '/rutas.php')($enrutador, $this->fabrica);
         $this->aplicacion = new Aplicacion($enrutador, $this->fabrica->vista(), $configuracion, $this->fabrica);

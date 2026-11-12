@@ -61,11 +61,14 @@ final class Fabrica
      * @param Configuracion $configuracion Los ajustes de la aplicación.
      * @param string        $carpetaVistas Carpeta donde están las vistas (aplicacion/vistas).
      * @param string        $ip            IP de quien hace la petición (para la auditoría).
+     * @param \Closure|null $usuariosParaSesion Solo para pruebas: entrega el RepositorioUsuarios con el que el filtro de sesión
+     *                                          revalida la cuenta (null = el de verdad, con la conexión a la base).
      */
     public function __construct(
         private readonly Configuracion $configuracion,
         private readonly string $carpetaVistas,
         private readonly string $ip,
+        private readonly ?\Closure $usuariosParaSesion = null,
     ) {
     }
 
@@ -172,7 +175,8 @@ final class Fabrica
      */
     public function sesion(): Sesion
     {
-        return $this->sesion ??= new Sesion();
+        // La caducidad de la sesión se configura (app.sesion_duracion_maxima_horas); PHP guarda sus datos ese tiempo.
+        return $this->sesion ??= new Sesion(null, $this->horasMaximasDeSesion() * 3600);
     }
 
     /**
@@ -215,6 +219,20 @@ final class Fabrica
         return $conexion;
     }
 
+    /** Horas máximas de una sesión (app.sesion_duracion_maxima_horas, por defecto 8). */
+    private function horasMaximasDeSesion(): int
+    {
+        return $this->entero('app.sesion_duracion_maxima_horas', 8);
+    }
+
+    /** Un ajuste numérico de la configuración; si falta o no es un número positivo, el valor por defecto. */
+    private function entero(string $clave, int $porDefecto): int
+    {
+        $valor = $this->configuracion->obtenerOpcional($clave, $porDefecto);
+
+        return is_int($valor) && $valor > 0 ? $valor : $porDefecto;
+    }
+
     /** aplicacion/almacenamiento: fuera de public/, así el navegador no puede pedir los documentos por URL. */
     private function carpetaAlmacenamiento(): string
     {
@@ -232,7 +250,13 @@ final class Fabrica
      */
     public function filtroSesion(): FiltroSesion
     {
-        return new FiltroSesion($this->sesion());
+        // El repositorio se arma solo si hace falta (una conexión por petición, y solo en rutas privadas).
+        return new FiltroSesion(
+            $this->sesion(),
+            $this->usuariosParaSesion ?? fn (): RepositorioUsuarios => new RepositorioUsuarios($this->baseDatos()),
+            $this->entero('app.sesion_inactividad_minutos', 30),
+            $this->horasMaximasDeSesion()
+        );
     }
 
     /**

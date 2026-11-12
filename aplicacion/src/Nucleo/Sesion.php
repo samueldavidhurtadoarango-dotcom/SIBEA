@@ -18,6 +18,19 @@ final class Sesion
 {
     private const NOMBRE_COOKIE = 'BR_SESION';
 
+    /** @var \Closure():int Devuelve la hora actual (segundos). En las pruebas se reemplaza por un reloj controlado. */
+    private readonly \Closure $reloj;
+
+    /**
+     * @param \Closure():int|null $reloj              Quién dice la hora (null = la hora real). Existe para poder probar la expiración sin esperar.
+     * @param int                 $segundosEnServidor Cuánto guarda PHP los datos de una sesión (debe ser al menos la duración máxima;
+     *                                                por defecto PHP los borra a los 24 minutos y la sesión «moriría» antes de tiempo).
+     */
+    public function __construct(?\Closure $reloj = null, private readonly int $segundosEnServidor = 28800)
+    {
+        $this->reloj = $reloj ?? static fn (): int => time();
+    }
+
     /**
      * Arranca la sesión con la cookie configurada de forma segura.
      *
@@ -33,6 +46,7 @@ final class Sesion
         // "regale" un id inventado a la víctima: fijación de sesión).
         ini_set('session.use_strict_mode', '1');
         ini_set('session.use_only_cookies', '1');
+        ini_set('session.gc_maxlifetime', (string) $this->segundosEnServidor);
         session_name(self::NOMBRE_COOKIE);
         session_set_cookie_params([
             'lifetime' => 0,         // la cookie muere al cerrar el navegador
@@ -69,6 +83,9 @@ final class Sesion
         $_SESSION['rol'] = $rol;
         $_SESSION['nombre'] = $nombre;
         $_SESSION['debe_cambiar_contrasena'] = $debeCambiar;
+        // Marcas para la expiración (B1): cuándo ingresó y cuándo fue su última petición.
+        $_SESSION['_inicio'] = ($this->reloj)();
+        $_SESSION['_actividad'] = $_SESSION['_inicio'];
     }
 
     /**
@@ -134,6 +151,67 @@ final class Sesion
         if (session_status() === PHP_SESSION_ACTIVE) {
             session_regenerate_id(true);
         }
+    }
+
+    /**
+     * Dice si la sesión de quien ingresó ya caducó: por inactividad (mucho tiempo sin pedir nada)
+     * o por duración máxima (aunque no pare de usarla, no vive para siempre).
+     *
+     * @param int $segundosInactividad Máximo de segundos entre dos peticiones.
+     * @param int $segundosMaximos     Máximo de segundos desde que ingresó.
+     * @return bool true si caducó. Si hay usuario pero faltan las marcas de tiempo, también (ante la duda, se cierra).
+     */
+    public function haExpirado(int $segundosInactividad, int $segundosMaximos): bool
+    {
+        if ($this->idUsuario() === null) {
+            return false;
+        }
+        $inicio = $_SESSION['_inicio'] ?? null;
+        $actividad = $_SESSION['_actividad'] ?? null;
+        if (!is_int($inicio) || !is_int($actividad)) {
+            return true;
+        }
+        $ahora = ($this->reloj)();
+
+        return $ahora - $actividad > $segundosInactividad || $ahora - $inicio > $segundosMaximos;
+    }
+
+    /**
+     * Anota que la persona acaba de hacer una petición (reinicia el contador de inactividad).
+     *
+     * @return void
+     */
+    public function registrarActividad(): void
+    {
+        $_SESSION['_actividad'] = ($this->reloj)();
+    }
+
+    /**
+     * Pone la bandera «debe cambiar su contraseña» tal como la dice la base de datos.
+     *
+     * @param bool $debeCambiar true si la base dice que debe cambiarla.
+     * @return void
+     */
+    public function fijarDebeCambiar(bool $debeCambiar): void
+    {
+        $_SESSION['debe_cambiar_contrasena'] = $debeCambiar;
+    }
+
+    /**
+     * Cierra la sesión de la persona pero deja una sesión anónima nueva con un aviso para /ingresar.
+     * (cerrar() destruye la sesión del servidor y el aviso se perdería.)
+     *
+     * @param string $texto El aviso que verá en el formulario de ingreso.
+     * @return void
+     */
+    public function cerrarConAviso(string $texto): void
+    {
+        $_SESSION = [];
+        // Seguridad: id nuevo (el "true" borra la sesión vieja del servidor); el token CSRF y los datos viejos desaparecen.
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_regenerate_id(true);
+        }
+        $this->mensaje('aviso', $texto);
     }
 
     /**
