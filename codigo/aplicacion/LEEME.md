@@ -24,7 +24,7 @@ página oficial <https://windows.php.net/download/> (versión *Thread Safe* x64 
 XAMPP). Mientras no lo hagas, **no dejes Apache encendido en redes compartidas** (wifi del
 centro, cafés): usa solo tu computador o el servidor de prueba de PHP (sección 1.5).
 
-### 1.2 La base de datos (en este orden, siempre)
+### 1.2 La base de datos (un solo archivo)
 
 Abre el panel de XAMPP, enciende **MySQL** y entra a phpMyAdmin (o usa la consola `mysql`).
 Carga **un solo archivo**, una sola vez y como `root`: `../base-de-datos/benefitrack_v2.sql`

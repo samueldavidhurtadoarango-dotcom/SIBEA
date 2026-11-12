@@ -96,8 +96,9 @@ administrador crea los demás desde la aplicación.
 
 ## 2. Ejecutar las pruebas
 
-Las pruebas se ejecutan **después** de cargar `benefitrack_v2.sql` **dos veces** seguidas (los casos
-R14 a R16 comprueban que los catálogos quedan completos y sin duplicar), sobre la base recién creada.
+Las pruebas se ejecutan **después** de cargar `benefitrack_v2.sql` **dos veces** seguidas, sobre la base recién creada. La segunda carga
+comprueba que el script funciona aunque el usuario `benefitrack_app` ya exista; los casos R14 a R16
+comprueban que los catálogos quedan completos (3 beneficios, 11 bancos y 5 programas).
 Todos los datos de prueba se crean dentro de una transacción que se deshace al final,
 así que la base queda igual que antes y las pruebas se pueden repetir.
 

@@ -2101,8 +2101,8 @@ CALL pr_verificar('R13', 'Cambiar el teléfono no vuelve a poner debe_cambiar_co
   'Se lee debe_cambiar_contrasena después de cambiar el teléfono');
 SET @app_id_usuario = NULL;
 
--- Datos iniciales: benefitrack_v2.sql se cargó dos veces antes de las pruebas
--- y los catálogos no se duplicaron.
+-- Datos iniciales: benefitrack_v2.sql deja los catálogos completos. (Se carga dos
+-- veces antes de las pruebas para comprobar que funciona con el usuario ya creado.)
 CALL pr_verificar('R14', 'benefitrack_v2.sql deja exactamente 3 beneficios',
   @ini_beneficios = 3 AND (SELECT COUNT(*) FROM beneficios
                             WHERE nombre IN ('Alimentación','Plan de datos','Cívica')) = 3,
