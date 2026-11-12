@@ -3,7 +3,7 @@
 /**
  * MARCO "aprendiz": envuelve las páginas del aprendiz.
  * Paso 5 del recorrido. Reproduce la barra de la maqueta aprobada
- * (vistas/_comun/barra-aprendiz.html): marca, saludo y «Salir»; debajo, una columna centrada.
+ * (barra del catálogo de pantallas): marca, saludo y «Salir»; debajo, una columna centrada.
  * Recibe: $contenido (HTML ya seguro), $mensajes, $usuarioNombre, $tokenCsrf y opcional $titulo.
  */
 

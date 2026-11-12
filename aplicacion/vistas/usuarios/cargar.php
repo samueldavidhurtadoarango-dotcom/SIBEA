@@ -3,7 +3,7 @@
 /**
  * VISTA "usuarios/cargar": elegir el Excel de aprendices (y la pantalla de «archivo inválido»).
  * Paso 5 del recorrido (la dibuja CargaUsuariosControlador dentro del marco "admin").
- * Reproduce las maquetas vistas/06-usuarios/html/cargar-excel y archivo-invalido. Cambia el aviso
+ * Reproduce las maquetas 06-usuarios/cargar-excel y archivo-invalido. Cambia el aviso
  * de la contraseña: no se envía por correo, se entrega en el Excel de entrega. Las columnas son
  * las de la plantilla real (6, no 7).
  * Recibe: $motivo (por qué el archivo no sirve, o null), $nombreArchivo (el que se intentó subir, o null),

@@ -3,7 +3,7 @@
 /**
  * VISTA "mi_proceso/ver": la pantalla de inicio del aprendiz.
  * Paso 5 del recorrido (la dibuja MiProcesoControlador dentro del marco "aprendiz"). Reproduce las maquetas
- * vistas/01-mi-proceso: una tarjeta por cada convocatoria abierta sin postulación y una por cada postulación;
+ * pantalla 01-mi-proceso del catálogo: una tarjeta por cada convocatoria abierta sin postulación y una por cada postulación;
  * si no hay nada, el aviso «En el momento no hay convocatorias disponibles».
  * Recibe: $estado ('sin-postulacion' o 'con-actividad'), $abiertas y $postulaciones (ver ServicioMiProceso::resumen()).
  */

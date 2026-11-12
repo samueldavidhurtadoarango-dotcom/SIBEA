@@ -3,7 +3,7 @@
 /**
  * VISTA "postulaciones/detalle": el detalle de una postulación para el administrador.
  * Paso 5 del recorrido (la dibuja PostulacionesAdminControlador::detalle dentro del marco "admin").
- * Reproduce la maqueta vistas/03-detalle-postulacion (pendiente, validada, aprobada, rechazada y sin cupos), sin el
+ * Reproduce la maqueta 03-detalle-postulacion (pendiente, validada, aprobada, rechazada y sin cupos), sin el
  * botón «Pedir documento» (es de la fase 2):
  *   - a la izquierda: los datos del formulario, los documentos (con su revisión «Válido» / «No válido» mientras la
  *     postulación está Pendiente) y el historial; si ya fue aprobada, también la asignación creada;

@@ -179,6 +179,9 @@ servicio → repositorio → BD → vista → respuesta.
 | `herramientas/` | Scripts de consola: `crear_administrador.php` y `revisar_comentarios.php` (comprueba que todo archivo y método público tenga su comentario). |
 | `pruebas/` | `Unidad/` (sin base de datos) e `Integracion/` (con una MariaDB temporal). |
 
+Cuando un comentario de `vistas/` dice, por ejemplo, «Reproduce la maqueta 09-postulacion/formulario»,
+se refiere a esa pantalla aprobada, que aparece en el catálogo `../entregables/Pantallas_BenefitRack.pdf`.
+
 Reglas de comentarios del proyecto: cada archivo empieza con un bloque que dice qué hace y en qué paso
 del recorrido está; cada método público lleva `/** ... */` con qué recibe y qué devuelve; se comentan
 los pasos de seguridad, las reglas de negocio y las llamadas a la BD.
@@ -246,5 +249,5 @@ Servicios 95,9 %, Validacion 99,5 %.
 
 Pagos, reporte de aprobados, avisos (campanita) y correos, pedir un documento adicional al aprendiz,
 recuperar la contraseña por correo, el dashboard con cifras, auditoría y catálogos en pantalla. Por
-ahora, si alguien olvida su contraseña, el administrador se la restablece desde **Usuarios**. Está
-detallado en `../CHANGELOG.md` (versión 3.0.0).
+ahora, si alguien olvida su contraseña, el administrador se la restablece desde **Usuarios**. Todas
+las pantallas de la fase 2 ya están diseñadas en `../entregables/Pantallas_BenefitRack.pdf`.

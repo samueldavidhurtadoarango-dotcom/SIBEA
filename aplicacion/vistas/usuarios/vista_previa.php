@@ -3,7 +3,7 @@
 /**
  * VISTA "usuarios/vista_previa": qué filas del Excel están bien y cuáles tienen errores, ANTES de crear nada.
  * Paso 5 del recorrido (la dibuja CargaUsuariosControlador dentro del marco "admin").
- * Reproduce la maqueta vistas/06-usuarios/html/vista-previa (sin la columna «Valor en el archivo»).
+ * Reproduce la maqueta 06-usuarios/vista-previa (sin la columna «Valor en el archivo»).
  * Recibe: $archivo (nombre del Excel), $validas (filas listas), $conErrores (filas con error),
  * $errores (lista de fila, campo y motivo) y $tokenCsrf.
  */

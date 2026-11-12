@@ -9,8 +9,6 @@
 | `pruebas/otro_usuario/` | Prueba de que un usuario distinto de `root` no puede gestionar sin `@app_id_usuario`. |
 | `pruebas/concurrencia.md` y `pruebas/concurrencia/` | Pruebas con dos conexiones al mismo tiempo (cupos y último pago). |
 | `usuario_aplicacion.sql` | Ejemplo de usuario de MariaDB con permisos limitados para la aplicación. |
-| `CAMBIOS.md` | Qué cambió respecto al script original y por qué. |
-| `../originales/BENEFITRACK_CORREGIDA.sql` | Script original, sin cambios, como referencia. |
 
 Funciona en MariaDB 10.4 (la de XAMPP) y en MariaDB 11.x.
 

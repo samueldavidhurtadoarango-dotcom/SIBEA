@@ -3,7 +3,7 @@
 /**
  * VISTA "convocatorias/formulario": «Nueva convocatoria» y «Editar convocatoria» (es el mismo formulario).
  * Paso 5 del recorrido (la dibuja ConvocatoriasControlador dentro del marco "admin").
- * Reproduce la maqueta vistas/07-convocatorias/html/crear-editar. Al crear se elige si nace Activa o Inactiva;
+ * Reproduce la maqueta 07-convocatorias/crear-editar. Al crear se elige si nace Activa o Inactiva;
  * al editar no se muestra esa opción: el estado se cambia desde la lista.
  * Recibe: $accion (a dónde se envía), $edicion (true si edita), $errores (mensaje por campo), $valores (lo ya
  * escrito), $errorGeneral, $beneficios (lista de id y nombre) y $tokenCsrf.

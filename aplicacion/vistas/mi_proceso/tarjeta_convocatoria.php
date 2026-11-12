@@ -2,7 +2,7 @@
 
 /**
  * PARCIAL "mi_proceso/tarjeta_convocatoria": una convocatoria abierta a la que el aprendiz aún no se postula.
- * Paso 5 del recorrido. Reproduce vistas/01-mi-proceso/html/convocatoria-abierta.html. El botón «Postularme»
+ * Paso 5 del recorrido. Reproduce 01-mi-proceso/convocatoria-abierta. El botón «Postularme»
  * lleva al formulario de esa convocatoria (/convocatorias/{id}/postulacion).
  * Recibe: $convocatoria (una fila de RepositorioConvocatorias::abiertasPara()).
  */

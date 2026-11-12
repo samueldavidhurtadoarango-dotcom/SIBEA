@@ -3,7 +3,7 @@
 /**
  * VISTA "contrasena/exito": «Todo listo» tras cambiar la contraseña.
  * Paso 5 del recorrido (la dibuja ContrasenaControlador dentro del marco "publica").
- * Reproduce la maqueta vistas/02-contrasena/html/exito.
+ * Reproduce la maqueta 02-contrasena/exito.
  * Recibe: $inicio, la pantalla de inicio de su rol (/admin/postulaciones o /mi-proceso).
  */
 
