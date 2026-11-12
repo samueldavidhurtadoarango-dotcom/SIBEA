@@ -118,7 +118,7 @@ $iconoCerrar = $icono . '<path d="M6 6l12 12M18 6 6 18"></path></svg>';
             <?php if ($soloRechazar) : ?>
                 <p class="br-nota br-nota--peligro" data-prueba="solo-rechazar">
                     <strong>Hay un documento no válido.</strong>
-                    <span>Por ahora esta postulación solo se puede rechazar: pedirle un documento nuevo al aprendiz llegará en una próxima versión. Escribe el motivo al rechazar.</span>
+                    <span>Por ahora esta postulación solo se puede rechazar: pedirle un documento nuevo al aprendiz llegará en una próxima versión. Si te equivocaste, mientras la postulación siga Pendiente puedes corregir esa marca a «Válido» y guardar la revisión. Para rechazar, escribe el motivo.</span>
                 </p>
             <?php endif; ?>
 

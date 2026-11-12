@@ -59,6 +59,6 @@ final class ResultadoValidacion
      */
     public function datos(): array
     {
-        return $this->datos;
+        return $this->esValido() ? $this->datos : [];
     }
 }

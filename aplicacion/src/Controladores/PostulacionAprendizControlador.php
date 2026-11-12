@@ -65,7 +65,7 @@ final class PostulacionAprendizControlador
     public function formulario(Peticion $peticion): Respuesta
     {
         $id = (int) $peticion->parametro('id');
-        $convocatoria = $this->convocatorias->buscar($id);
+        $convocatoria = $this->convocatoriaVisible($id);
         if ($convocatoria === null) {
             return $this->noEncontrada();
         }
@@ -84,7 +84,7 @@ final class PostulacionAprendizControlador
     public function revisar(Peticion $peticion): Respuesta
     {
         $id = (int) $peticion->parametro('id');
-        $convocatoria = $this->convocatorias->buscar($id);
+        $convocatoria = $this->convocatoriaVisible($id);
         if ($convocatoria === null) {
             return $this->noEncontrada();
         }
@@ -118,7 +118,7 @@ final class PostulacionAprendizControlador
     public function enviar(Peticion $peticion): Respuesta
     {
         $id = (int) $peticion->parametro('id');
-        $convocatoria = $this->convocatorias->buscar($id);
+        $convocatoria = $this->convocatoriaVisible($id);
         if ($convocatoria === null) {
             return $this->noEncontrada();
         }
@@ -334,5 +334,18 @@ final class PostulacionAprendizControlador
     private function noEncontrada(): Respuesta
     {
         return Respuesta::html($this->vista->mostrar('errores/404', [], 'aprendiz'), 404);
+    }
+
+    /**
+     * Busca la convocatoria que el aprendiz puede ver: una «Inactiva» (borrador del administrador) se trata
+     * como si no existiera, para no mostrar la página «cerrada» de algo que nunca se publicó.
+     *
+     * @return array<string, mixed>|null La convocatoria, o null si no existe o está Inactiva.
+     */
+    private function convocatoriaVisible(int $id): ?array
+    {
+        $convocatoria = $this->convocatorias->buscar($id);
+
+        return ($convocatoria['estado'] ?? null) === 'Inactiva' ? null : $convocatoria;
     }
 }

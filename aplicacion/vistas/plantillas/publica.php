@@ -1,7 +1,7 @@
 <?php
 
 /**
- * MARCO "publica": envuelve las páginas sin sesión (inicio de sesión, recuperar contraseña, errores).
+ * MARCO "publica": envuelve las páginas sin sesión (inicio de sesión, errores).
  * Paso 5 del recorrido. Reproduce la maqueta aprobada vistas/00-existentes/login:
  * panel azul de marca (solo en computador) y tarjeta blanca centrada.
  * Recibe: $contenido (HTML de la página, ya seguro), $mensajes, y opcional $titulo.
