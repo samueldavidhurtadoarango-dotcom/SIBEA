@@ -1,6 +1,6 @@
 {
-    "name": "benefitrack/aplicacion",
-    "description": "BenefitRack: gestión de beneficios para aprendices del SENA",
+    "name": "sibea/aplicacion",
+    "description": "SIBEA — Sistema de Información de Beneficios y Apoyos: gestión de beneficios para aprendices del SENA",
     "type": "project",
     "require": {
         "php": "^8.2",
@@ -12,11 +12,11 @@
         "friendsofphp/php-cs-fixer": "^3.64"
     },
     "autoload": {
-        "psr-4": { "BenefitRack\\": "src/" },
+        "psr-4": { "SIBEA\\": "src/" },
         "files": ["src/Nucleo/funciones.php"]
     },
     "autoload-dev": {
-        "psr-4": { "BenefitRack\\Pruebas\\": "pruebas/" }
+        "psr-4": { "SIBEA\\Pruebas\\": "pruebas/" }
     },
     "scripts": {
         "pruebas": "phpunit",

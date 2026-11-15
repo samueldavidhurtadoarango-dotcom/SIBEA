@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Pruebas\Unidad\Servicios;
+namespace SIBEA\Pruebas\Unidad\Servicios;
 
-use BenefitRack\Servicios\AlmacenDocumentos;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
+use SIBEA\Servicios\AlmacenDocumentos;
 
 /** La carpeta definitiva de documentos: solo recibe archivos de la carpeta temporal y nunca sale de sí misma. */
 final class AlmacenDocumentosTest extends TestCase

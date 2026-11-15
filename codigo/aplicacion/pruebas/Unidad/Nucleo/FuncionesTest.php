@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Pruebas\Unidad\Nucleo;
+namespace SIBEA\Pruebas\Unidad\Nucleo;
 
 use PHPUnit\Framework\TestCase;
 

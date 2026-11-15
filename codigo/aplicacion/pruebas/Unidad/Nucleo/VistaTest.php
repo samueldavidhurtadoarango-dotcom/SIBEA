@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Pruebas\Unidad\Nucleo;
+namespace SIBEA\Pruebas\Unidad\Nucleo;
 
-use BenefitRack\Nucleo\Vista;
 use PHPUnit\Framework\TestCase;
+use SIBEA\Nucleo\Vista;
 
 final class VistaTest extends TestCase
 {

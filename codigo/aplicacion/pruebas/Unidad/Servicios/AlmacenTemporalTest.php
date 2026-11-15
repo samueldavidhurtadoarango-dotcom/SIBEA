@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Pruebas\Unidad\Servicios;
+namespace SIBEA\Pruebas\Unidad\Servicios;
 
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;

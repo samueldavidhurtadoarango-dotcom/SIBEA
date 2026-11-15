@@ -23,13 +23,13 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Servicios;
+namespace SIBEA\Servicios;
 
-use BenefitRack\Nucleo\ErrorDeNegocio;
-use BenefitRack\Nucleo\TraductorErroresBd;
-use BenefitRack\Repositorios\RepositorioDocumentos;
-use BenefitRack\Repositorios\RepositorioPostulaciones;
 use PDOException;
+use SIBEA\Nucleo\ErrorDeNegocio;
+use SIBEA\Nucleo\TraductorErroresBd;
+use SIBEA\Repositorios\RepositorioDocumentos;
+use SIBEA\Repositorios\RepositorioPostulaciones;
 
 class ServicioRevision
 {

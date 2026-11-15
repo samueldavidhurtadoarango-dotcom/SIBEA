@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Pruebas\Unidad\Controladores;
+namespace SIBEA\Pruebas\Unidad\Controladores;
 
-use BenefitRack\Controladores\DocumentosControlador;
-use BenefitRack\Nucleo\Peticion;
-use BenefitRack\Nucleo\Sesion;
-use BenefitRack\Nucleo\Vista;
-use BenefitRack\Repositorios\RepositorioDocumentos;
-use BenefitRack\Servicios\AlmacenDocumentos;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use SIBEA\Controladores\DocumentosControlador;
+use SIBEA\Nucleo\Peticion;
+use SIBEA\Nucleo\Sesion;
+use SIBEA\Nucleo\Vista;
+use SIBEA\Repositorios\RepositorioDocumentos;
+use SIBEA\Servicios\AlmacenDocumentos;
 
 /** Descargar un documento: solo su dueño o un administrador (sin base de datos: el repositorio es un doble). */
 final class DocumentosControladorTest extends TestCase

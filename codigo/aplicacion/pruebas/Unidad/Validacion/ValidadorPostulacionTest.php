@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Pruebas\Unidad\Validacion;
+namespace SIBEA\Pruebas\Unidad\Validacion;
 
-use BenefitRack\Validacion\ResultadoValidacion;
-use BenefitRack\Validacion\ValidadorPostulacion;
 use DateTimeImmutable;
 use PHPUnit\Framework\TestCase;
+use SIBEA\Validacion\ResultadoValidacion;
+use SIBEA\Validacion\ValidadorPostulacion;
 
 /** Reglas del formulario de postulación: campos, catálogos y los tres documentos. */
 final class ValidadorPostulacionTest extends TestCase

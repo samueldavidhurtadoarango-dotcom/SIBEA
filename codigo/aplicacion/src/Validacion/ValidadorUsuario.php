@@ -11,7 +11,7 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Validacion;
+namespace SIBEA\Validacion;
 
 final class ValidadorUsuario extends Validador
 {

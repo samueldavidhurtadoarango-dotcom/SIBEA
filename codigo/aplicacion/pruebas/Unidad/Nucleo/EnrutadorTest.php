@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Pruebas\Unidad\Nucleo;
+namespace SIBEA\Pruebas\Unidad\Nucleo;
 
-use BenefitRack\Nucleo\Enrutador;
-use BenefitRack\Nucleo\Peticion;
 use PHPUnit\Framework\TestCase;
+use SIBEA\Nucleo\Enrutador;
+use SIBEA\Nucleo\Peticion;
 
 final class EnrutadorTest extends TestCase
 {

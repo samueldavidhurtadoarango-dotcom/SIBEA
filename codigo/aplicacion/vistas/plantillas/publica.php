@@ -18,7 +18,7 @@ $titulo = $titulo ?? 'SIBEA';
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/css/bootstrap.min.css">
-    <link rel="stylesheet" href="/css/benefitrack.css">
+    <link rel="stylesheet" href="/css/sibea.css">
 </head>
 <body>
 <div class="br-acceso">
@@ -27,6 +27,7 @@ $titulo = $titulo ?? 'SIBEA';
             <div>
                 <div class="br-acceso__logo">Logo SENA</div>
                 <span class="br-acceso__nombre">SIBEA</span>
+                <small class="br-acceso__significado text-white-50">Sistema de Información de Beneficios y Apoyos</small>
                 <p class="br-acceso__lema">Tus beneficios de alimentación, datos y transporte, en un solo lugar.</p>
             </div>
             <ul class="br-acceso__beneficios">
@@ -51,6 +52,7 @@ $titulo = $titulo ?? 'SIBEA';
         <div class="br-acceso__movil">
             <div class="br-acceso__logo">Logo SENA</div>
             <span class="br-acceso__movil-nombre">SIBEA</span>
+            <small class="br-acceso__movil-significado text-secondary">Sistema de Información de Beneficios y Apoyos</small>
         </div>
         <div class="br-acceso__tarjeta">
             <?php include __DIR__ . '/../parciales/alertas.php'; ?>
@@ -59,6 +61,6 @@ $titulo = $titulo ?? 'SIBEA';
     </main>
 </div>
 <script src="/js/bootstrap.bundle.min.js"></script>
-<script src="/js/benefitrack.js"></script>
+<script src="/js/sibea.js"></script>
 </body>
 </html>

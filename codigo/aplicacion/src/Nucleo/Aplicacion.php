@@ -15,7 +15,7 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Nucleo;
+namespace SIBEA\Nucleo;
 
 use Throwable;
 
@@ -88,7 +88,7 @@ final class Aplicacion
      */
     private function respuestaDeError(Throwable $error): Respuesta
     {
-        error_log(sprintf('[BenefitRack] %s: %s en %s:%d', $error::class, $error->getMessage(), $error->getFile(), $error->getLine()));
+        error_log(sprintf('[SIBEA] %s: %s en %s:%d', $error::class, $error->getMessage(), $error->getFile(), $error->getLine()));
 
         try {
             $detalle = $this->depuracionActiva() ? $error->getMessage() : null;

@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Pruebas\Unidad\Nucleo;
+namespace SIBEA\Pruebas\Unidad\Nucleo;
 
-use BenefitRack\Nucleo\ErrorDeNegocio;
-use BenefitRack\Nucleo\TraductorErroresBd;
 use PDOException;
 use PHPUnit\Framework\TestCase;
+use SIBEA\Nucleo\ErrorDeNegocio;
+use SIBEA\Nucleo\TraductorErroresBd;
 
 final class TraductorErroresBdTest extends TestCase
 {

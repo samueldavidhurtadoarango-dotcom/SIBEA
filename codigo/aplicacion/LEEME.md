@@ -1,7 +1,7 @@
-# SIBEA · aplicación web (MVP 3.0.0)
+# SIBEA — Sistema de Información de Beneficios y Apoyos (aplicación web, MVP 3.0.0)
 
-SIBEA es el Sistema de Información de Beneficios y Apoyos. «BenefitRack» es su nombre de trabajo
-interno: por eso lo verás en el código (el espacio de nombres `BenefitRack`), en la base de datos y en las carpetas.
+SIBEA es el Sistema de Información de Beneficios y Apoyos. El código PHP (espacio de nombres `SIBEA`) y los
+archivos de la aplicación ya usan ese nombre; solo la carpeta del proyecto conserva el nombre de trabajo anterior.
 
 Aplicación en PHP puro con el patrón MVC, sobre la base de datos MariaDB `benefitrack_v2`
 (ver `../base-de-datos/README.md`). Es un proyecto del SENA (ADSO): cada línea está pensada

@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Pruebas\Integracion;
+namespace SIBEA\Pruebas\Integracion;
 
-use BenefitRack\Nucleo\Aplicacion;
-use BenefitRack\Nucleo\Enrutador;
-use BenefitRack\Nucleo\Fabrica;
-use BenefitRack\Nucleo\Peticion;
-use BenefitRack\Nucleo\Respuesta;
-use BenefitRack\Repositorios\RepositorioPostulaciones;
-use BenefitRack\Servicios\FiltroPostulaciones;
+use SIBEA\Nucleo\Aplicacion;
+use SIBEA\Nucleo\Enrutador;
+use SIBEA\Nucleo\Fabrica;
+use SIBEA\Nucleo\Peticion;
+use SIBEA\Nucleo\Respuesta;
+use SIBEA\Repositorios\RepositorioPostulaciones;
+use SIBEA\Servicios\FiltroPostulaciones;
 
 /** M6a: la lista de postulaciones del administrador, sus filtros y los datos que van al Excel. */
 final class ListaPostulacionesTest extends BaseDePrueba

@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Pruebas\Integracion;
+namespace SIBEA\Pruebas\Integracion;
 
-use BenefitRack\Nucleo\Aplicacion;
-use BenefitRack\Nucleo\Enrutador;
-use BenefitRack\Nucleo\ErrorDeNegocio;
-use BenefitRack\Nucleo\Fabrica;
-use BenefitRack\Nucleo\Peticion;
-use BenefitRack\Repositorios\RepositorioDocumentos;
-use BenefitRack\Repositorios\RepositorioPostulaciones;
-use BenefitRack\Servicios\ServicioRevision;
 use PDO;
+use SIBEA\Nucleo\Aplicacion;
+use SIBEA\Nucleo\Enrutador;
+use SIBEA\Nucleo\ErrorDeNegocio;
+use SIBEA\Nucleo\Fabrica;
+use SIBEA\Nucleo\Peticion;
+use SIBEA\Repositorios\RepositorioDocumentos;
+use SIBEA\Repositorios\RepositorioPostulaciones;
+use SIBEA\Servicios\ServicioRevision;
 
 /** M6b: revisar los documentos y decidir una postulación, con las reglas de la base de datos de verdad. */
 final class RevisionTest extends BaseDePrueba

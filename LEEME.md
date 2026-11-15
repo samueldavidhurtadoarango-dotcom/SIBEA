@@ -1,10 +1,10 @@
-# SIBEA · Sistema de Información de Beneficios y Apoyos
+# SIBEA — Sistema de Información de Beneficios y Apoyos
 
 Aplicación web para gestionar los beneficios (alimentación, plan de datos, cívica) de los aprendices
 del SENA, Centro Textil y de Gestión Industrial. Proyecto formativo ADSO, ficha 3425429.
 
-> «BenefitRack» era el nombre de trabajo del proyecto y sigue apareciendo en nombres internos
-> (carpetas, código PHP, base de datos `benefitrack_v2`). Lo que ve una persona dice **SIBEA**.
+> La carpeta del proyecto (`BenefitRack`) conserva el nombre de trabajo anterior; el código y lo que ve una
+> persona dicen **SIBEA**. La base de datos `benefitrack_v2` se renombra en otro paso (spec 006, Parte B).
 
 El proyecto está dividido en dos partes:
 

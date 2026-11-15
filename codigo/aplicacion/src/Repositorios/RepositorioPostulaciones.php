@@ -23,15 +23,15 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Repositorios;
+namespace SIBEA\Repositorios;
 
-use BenefitRack\Nucleo\BaseDatos;
-use BenefitRack\Servicios\FiltroPostulaciones;
-use BenefitRack\Servicios\Paginacion;
 use Generator;
 use InvalidArgumentException;
 use PDO;
 use PDOStatement;
+use SIBEA\Nucleo\BaseDatos;
+use SIBEA\Servicios\FiltroPostulaciones;
+use SIBEA\Servicios\Paginacion;
 
 class RepositorioPostulaciones
 {

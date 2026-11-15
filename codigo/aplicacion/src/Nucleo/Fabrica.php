@@ -17,39 +17,39 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Nucleo;
+namespace SIBEA\Nucleo;
 
-use BenefitRack\Controladores\AccesoControlador;
-use BenefitRack\Controladores\CargaUsuariosControlador;
-use BenefitRack\Controladores\ContrasenaControlador;
-use BenefitRack\Controladores\ConvocatoriasControlador;
-use BenefitRack\Controladores\DocumentosControlador;
-use BenefitRack\Controladores\MiProcesoControlador;
-use BenefitRack\Controladores\PostulacionAprendizControlador;
-use BenefitRack\Controladores\PostulacionesAdminControlador;
-use BenefitRack\Controladores\UsuariosControlador;
-use BenefitRack\Filtros\FiltroCsrf;
-use BenefitRack\Filtros\FiltroPrimerIngreso;
-use BenefitRack\Filtros\FiltroRol;
-use BenefitRack\Filtros\FiltroSesion;
-use BenefitRack\Repositorios\RepositorioCatalogos;
-use BenefitRack\Repositorios\RepositorioConvocatorias;
-use BenefitRack\Repositorios\RepositorioDocumentos;
-use BenefitRack\Repositorios\RepositorioMigraciones;
-use BenefitRack\Repositorios\RepositorioPostulaciones;
-use BenefitRack\Repositorios\RepositorioUsuarios;
-use BenefitRack\Servicios\AlmacenDocumentos;
-use BenefitRack\Servicios\AlmacenTemporal;
-use BenefitRack\Servicios\ServicioAcceso;
-use BenefitRack\Servicios\ServicioCargaUsuarios;
-use BenefitRack\Servicios\ServicioContrasena;
-use BenefitRack\Servicios\ServicioConvocatorias;
-use BenefitRack\Servicios\ServicioMiProceso;
-use BenefitRack\Servicios\ServicioPostulacion;
-use BenefitRack\Servicios\ServicioRevision;
-use BenefitRack\Servicios\ServicioUsuarios;
-use BenefitRack\Validacion\ValidadorPostulacion;
 use InvalidArgumentException;
+use SIBEA\Controladores\AccesoControlador;
+use SIBEA\Controladores\CargaUsuariosControlador;
+use SIBEA\Controladores\ContrasenaControlador;
+use SIBEA\Controladores\ConvocatoriasControlador;
+use SIBEA\Controladores\DocumentosControlador;
+use SIBEA\Controladores\MiProcesoControlador;
+use SIBEA\Controladores\PostulacionAprendizControlador;
+use SIBEA\Controladores\PostulacionesAdminControlador;
+use SIBEA\Controladores\UsuariosControlador;
+use SIBEA\Filtros\FiltroCsrf;
+use SIBEA\Filtros\FiltroPrimerIngreso;
+use SIBEA\Filtros\FiltroRol;
+use SIBEA\Filtros\FiltroSesion;
+use SIBEA\Repositorios\RepositorioCatalogos;
+use SIBEA\Repositorios\RepositorioConvocatorias;
+use SIBEA\Repositorios\RepositorioDocumentos;
+use SIBEA\Repositorios\RepositorioMigraciones;
+use SIBEA\Repositorios\RepositorioPostulaciones;
+use SIBEA\Repositorios\RepositorioUsuarios;
+use SIBEA\Servicios\AlmacenDocumentos;
+use SIBEA\Servicios\AlmacenTemporal;
+use SIBEA\Servicios\ServicioAcceso;
+use SIBEA\Servicios\ServicioCargaUsuarios;
+use SIBEA\Servicios\ServicioContrasena;
+use SIBEA\Servicios\ServicioConvocatorias;
+use SIBEA\Servicios\ServicioMiProceso;
+use SIBEA\Servicios\ServicioPostulacion;
+use SIBEA\Servicios\ServicioRevision;
+use SIBEA\Servicios\ServicioUsuarios;
+use SIBEA\Validacion\ValidadorPostulacion;
 
 final class Fabrica
 {

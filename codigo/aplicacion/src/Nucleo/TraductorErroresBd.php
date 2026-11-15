@@ -11,7 +11,7 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Nucleo;
+namespace SIBEA\Nucleo;
 
 use PDOException;
 
@@ -44,7 +44,7 @@ final class TraductorErroresBd
         }
 
         // Seguridad: el mensaje técnico real queda en el log del servidor, no en la pantalla.
-        error_log('[BenefitRack] Error de base de datos: ' . $error->getMessage());
+        error_log('[SIBEA] Error de base de datos: ' . $error->getMessage());
 
         return new ErrorDeNegocio('No pudimos guardar los cambios. Intenta de nuevo.', 0, $error);
     }

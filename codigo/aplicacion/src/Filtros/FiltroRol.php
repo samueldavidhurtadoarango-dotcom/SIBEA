@@ -10,12 +10,12 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Filtros;
+namespace SIBEA\Filtros;
 
-use BenefitRack\Nucleo\Peticion;
-use BenefitRack\Nucleo\Respuesta;
-use BenefitRack\Nucleo\Sesion;
-use BenefitRack\Nucleo\Vista;
+use SIBEA\Nucleo\Peticion;
+use SIBEA\Nucleo\Respuesta;
+use SIBEA\Nucleo\Sesion;
+use SIBEA\Nucleo\Vista;
 
 final class FiltroRol implements Filtro
 {

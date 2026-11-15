@@ -15,15 +15,15 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Servicios;
+namespace SIBEA\Servicios;
 
-use BenefitRack\Nucleo\ErrorDeNegocio;
-use BenefitRack\Nucleo\TraductorErroresBd;
-use BenefitRack\Repositorios\RepositorioDocumentos;
-use BenefitRack\Repositorios\RepositorioPostulaciones;
-use BenefitRack\Repositorios\RepositorioUsuarios;
 use DateTimeImmutable;
 use PDOException;
+use SIBEA\Nucleo\ErrorDeNegocio;
+use SIBEA\Nucleo\TraductorErroresBd;
+use SIBEA\Repositorios\RepositorioDocumentos;
+use SIBEA\Repositorios\RepositorioPostulaciones;
+use SIBEA\Repositorios\RepositorioUsuarios;
 use Throwable;
 
 class ServicioPostulacion
@@ -182,7 +182,7 @@ class ServicioPostulacion
 
             return TraductorErroresBd::traducir($error);
         }
-        error_log('[BenefitRack] Error al enviar la postulación: ' . $error->getMessage());
+        error_log('[SIBEA] Error al enviar la postulación: ' . $error->getMessage());
 
         return new ErrorDeNegocio('No pudimos guardar tu postulación. Intenta de nuevo.', 0, $error);
     }

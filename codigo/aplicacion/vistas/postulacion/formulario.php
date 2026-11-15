@@ -3,7 +3,7 @@
 /**
  * VISTA "postulacion/formulario": «Postúlate a …» y su versión con errores (es la misma pantalla).
  * Paso 5 del recorrido (la dibuja PostulacionAprendizControlador dentro del marco "aprendiz").
- * Reproduce la maqueta 09-postulacion/formulario y con-errores. El JavaScript (benefitrack.js,
+ * Reproduce la maqueta 09-postulacion/formulario y con-errores. El JavaScript (sibea.js,
  * formulario con data-prevalidar) solo avisa antes de enviar y muestra el nombre del archivo elegido; el
  * servidor siempre vuelve a validar todo.
  * Recibe: $convocatoria, $perfil («Tus datos», solo lectura), $listas (eps, bancos, tiposCuenta), $documentos

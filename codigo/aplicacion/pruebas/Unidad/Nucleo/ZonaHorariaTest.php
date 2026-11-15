@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Pruebas\Unidad\Nucleo;
+namespace SIBEA\Pruebas\Unidad\Nucleo;
 
-use BenefitRack\Nucleo\Configuracion;
-use BenefitRack\Nucleo\ZonaHoraria;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
+use SIBEA\Nucleo\Configuracion;
+use SIBEA\Nucleo\ZonaHoraria;
 
 /** La zona horaria sale de la configuración (app.zona_horaria) y por defecto es America/Bogota. */
 final class ZonaHorariaTest extends TestCase

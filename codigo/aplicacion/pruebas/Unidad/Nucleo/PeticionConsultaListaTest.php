@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Pruebas\Unidad\Nucleo;
+namespace SIBEA\Pruebas\Unidad\Nucleo;
 
-use BenefitRack\Nucleo\Peticion;
 use PHPUnit\Framework\TestCase;
+use SIBEA\Nucleo\Peticion;
 
 /** Leer de la URL una lista (?columnas[]=a&columnas[]=b), como la mandan las casillas de un formulario. */
 final class PeticionConsultaListaTest extends TestCase

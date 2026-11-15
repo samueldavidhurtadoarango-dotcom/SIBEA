@@ -129,7 +129,7 @@ $notaDeEstado = static function (array $fila): string {
         <?php endif; ?>
     </section>
 
-    <!-- Ventana para cerrar: la llenan los botones «Cerrar convocatoria» (benefitrack.js). El motivo solo aparece en el cierre anticipado. -->
+    <!-- Ventana para cerrar: la llenan los botones «Cerrar convocatoria» (sibea.js). El motivo solo aparece en el cierre anticipado. -->
     <div class="modal fade" id="modal-cerrar" tabindex="-1" aria-labelledby="modal-cerrar-titulo" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <form method="post" action="" class="modal-content">

@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Pruebas\Unidad\Nucleo;
+namespace SIBEA\Pruebas\Unidad\Nucleo;
 
-use BenefitRack\Nucleo\Arranque;
-use BenefitRack\Nucleo\Sesion;
-use BenefitRack\Nucleo\Vista;
 use PHPUnit\Framework\TestCase;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
+use SIBEA\Nucleo\Arranque;
+use SIBEA\Nucleo\Sesion;
+use SIBEA\Nucleo\Vista;
 
 /**
  * Spec 005: el sistema se llama SIBEA en todo lo que ve una persona.
@@ -176,7 +176,7 @@ final class NombreSibeaTest extends TestCase
 
     /**
      * Se queda solo con lo que puede llegar a la pantalla: el HTML suelto y los textos entre comillas.
-     * Deja fuera comentarios PHP y HTML (<!-- -->), nombres de código (como `use BenefitRack\...`)
+     * Deja fuera comentarios PHP y HTML (<!-- -->), nombres de código (como `use SIBEA\...`)
      * y las rutas internas /css/benefitrack.css y /js/benefitrack.js.
      */
     private static function textoVisible(string $codigo): string

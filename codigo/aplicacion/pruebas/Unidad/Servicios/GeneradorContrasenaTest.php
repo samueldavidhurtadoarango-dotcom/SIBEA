@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Pruebas\Unidad\Servicios;
+namespace SIBEA\Pruebas\Unidad\Servicios;
 
-use BenefitRack\Servicios\GeneradorContrasena;
 use PHPUnit\Framework\TestCase;
+use SIBEA\Servicios\GeneradorContrasena;
 
 /** La contraseña temporal: 10 caracteres, sin los que se confunden, aleatoria. */
 final class GeneradorContrasenaTest extends TestCase

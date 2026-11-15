@@ -10,13 +10,13 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Controladores;
+namespace SIBEA\Controladores;
 
-use BenefitRack\Nucleo\Peticion;
-use BenefitRack\Nucleo\Respuesta;
-use BenefitRack\Nucleo\Sesion;
-use BenefitRack\Nucleo\Vista;
-use BenefitRack\Servicios\ServicioMiProceso;
+use SIBEA\Nucleo\Peticion;
+use SIBEA\Nucleo\Respuesta;
+use SIBEA\Nucleo\Sesion;
+use SIBEA\Nucleo\Vista;
+use SIBEA\Servicios\ServicioMiProceso;
 
 final class MiProcesoControlador
 {

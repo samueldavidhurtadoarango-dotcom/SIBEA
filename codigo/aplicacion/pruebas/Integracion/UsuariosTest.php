@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Pruebas\Integracion;
+namespace SIBEA\Pruebas\Integracion;
 
-use BenefitRack\Nucleo\Aplicacion;
-use BenefitRack\Nucleo\Csrf;
-use BenefitRack\Nucleo\Enrutador;
-use BenefitRack\Nucleo\ErrorDeNegocio;
-use BenefitRack\Nucleo\Fabrica;
-use BenefitRack\Nucleo\Peticion;
-use BenefitRack\Nucleo\Respuesta;
-use BenefitRack\Repositorios\RepositorioCatalogos;
-use BenefitRack\Repositorios\RepositorioUsuarios;
-use BenefitRack\Servicios\ServicioUsuarios;
 use PhpOffice\PhpSpreadsheet\IOFactory;
+use SIBEA\Nucleo\Aplicacion;
+use SIBEA\Nucleo\Csrf;
+use SIBEA\Nucleo\Enrutador;
+use SIBEA\Nucleo\ErrorDeNegocio;
+use SIBEA\Nucleo\Fabrica;
+use SIBEA\Nucleo\Peticion;
+use SIBEA\Nucleo\Respuesta;
+use SIBEA\Repositorios\RepositorioCatalogos;
+use SIBEA\Repositorios\RepositorioUsuarios;
+use SIBEA\Servicios\ServicioUsuarios;
 
 /** M3a: crear aprendices, cambiar estado, restablecer contraseña y entregar el Excel. */
 final class UsuariosTest extends BaseDePrueba
@@ -348,7 +348,7 @@ final class UsuariosTest extends BaseDePrueba
 
         try {
             // Una fila mal armada hace fallar al exportador a mitad de camino.
-            (new \BenefitRack\Servicios\ExportadorExcel())->entregaContrasenas([['documento' => [], 'nombre' => 'A', 'correo' => 'a@b.co', 'contrasena' => 'x']]); // @phpstan-ignore-line
+            (new \SIBEA\Servicios\ExportadorExcel())->entregaContrasenas([['documento' => [], 'nombre' => 'A', 'correo' => 'a@b.co', 'contrasena' => 'x']]); // @phpstan-ignore-line
             $this->fail('Debía fallar.');
         } catch (\Throwable) {
             $this->assertSame($antes, $this->archivosTemporales());

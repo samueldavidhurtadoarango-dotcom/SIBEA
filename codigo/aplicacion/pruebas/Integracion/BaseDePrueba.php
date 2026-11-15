@@ -17,13 +17,13 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Pruebas\Integracion;
+namespace SIBEA\Pruebas\Integracion;
 
-use BenefitRack\Nucleo\BaseDatos;
-use BenefitRack\Nucleo\Configuracion;
 use PDO;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
+use SIBEA\Nucleo\BaseDatos;
+use SIBEA\Nucleo\Configuracion;
 
 abstract class BaseDePrueba extends TestCase
 {

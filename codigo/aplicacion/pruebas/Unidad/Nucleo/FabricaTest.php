@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Pruebas\Unidad\Nucleo;
+namespace SIBEA\Pruebas\Unidad\Nucleo;
 
-use BenefitRack\Nucleo\Configuracion;
-use BenefitRack\Nucleo\Fabrica;
-use BenefitRack\Nucleo\Sesion;
-use BenefitRack\Nucleo\Vista;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
+use SIBEA\Nucleo\Configuracion;
+use SIBEA\Nucleo\Fabrica;
+use SIBEA\Nucleo\Sesion;
+use SIBEA\Nucleo\Vista;
 
 final class FabricaTest extends TestCase
 {
@@ -23,7 +23,7 @@ final class FabricaTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('No sé crear');
 
-        $this->fabrica()->crear('BenefitRack\\Controladores\\NoExiste');
+        $this->fabrica()->crear('SIBEA\\Controladores\\NoExiste');
     }
 
     public function test_la_sesion_y_la_vista_son_compartidas(): void

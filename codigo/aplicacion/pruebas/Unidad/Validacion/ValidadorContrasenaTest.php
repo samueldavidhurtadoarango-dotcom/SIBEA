@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Pruebas\Unidad\Validacion;
+namespace SIBEA\Pruebas\Unidad\Validacion;
 
-use BenefitRack\Validacion\ResultadoValidacion;
-use BenefitRack\Validacion\ValidadorContrasena;
 use PHPUnit\Framework\TestCase;
+use SIBEA\Validacion\ResultadoValidacion;
+use SIBEA\Validacion\ValidadorContrasena;
 
 /** Reglas de la contraseña nueva (maqueta 02-contrasena/primer-ingreso). */
 final class ValidadorContrasenaTest extends TestCase

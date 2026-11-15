@@ -1,4 +1,4 @@
-/* BenefitRack · estilos propios (se cargan DESPUÉS de bootstrap.min.css).
+/* SIBEA · estilos propios (se cargan DESPUÉS de bootstrap.min.css).
    1) Redefine las variables de Bootstrap con los colores y la letra de la maqueta aprobada.
    2) Trae las piezas de la maqueta (vistas/_comun/estilo.css): barra del aprendiz,
       menú lateral del administrador, cabecera y tarjeta.
@@ -272,6 +272,7 @@ textarea:focus-visible, summary:focus-visible, [tabindex]:focus-visible {
   border: 1.5px dashed rgba(255, 255, 255, 0.35); border-radius: 12px; font-size: 14px; color: rgba(255, 255, 255, 0.75);
 }
 .br-acceso__nombre { display: block; font-size: 44px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; }
+.br-acceso__significado { display: block; margin-top: 4px; font-size: 14px; line-height: 1.4; }
 .br-acceso__lema { margin-top: 16px; font-size: 20px; line-height: 1.5; color: rgba(255, 255, 255, 0.86); }
 .br-acceso__beneficios { display: grid; gap: 24px; margin: 0; padding: 0; list-style: none; }
 .br-acceso__beneficios li { display: flex; gap: 16px; align-items: flex-start; }
@@ -288,6 +289,7 @@ textarea:focus-visible, summary:focus-visible, [tabindex]:focus-visible {
   width: 120px; height: 52px; margin: 0; font-size: 13px; color: var(--br-gris); border-color: var(--br-gris-claro); border-radius: 10px;
 }
 .br-acceso__movil-nombre { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
+.br-acceso__movil-significado { margin-top: -8px; font-size: 13px; line-height: 1.4; text-align: center; }
 .br-acceso__tarjeta {
   width: 100%; max-width: 440px; padding: 40px; display: grid; gap: 20px;
   background: var(--br-blanco); border: 1px solid var(--br-borde); border-radius: 16px;

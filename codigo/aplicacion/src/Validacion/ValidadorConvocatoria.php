@@ -12,7 +12,7 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Validacion;
+namespace SIBEA\Validacion;
 
 use DateTimeImmutable;
 

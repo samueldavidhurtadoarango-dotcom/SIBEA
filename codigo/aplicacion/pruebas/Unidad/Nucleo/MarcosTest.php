@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Pruebas\Unidad\Nucleo;
+namespace SIBEA\Pruebas\Unidad\Nucleo;
 
-use BenefitRack\Nucleo\Sesion;
-use BenefitRack\Nucleo\Vista;
 use PHPUnit\Framework\TestCase;
+use SIBEA\Nucleo\Sesion;
+use SIBEA\Nucleo\Vista;
 
 /** Comprueba lo importante de los tres marcos (publica, admin, aprendiz) y de las páginas de error. */
 final class MarcosTest extends TestCase

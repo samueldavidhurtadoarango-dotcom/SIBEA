@@ -12,7 +12,7 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Nucleo;
+namespace SIBEA\Nucleo;
 
 use Throwable;
 
@@ -43,7 +43,7 @@ final class Arranque
             return (new Aplicacion($enrutador, $fabrica->vista(), $configuracion, $fabrica))->ejecutar($peticion);
         } catch (Throwable $error) {
             // El detalle va solo al registro del servidor; la persona no ve nada técnico.
-            error_log(sprintf('[BenefitRack] Falló el arranque: %s: %s en %s:%d', $error::class, $error->getMessage(), $error->getFile(), $error->getLine()));
+            error_log(sprintf('[SIBEA] Falló el arranque: %s: %s en %s:%d', $error::class, $error->getMessage(), $error->getFile(), $error->getLine()));
 
             return self::paginaDeError();
         }

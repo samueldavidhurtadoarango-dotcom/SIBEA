@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Pruebas\Unidad\Validacion;
+namespace SIBEA\Pruebas\Unidad\Validacion;
 
-use BenefitRack\Validacion\ValidadorArchivo;
 use PHPUnit\Framework\TestCase;
+use SIBEA\Validacion\ValidadorArchivo;
 
 /** Reglas de cada documento: se subió, pesa ≤ 5 MB y es de verdad PDF, JPG o PNG (CA-7). */
 final class ValidadorArchivoTest extends TestCase

@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Pruebas\Unidad\Nucleo;
+namespace SIBEA\Pruebas\Unidad\Nucleo;
 
-use BenefitRack\Nucleo\Configuracion;
 use PHPUnit\Framework\TestCase;
+use SIBEA\Nucleo\Configuracion;
 
 /** Configuracion::obtenerOpcional: el valor guardado o, si falta la clave, el de por defecto. */
 final class ConfiguracionTest extends TestCase

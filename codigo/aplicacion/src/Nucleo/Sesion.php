@@ -12,11 +12,11 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Nucleo;
+namespace SIBEA\Nucleo;
 
 final class Sesion
 {
-    private const NOMBRE_COOKIE = 'BR_SESION';
+    private const NOMBRE_COOKIE = 'SIBEA_SESION';
 
     /** @var \Closure():int Devuelve la hora actual (segundos). En las pruebas se reemplaza por un reloj controlado. */
     private readonly \Closure $reloj;

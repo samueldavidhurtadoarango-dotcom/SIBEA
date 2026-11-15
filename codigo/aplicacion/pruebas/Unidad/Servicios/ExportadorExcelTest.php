@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Pruebas\Unidad\Servicios;
+namespace SIBEA\Pruebas\Unidad\Servicios;
 
-use BenefitRack\Servicios\ExportadorExcel;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PHPUnit\Framework\TestCase;
+use SIBEA\Servicios\ExportadorExcel;
 
 /** El Excel de entrega de contraseñas temporales. */
 final class ExportadorExcelTest extends TestCase

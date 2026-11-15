@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Pruebas\Unidad\Servicios;
+namespace SIBEA\Pruebas\Unidad\Servicios;
 
-use BenefitRack\Nucleo\ErrorDeNegocio;
-use BenefitRack\Pruebas\Integracion\BaseDePrueba;
-use BenefitRack\Repositorios\RepositorioCatalogos;
-use BenefitRack\Repositorios\RepositorioMigraciones;
-use BenefitRack\Repositorios\RepositorioUsuarios;
-use BenefitRack\Servicios\ServicioCargaUsuarios;
-use BenefitRack\Servicios\ServicioUsuarios;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use SIBEA\Nucleo\ErrorDeNegocio;
+use SIBEA\Pruebas\Integracion\BaseDePrueba;
+use SIBEA\Repositorios\RepositorioCatalogos;
+use SIBEA\Repositorios\RepositorioMigraciones;
+use SIBEA\Repositorios\RepositorioUsuarios;
+use SIBEA\Servicios\ServicioCargaUsuarios;
+use SIBEA\Servicios\ServicioUsuarios;
 use ZipArchive;
 
 /**

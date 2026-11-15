@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Pruebas\Unidad\Nucleo;
+namespace SIBEA\Pruebas\Unidad\Nucleo;
 
-use BenefitRack\Nucleo\Sesion;
 use PHPUnit\Framework\TestCase;
+use SIBEA\Nucleo\Sesion;
 
 /** B1: la sesión caduca por inactividad y por duración máxima (con un reloj que la prueba controla). */
 final class SesionExpiracionTest extends TestCase

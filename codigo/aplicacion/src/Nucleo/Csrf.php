@@ -7,7 +7,7 @@
  * en cada formulario como campo oculto "_csrf").
  *
  * El problema: otra página web podría hacer que TU navegador envíe un
- * formulario a BenefitRack sin que lo notes (el navegador adjunta tu cookie
+ * formulario a SIBEA sin que lo notes (el navegador adjunta tu cookie
  * de sesión solo). El remedio: cada formulario lleva un código secreto que
  * solo nuestro servidor y tu sesión conocen; una página ajena no puede
  * adivinarlo y por eso su envío se rechaza.
@@ -15,7 +15,7 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Nucleo;
+namespace SIBEA\Nucleo;
 
 final class Csrf
 {

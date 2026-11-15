@@ -11,9 +11,9 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Nucleo;
+namespace SIBEA\Nucleo;
 
-use BenefitRack\Filtros\Filtro;
+use SIBEA\Filtros\Filtro;
 
 final class Enrutador
 {

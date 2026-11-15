@@ -18,7 +18,7 @@ $titulo = $titulo ?? 'Mi proceso';
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/css/bootstrap.min.css">
-    <link rel="stylesheet" href="/css/benefitrack.css">
+    <link rel="stylesheet" href="/css/sibea.css">
 </head>
 <body>
 <header class="br-barra-aprendiz">
@@ -38,6 +38,6 @@ $titulo = $titulo ?? 'Mi proceso';
     <?= $contenido ?>
 </main>
 <script src="/js/bootstrap.bundle.min.js"></script>
-<script src="/js/benefitrack.js"></script>
+<script src="/js/sibea.js"></script>
 </body>
 </html>

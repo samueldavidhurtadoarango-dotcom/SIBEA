@@ -14,17 +14,17 @@
 
 declare(strict_types=1);
 
-use BenefitRack\Controladores\AccesoControlador;
-use BenefitRack\Controladores\CargaUsuariosControlador;
-use BenefitRack\Controladores\ContrasenaControlador;
-use BenefitRack\Controladores\ConvocatoriasControlador;
-use BenefitRack\Controladores\DocumentosControlador;
-use BenefitRack\Controladores\MiProcesoControlador;
-use BenefitRack\Controladores\PostulacionAprendizControlador;
-use BenefitRack\Controladores\PostulacionesAdminControlador;
-use BenefitRack\Controladores\UsuariosControlador;
-use BenefitRack\Nucleo\Enrutador;
-use BenefitRack\Nucleo\Fabrica;
+use SIBEA\Controladores\AccesoControlador;
+use SIBEA\Controladores\CargaUsuariosControlador;
+use SIBEA\Controladores\ContrasenaControlador;
+use SIBEA\Controladores\ConvocatoriasControlador;
+use SIBEA\Controladores\DocumentosControlador;
+use SIBEA\Controladores\MiProcesoControlador;
+use SIBEA\Controladores\PostulacionAprendizControlador;
+use SIBEA\Controladores\PostulacionesAdminControlador;
+use SIBEA\Controladores\UsuariosControlador;
+use SIBEA\Nucleo\Enrutador;
+use SIBEA\Nucleo\Fabrica;
 
 return static function (Enrutador $enrutador, Fabrica $fabrica): void {
     // Acceso (M1). Ni /ingresar ni /salir llevan el filtro de primer ingreso: son la salida del bucle.
