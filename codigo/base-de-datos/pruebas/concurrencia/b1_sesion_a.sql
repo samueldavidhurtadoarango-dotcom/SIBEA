@@ -1,5 +1,5 @@
 -- B1, sesión A: aprueba la postulación 1 y tarda 4 segundos en confirmar.
-USE benefitrack_v2;
+USE sibea;
 SET @app_id_usuario = 5;
 START TRANSACTION;
 UPDATE postulaciones SET estado = 'Aprobada' WHERE id_postulacion = 1;

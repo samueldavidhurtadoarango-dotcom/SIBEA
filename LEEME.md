@@ -4,7 +4,7 @@ Aplicación web para gestionar los beneficios (alimentación, plan de datos, cí
 del SENA, Centro Textil y de Gestión Industrial. Proyecto formativo ADSO, ficha 3425429.
 
 > La carpeta del proyecto (`BenefitRack`) conserva el nombre de trabajo anterior; el código y lo que ve una
-> persona dicen **SIBEA**. La base de datos `benefitrack_v2` se renombra en otro paso (spec 006, Parte B).
+> persona dicen **SIBEA**. La base de datos se llama `sibea` y su usuario `sibea_app` (spec 006, Parte B).
 
 El proyecto está dividido en dos partes:
 
@@ -13,7 +13,7 @@ El proyecto está dividido en dos partes:
 | Carpeta | Qué tiene | Por dónde empezar |
 |---|---|---|
 | `codigo/aplicacion/` | La app: el código PHP, las pantallas y las pruebas automáticas. | `codigo/aplicacion/LEEME.md`: cómo instalarla, cómo funciona por dentro y cómo correr las pruebas. |
-| `codigo/base-de-datos/` | El script que crea la base de datos (`benefitrack_v2.sql`), los datos iniciales, el usuario de la app y las pruebas de la base. | `codigo/base-de-datos/README.md` |
+| `codigo/base-de-datos/` | El script que crea la base de datos (`sibea.sql`), los datos iniciales, el usuario de la app y las pruebas de la base. | `codigo/base-de-datos/README.md` |
 
 ## `documentacion/`: los documentos del proyecto
 

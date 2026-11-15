@@ -8,7 +8,7 @@
  * normalmente 3398). Nunca con la base real de XAMPP.
  * Si la variable no existe, la prueba se salta diciendo por qué.
  *
- * Antes de cada clase de pruebas se recrea benefitrack_v2 con los tres scripts
+ * Antes de cada clase de pruebas se recrea sibea con los tres scripts
  * (esquema, datos iniciales y usuario de la aplicación), así cada clase parte
  * de una base limpia. Los ayudantes crearAdmin(), crearAprendiz() y
  * crearConvocatoriaActiva() insertan datos de ejemplo como root, igual que el
@@ -37,7 +37,7 @@ abstract class BaseDePrueba extends TestCase
 
     /**
      * Prepara la base temporal: si no hay puerto de prueba salta la clase;
-     * si lo hay, recrea benefitrack_v2 desde los scripts SQL.
+     * si lo hay, recrea sibea desde los scripts SQL.
      *
      * @return void
      */
@@ -52,8 +52,8 @@ abstract class BaseDePrueba extends TestCase
             throw new RuntimeException('BR_PRUEBA_BD_PUERTO debe ser ' . self::PUERTO_PERMITIDO . ' (la base temporal de pruebas). Se rechaza el puerto ' . self::puerto() . ' para no borrar la base real.');
         }
 
-        // Un solo script crea todo: tablas, reglas, catálogos y el usuario benefitrack_app.
-        self::cargarScript(dirname(__DIR__, 3) . '/base-de-datos/benefitrack_v2.sql');
+        // Un solo script crea todo: tablas, reglas, catálogos y el usuario sibea_app.
+        self::cargarScript(dirname(__DIR__, 3) . '/base-de-datos/sibea.sql');
         self::$pdoRoot = null; // la base se recreó: la conexión vieja ya no sirve
     }
 
@@ -65,14 +65,14 @@ abstract class BaseDePrueba extends TestCase
         return new Configuracion(['bd' => [
             'host' => '127.0.0.1',
             'puerto' => (int) self::puerto(),
-            'nombre' => 'benefitrack_v2',
-            'usuario' => 'benefitrack_app',
-            'clave' => 'CAMBIE_ESTA_CLAVE', // la clave de ejemplo que trae benefitrack_v2.sql
+            'nombre' => 'sibea',
+            'usuario' => 'sibea_app',
+            'clave' => 'CAMBIE_ESTA_CLAVE', // la clave de ejemplo que trae sibea.sql
         ]]);
     }
 
     /**
-     * @return BaseDatos Una conexión como la usa la aplicación (usuario benefitrack_app).
+     * @return BaseDatos Una conexión como la usa la aplicación (usuario sibea_app).
      */
     protected function baseDatosDeLaApp(): BaseDatos
     {
@@ -161,7 +161,7 @@ abstract class BaseDePrueba extends TestCase
     {
         if (self::$pdoRoot === null) {
             self::$pdoRoot = new PDO(
-                'mysql:host=127.0.0.1;port=' . self::puerto() . ';dbname=benefitrack_v2;charset=utf8mb4',
+                'mysql:host=127.0.0.1;port=' . self::puerto() . ';dbname=sibea;charset=utf8mb4',
                 'root',
                 (string) getenv('BR_PRUEBA_BD_ROOT_CLAVE'),
                 [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]

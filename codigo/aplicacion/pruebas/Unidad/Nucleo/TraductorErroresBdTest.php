@@ -52,7 +52,7 @@ final class TraductorErroresBdTest extends TestCase
 
     public function test_cualquier_otro_error_da_un_mensaje_generico_sin_detalles_tecnicos(): void
     {
-        $traducido = TraductorErroresBd::traducir($this->excepcion('42S02', 1146, "Table 'benefitrack_v2.secreta' doesn't exist"));
+        $traducido = TraductorErroresBd::traducir($this->excepcion('42S02', 1146, "Table 'sibea.secreta' doesn't exist"));
 
         $this->assertSame('No pudimos guardar los cambios. Intenta de nuevo.', $traducido->getMessage());
         $this->assertStringNotContainsString('secreta', $traducido->getMessage());

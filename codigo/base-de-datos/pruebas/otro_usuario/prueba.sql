@@ -1,8 +1,8 @@
--- Se ejecuta conectado como benefitrack_otro (ni root ni benefitrack_app).
+-- Se ejecuta conectado como sibea_otro (ni root ni sibea_app).
 -- Con @app_id_usuario NULL, darse el rol de Administrador debe fallar con
 -- «Solo un administrador activo puede ...» (el ERROR 1644 es el esperado).
 SET NAMES utf8mb4;
-USE benefitrack_v2;
+USE sibea;
 SELECT CURRENT_USER() AS conectado_como;
 SET @app_id_usuario = NULL;
 UPDATE usuarios SET id_rol = (SELECT id_rol FROM roles WHERE nombre = 'Administrador')

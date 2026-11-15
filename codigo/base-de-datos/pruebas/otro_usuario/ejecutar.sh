@@ -1,15 +1,15 @@
 #!/bin/sh
 # Prueba de la lista blanca de pr_exigir_administrador con un usuario de
-# conexión que NO es root ni benefitrack_app.
+# conexión que NO es root ni sibea_app.
 #
 # Uso (desde cualquier carpeta):
 #   sh ejecutar.sh <ruta a mysql.exe> [host] [puerto]
 #   sh ejecutar.sh "C:/xampp/mysql/bin/mysql.exe" 127.0.0.1 3306
 # Se conecta como root. Si root tiene contraseña, pásela en la variable de
-# entorno BENEFITRACK_ROOT_PASSWORD (no en la línea de comandos).
+# entorno SIBEA_ROOT_PASSWORD (no en la línea de comandos).
 #
-# Necesita la base benefitrack_v2 ya creada (benefitrack_v2.sql); no la
-# borra. Crea el usuario temporal benefitrack_otro (para 'localhost' y
+# Necesita la base sibea ya creada (sibea.sql); no la
+# borra. Crea el usuario temporal sibea_otro (para 'localhost' y
 # '127.0.0.1') con una contraseña aleatoria y permisos mínimos, y un aprendiz
 # de prueba (PRUEBA-OTRO). Al terminar, aunque falle o se interrumpa, borra
 # el usuario, el aprendiz y los archivos temporales.
@@ -27,7 +27,7 @@ fi
 
 # Archivos temporales fuera del repositorio, solo legibles por este usuario.
 umask 077
-TMPD=$(mktemp -d "${TMPDIR:-/tmp}/benefitrack_otro.XXXXXX") || exit 1
+TMPD=$(mktemp -d "${TMPDIR:-/tmp}/sibea_otro.XXXXXX") || exit 1
 CNF_ROOT="$TMPD/root.cnf"
 CNF_OTRO="$TMPD/otro.cnf"
 
@@ -43,9 +43,9 @@ fi
 
 {
   printf '[client]\nuser=root\nhost=%s\nport=%s\n' "$HOST" "$PUERTO"
-  [ -n "$BENEFITRACK_ROOT_PASSWORD" ] && printf 'password=%s\n' "$BENEFITRACK_ROOT_PASSWORD"
+  [ -n "$SIBEA_ROOT_PASSWORD" ] && printf 'password=%s\n' "$SIBEA_ROOT_PASSWORD"
 } > "$CNF_ROOT"
-printf '[client]\nuser=benefitrack_otro\npassword=%s\nhost=%s\nport=%s\n' "$CLAVE" "$HOST" "$PUERTO" > "$CNF_OTRO"
+printf '[client]\nuser=sibea_otro\npassword=%s\nhost=%s\nport=%s\n' "$CLAVE" "$HOST" "$PUERTO" > "$CNF_OTRO"
 
 como_root() { "$MYSQL" --defaults-extra-file="$(nativo "$CNF_ROOT")" --default-character-set=utf8mb4 --table "$@"; }
 como_otro() { "$MYSQL" --defaults-extra-file="$(nativo "$CNF_OTRO")" --default-character-set=utf8mb4 --table "$@"; }
@@ -58,7 +58,7 @@ trap limpiar EXIT
 trap 'exit 130' INT TERM
 
 # La contraseña va por la entrada estándar, nunca en la línea de comandos.
-printf "CREATE OR REPLACE USER 'benefitrack_otro'@'localhost' IDENTIFIED BY '%s';\nCREATE OR REPLACE USER 'benefitrack_otro'@'127.0.0.1' IDENTIFIED BY '%s';\n" \
+printf "CREATE OR REPLACE USER 'sibea_otro'@'localhost' IDENTIFIED BY '%s';\nCREATE OR REPLACE USER 'sibea_otro'@'127.0.0.1' IDENTIFIED BY '%s';\n" \
   "$CLAVE" "$CLAVE" | como_root || exit 1
 como_root < "$DIR/preparar.sql" || exit 1
 

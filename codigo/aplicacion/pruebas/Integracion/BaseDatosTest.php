@@ -18,7 +18,7 @@ final class BaseDatosTest extends BaseDePrueba
     {
         $pdo = $this->baseDatosDeLaApp()->pdo();
 
-        $this->assertStringStartsWith('benefitrack_app@', (string) $pdo->query('SELECT CURRENT_USER()')->fetchColumn());
+        $this->assertStringStartsWith('sibea_app@', (string) $pdo->query('SELECT CURRENT_USER()')->fetchColumn());
     }
 
     public function test_fijar_usuario_guarda_id_e_ip(): void

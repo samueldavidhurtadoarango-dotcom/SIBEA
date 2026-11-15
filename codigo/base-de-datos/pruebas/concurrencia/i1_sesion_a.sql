@@ -1,5 +1,5 @@
 -- I1, sesión A: registra el pago 1 de 2 y tarda 4 segundos en confirmar.
-USE benefitrack_v2;
+USE sibea;
 SET @app_id_usuario = 5;
 SELECT id_asignacion INTO @asig FROM asignaciones_beneficio WHERE id_postulacion = 3;
 START TRANSACTION;

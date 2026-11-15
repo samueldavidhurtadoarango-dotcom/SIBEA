@@ -1,5 +1,5 @@
 -- =====================================================================
--- BenefitRack v2 - Script de base de datos
+-- SIBEA - Script de base de datos
 -- Proyecto formativo SENA (ADSO) - Gestión de beneficios para aprendices
 -- =====================================================================
 -- Compatible con MariaDB 10.4 (XAMPP) y MariaDB 11.x.
@@ -8,7 +8,7 @@
 -- Es el ÚNICO script de instalación: se carga una vez, conectado como
 -- root (en phpMyAdmin o por consola), y crea todo: las tablas, las reglas
 -- (triggers y procedimientos), los catálogos iniciales (sección 8) y el
--- usuario limitado de la aplicación, benefitrack_app, con sus permisos
+-- usuario limitado de la aplicación, sibea_app, con sus permisos
 -- (sección 9). Ese usuario trae la clave de ejemplo CAMBIE_ESTA_CLAVE:
 -- cámbiela al instalar de verdad (ver la sección 9 y README.md).
 --
@@ -34,16 +34,16 @@
 -- =====================================================================
 
 -- !!! ATENCIÓN !!!
--- La siguiente línea BORRA por completo la base de datos benefitrack_v2
+-- La siguiente línea BORRA por completo la base de datos sibea
 -- (tablas y datos) y la vuelve a crear vacía. No ejecute este script
 -- sobre una base que tenga datos reales que quiera conservar.
-DROP DATABASE IF EXISTS benefitrack_v2;
+DROP DATABASE IF EXISTS sibea;
 
-CREATE DATABASE benefitrack_v2
+CREATE DATABASE sibea
   DEFAULT CHARACTER SET utf8mb4
   DEFAULT COLLATE utf8mb4_unicode_ci;
 
-USE benefitrack_v2;
+USE sibea;
 
 SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;
 -- Modo estricto solo para esta ejecución: los triggers guardan este modo.
@@ -551,7 +551,7 @@ END//
 -- Lanza un error si la acción no la hace un administrador activo:
 --   * @app_id_usuario definido y que no es administrador activo, o
 --   * @app_id_usuario NULL con cualquier usuario de conexión que no sea
---     root (lista blanca): la aplicación (benefitrack_app u otro usuario)
+--     root (lista blanca): la aplicación (sibea_app u otro usuario)
 --     no puede "olvidar" la variable para saltarse el control.
 -- Solo con root (mantenimiento, scripts, pruebas) el NULL sigue permitido
 -- (D9). Se compara solo el nombre, sin el host.
@@ -2177,12 +2177,12 @@ ON DUPLICATE KEY UPDATE
   nombre = VALUES(nombre);
 
 -- =====================================================================
--- SECCIÓN 9. USUARIO DE LA APLICACIÓN (benefitrack_app)
+-- SECCIÓN 9. USUARIO DE LA APLICACIÓN (sibea_app)
 -- =====================================================================
 -- !!! CAMBIE LA CLAVE DE EJEMPLO !!!
 -- Este usuario se crea con la clave de ejemplo CAMBIE_ESTA_CLAVE. Al
 -- instalar de verdad, apenas termine este script, ejecute como root:
---   ALTER USER 'benefitrack_app'@'localhost' IDENTIFIED BY '<su clave larga y propia>';
+--   ALTER USER 'sibea_app'@'localhost' IDENTIFIED BY '<su clave larga y propia>';
 -- y escriba esa MISMA clave en codigo/aplicacion/config/config.local.php (nunca en
 -- el repositorio). Volver a cargar este script NO le devuelve la clave de
 -- ejemplo a un usuario que ya existe (CREATE USER IF NOT EXISTS lo deja
@@ -2203,13 +2203,13 @@ ON DUPLICATE KEY UPDATE
 --
 -- 'localhost' frente a '127.0.0.1': en el XAMPP de Windows, conectarse con
 -- -h 127.0.0.1 se reconoce como 'localhost' (se probó: CURRENT_USER()
--- devuelve benefitrack_app@localhost). Si su servidor usa skip-name-resolve
+-- devuelve sibea_app@localhost). Si su servidor usa skip-name-resolve
 -- o la aplicación se conecta desde otra máquina, cree el mismo usuario
--- también para ese host (por ejemplo 'benefitrack_app'@'127.0.0.1') y
+-- también para ese host (por ejemplo 'sibea_app'@'127.0.0.1') y
 -- repita los GRANT para él.
 --
 -- @app_id_usuario: con CUALQUIER usuario de conexión distinto de root
--- (benefitrack_app o el que usted cree), las acciones de gestión exigen que
+-- (sibea_app o el que usted cree), las acciones de gestión exigen que
 -- la aplicación fije siempre SET @app_id_usuario = <id del administrador>.
 -- Si la variable está en NULL, la base rechaza la acción. Solo root (el
 -- usuario de mantenimiento) puede actuar con la variable en NULL.
@@ -2239,48 +2239,48 @@ ON DUPLICATE KEY UPDATE
 -- usuario NO tiene INSERT sobre auditoria.
 -- =====================================================================
 
-CREATE USER IF NOT EXISTS 'benefitrack_app'@'localhost' IDENTIFIED BY 'CAMBIE_ESTA_CLAVE';
+CREATE USER IF NOT EXISTS 'sibea_app'@'localhost' IDENTIFIED BY 'CAMBIE_ESTA_CLAVE';
 
 -- Lectura de toda la base.
-GRANT SELECT ON benefitrack_v2.* TO 'benefitrack_app'@'localhost';
+GRANT SELECT ON sibea.* TO 'sibea_app'@'localhost';
 
 -- Catálogos que administra el Administrador (roles queda solo lectura).
-GRANT INSERT, UPDATE ON benefitrack_v2.instituciones       TO 'benefitrack_app'@'localhost';
-GRANT INSERT, UPDATE ON benefitrack_v2.tipos_cuenta        TO 'benefitrack_app'@'localhost';
-GRANT INSERT, UPDATE ON benefitrack_v2.tipos_documento     TO 'benefitrack_app'@'localhost';
-GRANT INSERT, UPDATE ON benefitrack_v2.entidades_bancarias TO 'benefitrack_app'@'localhost';
-GRANT INSERT, UPDATE ON benefitrack_v2.eps                 TO 'benefitrack_app'@'localhost';
-GRANT INSERT, UPDATE ON benefitrack_v2.programas           TO 'benefitrack_app'@'localhost';
+GRANT INSERT, UPDATE ON sibea.instituciones       TO 'sibea_app'@'localhost';
+GRANT INSERT, UPDATE ON sibea.tipos_cuenta        TO 'sibea_app'@'localhost';
+GRANT INSERT, UPDATE ON sibea.tipos_documento     TO 'sibea_app'@'localhost';
+GRANT INSERT, UPDATE ON sibea.entidades_bancarias TO 'sibea_app'@'localhost';
+GRANT INSERT, UPDATE ON sibea.eps                 TO 'sibea_app'@'localhost';
+GRANT INSERT, UPDATE ON sibea.programas           TO 'sibea_app'@'localhost';
 
 -- Usuarios y acceso.
-GRANT INSERT, UPDATE         ON benefitrack_v2.usuarios                TO 'benefitrack_app'@'localhost';
-GRANT INSERT, UPDATE, DELETE ON benefitrack_v2.sesiones                TO 'benefitrack_app'@'localhost';
-GRANT INSERT, UPDATE         ON benefitrack_v2.recuperacion_contrasena TO 'benefitrack_app'@'localhost';
-GRANT INSERT, UPDATE         ON benefitrack_v2.informacion_bancaria    TO 'benefitrack_app'@'localhost';
+GRANT INSERT, UPDATE         ON sibea.usuarios                TO 'sibea_app'@'localhost';
+GRANT INSERT, UPDATE, DELETE ON sibea.sesiones                TO 'sibea_app'@'localhost';
+GRANT INSERT, UPDATE         ON sibea.recuperacion_contrasena TO 'sibea_app'@'localhost';
+GRANT INSERT, UPDATE         ON sibea.informacion_bancaria    TO 'sibea_app'@'localhost';
 
 -- Beneficios, convocatorias y postulaciones.
-GRANT INSERT, UPDATE ON benefitrack_v2.beneficios                TO 'benefitrack_app'@'localhost';
-GRANT INSERT, UPDATE ON benefitrack_v2.convocatorias             TO 'benefitrack_app'@'localhost';
-GRANT INSERT, UPDATE ON benefitrack_v2.postulaciones             TO 'benefitrack_app'@'localhost';
-GRANT INSERT, UPDATE ON benefitrack_v2.documentos_postulacion    TO 'benefitrack_app'@'localhost';
-GRANT INSERT, UPDATE ON benefitrack_v2.solicitudes_documentacion TO 'benefitrack_app'@'localhost';
+GRANT INSERT, UPDATE ON sibea.beneficios                TO 'sibea_app'@'localhost';
+GRANT INSERT, UPDATE ON sibea.convocatorias             TO 'sibea_app'@'localhost';
+GRANT INSERT, UPDATE ON sibea.postulaciones             TO 'sibea_app'@'localhost';
+GRANT INSERT, UPDATE ON sibea.documentos_postulacion    TO 'sibea_app'@'localhost';
+GRANT INSERT, UPDATE ON sibea.solicitudes_documentacion TO 'sibea_app'@'localhost';
 
 -- Beneficiarios, pagos y novedades.
-GRANT UPDATE         ON benefitrack_v2.asignaciones_beneficio TO 'benefitrack_app'@'localhost';
-GRANT INSERT, UPDATE ON benefitrack_v2.pagos                  TO 'benefitrack_app'@'localhost';
-GRANT INSERT         ON benefitrack_v2.novedades              TO 'benefitrack_app'@'localhost';
+GRANT UPDATE         ON sibea.asignaciones_beneficio TO 'sibea_app'@'localhost';
+GRANT INSERT, UPDATE ON sibea.pagos                  TO 'sibea_app'@'localhost';
+GRANT INSERT         ON sibea.novedades              TO 'sibea_app'@'localhost';
 
 -- Notificaciones: marcar como leída (el titular) y actualizar el estado del
 -- correo (un administrador).
-GRANT UPDATE ON benefitrack_v2.notificaciones TO 'benefitrack_app'@'localhost';
+GRANT UPDATE ON sibea.notificaciones TO 'sibea_app'@'localhost';
 
 -- Migraciones desde Excel.
-GRANT INSERT, UPDATE ON benefitrack_v2.migraciones TO 'benefitrack_app'@'localhost';
+GRANT INSERT, UPDATE ON sibea.migraciones TO 'sibea_app'@'localhost';
 
 -- Vía recomendada para cambiar el estado o el rol de un usuario: los
 -- procedimientos fijan la justificación solo para ese cambio y la limpian.
-GRANT EXECUTE ON PROCEDURE benefitrack_v2.pr_cambiar_estado_usuario TO 'benefitrack_app'@'localhost';
-GRANT EXECUTE ON PROCEDURE benefitrack_v2.pr_cambiar_rol_usuario    TO 'benefitrack_app'@'localhost';
+GRANT EXECUTE ON PROCEDURE sibea.pr_cambiar_estado_usuario TO 'sibea_app'@'localhost';
+GRANT EXECUTE ON PROCEDURE sibea.pr_cambiar_rol_usuario    TO 'sibea_app'@'localhost';
 
 -- historial_estados y auditoria: solo SELECT (ya concedido arriba).
 

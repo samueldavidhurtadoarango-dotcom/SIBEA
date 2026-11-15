@@ -1,14 +1,14 @@
 -- Datos para las pruebas de concurrencia (se guardan de verdad: COMMIT).
--- Ejecutar sobre una base recién creada con benefitrack_v2.sql.
+-- Ejecutar sobre una base recién creada con sibea.sql.
 SET NAMES utf8mb4;
-USE benefitrack_v2;
+USE sibea;
 SET @app_id_usuario = NULL;
 INSERT INTO usuarios (id_usuario, documento, nombre, apellido, correo, password_hash, id_rol)
 VALUES (5, 'CONC-ADM', 'Ana', 'Admin', 'adm@conc.test', 'hash', 1),
        (21, 'CONC-A1', 'Aprendiz', 'Uno', 'a1@conc.test', 'hash', 2),
        (22, 'CONC-A2', 'Aprendiz', 'Dos', 'a2@conc.test', 'hash', 2),
        (23, 'CONC-A3', 'Aprendiz', 'Tres', 'a3@conc.test', 'hash', 2);
--- Sin id fijo: benefitrack_v2.sql ya carga los beneficios iniciales (ids 1 a 3).
+-- Sin id fijo: sibea.sql ya carga los beneficios iniciales (ids 1 a 3).
 INSERT INTO beneficios (id_institucion, nombre, descripcion, categoria)
 VALUES (1, 'Beneficio concurrencia', 'Prueba', 'Alimentación');
 SET @ben_conc = LAST_INSERT_ID();

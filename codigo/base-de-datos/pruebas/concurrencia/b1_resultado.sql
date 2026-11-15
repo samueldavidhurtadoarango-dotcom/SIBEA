@@ -1,4 +1,4 @@
-USE benefitrack_v2;
+USE sibea;
 SELECT c.cupos,
        (SELECT COUNT(*) FROM postulaciones p WHERE p.id_convocatoria = 1 AND p.estado = 'Aprobada') AS aprobadas,
        IF((SELECT COUNT(*) FROM postulaciones p WHERE p.id_convocatoria = 1 AND p.estado = 'Aprobada') <= c.cupos,

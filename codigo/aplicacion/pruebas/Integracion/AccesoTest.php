@@ -44,7 +44,7 @@ final class AccesoTest extends BaseDePrueba
 
     private function pdoRaiz(): PDO
     {
-        return new PDO('mysql:host=127.0.0.1;port=3398;dbname=benefitrack_v2;charset=utf8mb4', 'root', (string) getenv('BR_PRUEBA_BD_ROOT_CLAVE'), [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+        return new PDO('mysql:host=127.0.0.1;port=3398;dbname=sibea;charset=utf8mb4', 'root', (string) getenv('BR_PRUEBA_BD_ROOT_CLAVE'), [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
     }
 
     public function test_tres_claves_erradas_bloquean_y_la_cuarta_peticion_con_clave_correcta_sigue_bloqueada(): void

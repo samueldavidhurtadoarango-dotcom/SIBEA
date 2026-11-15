@@ -1,14 +1,14 @@
 -- =====================================================================
--- BenefitRack - Pruebas con el usuario limitado de la aplicación
+-- SIBEA - Pruebas con el usuario limitado de la aplicación
 -- =====================================================================
--- Comprueba que, conectado como benefitrack_app:
+-- Comprueba que, conectado como sibea_app:
 --   * con @app_id_usuario = NULL no se pueden hacer acciones de gestión;
 --   * un aprendiz no puede darse el rol de Administrador;
 --   * el administrador 5 sí puede gestionar;
 --   * una cuenta bloqueada por intentos fallidos se desbloquea sola a los
 --     15 minutos, y no antes;
 --   * un cambio de estado del administrador exige @app_justificacion y
---     queda en auditoria; benefitrack_app no escribe en auditoria;
+--     queda en auditoria; sibea_app no escribe en auditoria;
 --   * pr_cambiar_estado_usuario se puede usar (EXECUTE) y limpia la
 --     justificación; un aprendiz con sesión no bloquea a otros;
 --   * un aprendiz no sube documentos ya validados;
@@ -18,19 +18,19 @@
 --     migraciones, y sin sesión no se cambia ninguna contraseña (U14).
 --
 -- Preparación (como root):
---   1. benefitrack_v2.sql                  (también crea benefitrack_app)
+--   1. sibea.sql                  (también crea sibea_app)
 --   2. pruebas/concurrencia/preparar.sql   (crea el administrador 5, el
 --      aprendiz 22 y la postulación 2 en estado Validada)
--- Ejecución (como benefitrack_app, con --force para que siga después de
+-- Ejecución (como sibea_app, con --force para que siga después de
 -- cada error esperado):
---   mysql -u benefitrack_app -p --force --table < pruebas/pruebas_usuario_aplicacion.sql
+--   mysql -u sibea_app -p --force --table < pruebas/pruebas_usuario_aplicacion.sql
 --
 -- Todo ocurre en una transacción que se deshace al final. Los errores
 -- esperados aparecen en la salida; el resumen final dice OK o FALLO.
 -- =====================================================================
 
 SET NAMES utf8mb4;
-USE benefitrack_v2;
+USE sibea;
 SELECT CURRENT_USER() AS conectado_como;
 
 START TRANSACTION;
@@ -97,13 +97,13 @@ SELECT id_usuario, JSON_UNQUOTE(JSON_EXTRACT(detalle, '$.justificacion'))
  ORDER BY id_auditoria DESC LIMIT 1;
 SET @app_justificacion = NULL;
 
--- U9: benefitrack_app no puede escribir en auditoria directamente (debe
+-- U9: sibea_app no puede escribir en auditoria directamente (debe
 -- fallar con el error 1142); solo escriben los triggers.
 SELECT COUNT(*) INTO @u9a FROM auditoria;
 INSERT INTO auditoria (id_usuario, accion, entidad, id_entidad) VALUES (5, 'FALSA', 'usuarios', 22);
 SELECT COUNT(*) INTO @u9b FROM auditoria;
 
--- U10: benefitrack_app puede usar pr_cambiar_estado_usuario (EXECUTE); el
+-- U10: sibea_app puede usar pr_cambiar_estado_usuario (EXECUTE); el
 -- procedimiento guarda su propia justificación y deja la variable en NULL.
 SET @app_id_usuario = 5;
 SET @app_justificacion = 'Motivo viejo';
@@ -134,7 +134,7 @@ SELECT estado_validacion, id_usuario_validacion, fecha_validacion, observaciones
   INTO @u12e, @u12u, @u12f, @u12o
   FROM documentos_postulacion WHERE nombre_archivo = 'u12_pendiente.pdf';
 
--- U13 (ronda 10): con benefitrack_app, ni un aprendiz ni una sesión NULL
+-- U13 (ronda 10): con sibea_app, ni un aprendiz ni una sesión NULL
 -- cambian convocatorias, documentos validados, solicitudes o catálogos.
 SET @app_id_usuario = 21;
 UPDATE convocatorias SET valor_pago = 9999999 WHERE id_convocatoria = 1;
@@ -164,7 +164,7 @@ SELECT id_usuario, estado, fecha_solicitud > '2001-01-01', fecha_atencion >= NOW
 SELECT (SELECT COUNT(*) FROM programas WHERE nombre = 'U13 programa falso')
      + (SELECT COUNT(*) FROM eps WHERE nombre = 'U13 EPS falsa') INTO @u13c;
 
--- U14 (ronda 11): con benefitrack_app, el aprendiz 21 no toca datos de otra
+-- U14 (ronda 11): con sibea_app, el aprendiz 21 no toca datos de otra
 -- persona (contraseña del administrador 5, cuenta bancaria, postulación,
 -- documentos y notificaciones del aprendiz 22) ni registra migraciones; y
 -- sin sesión (inicio de sesión) no se cambia ninguna contraseña. Deben
@@ -216,10 +216,10 @@ SELECT 'U8' AS caso, 'Sin justificación se rechaza; con ella el cambio queda en
           'OK', 'FALLO') AS resultado,
        CONCAT('sin_justificacion=', IFNULL(@u8a, 'NULL'), ' con_justificacion=', IFNULL(@u8b, 'NULL'),
               ' auditoria.id_usuario=', IFNULL(@u8u, 'NULL'), ' justificacion=', IFNULL(@u8j, 'NULL')) AS detalle;
-SELECT 'U9' AS caso, 'benefitrack_app no puede insertar en auditoria directamente' AS descripcion,
+SELECT 'U9' AS caso, 'sibea_app no puede insertar en auditoria directamente' AS descripcion,
        IF(@u9a = @u9b, 'OK', 'FALLO') AS resultado,
        CONCAT('filas antes=', IFNULL(@u9a, 'NULL'), ' después=', IFNULL(@u9b, 'NULL')) AS detalle;
-SELECT 'U10' AS caso, 'pr_cambiar_estado_usuario funciona con benefitrack_app y no deja la justificación puesta' AS descripcion,
+SELECT 'U10' AS caso, 'pr_cambiar_estado_usuario funciona con sibea_app y no deja la justificación puesta' AS descripcion,
        IF(@u10e = 'Inactivo' AND @u10j = 'Fin de la etapa productiva' AND @u10v IS NULL, 'OK', 'FALLO') AS resultado,
        CONCAT('estado=', IFNULL(@u10e, 'NULL'), ' justificacion=', IFNULL(@u10j, 'NULL'),
               ' variable después=', IFNULL(@u10v, 'NULL')) AS detalle;
