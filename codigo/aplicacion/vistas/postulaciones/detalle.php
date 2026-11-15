@@ -307,7 +307,7 @@ $iconoCerrar = $icono . '<path d="M6 6l12 12M18 6 6 18"></path></svg>';
                     <ul class="br-lista">
                         <li>Se crea su asignación de <?= e((string) $detalle['convocatoria']) ?>.</li>
                         <li>Los cupos pasan a <strong><?= $usados + 1 ?> de <?= $cupos ?> usados</strong>.</li>
-                        <li><?= e($nombre) ?> recibe un aviso en BenefitRack.</li>
+                        <li><?= e($nombre) ?> recibe un aviso en SIBEA.</li>
                     </ul>
                 </div>
                 <div class="modal-footer">

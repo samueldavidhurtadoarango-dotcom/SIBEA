@@ -1,4 +1,7 @@
-# BenefitRack · aplicación web (MVP 3.0.0)
+# SIBEA · aplicación web (MVP 3.0.0)
+
+SIBEA es el Sistema de Información de Beneficios y Apoyos. «BenefitRack» es su nombre de trabajo
+interno: por eso lo verás en el código (el espacio de nombres `BenefitRack`), en la base de datos y en las carpetas.
 
 Aplicación en PHP puro con el patrón MVC, sobre la base de datos MariaDB `benefitrack_v2`
 (ver `../base-de-datos/README.md`). Es un proyecto del SENA (ADSO): cada línea está pensada
@@ -181,7 +184,7 @@ servicio → repositorio → BD → vista → respuesta.
 | `pruebas/` | `Unidad/` (sin base de datos) e `Integracion/` (con una MariaDB temporal). |
 
 Cuando un comentario de `vistas/` dice, por ejemplo, «Reproduce la maqueta 09-postulacion/formulario»,
-se refiere a esa pantalla aprobada, que aparece en el catálogo `../../documentacion/entregables/Pantallas_BenefitRack.pdf`.
+se refiere a esa pantalla aprobada, que aparece en el catálogo `../../documentacion/entregables/Pantallas_SIBEA.pdf`.
 
 Reglas de comentarios del proyecto: cada archivo empieza con un bloque que dice qué hace y en qué paso
 del recorrido está; cada método público lleva `/** ... */` con qué recibe y qué devuelve; se comentan
@@ -251,4 +254,4 @@ Servicios 95,9 %, Validacion 99,5 %.
 Pagos, reporte de aprobados, avisos (campanita) y correos, pedir un documento adicional al aprendiz,
 recuperar la contraseña por correo, el dashboard con cifras, auditoría y catálogos en pantalla. Por
 ahora, si alguien olvida su contraseña, el administrador se la restablece desde **Usuarios**. Todas
-las pantallas de la fase 2 ya están diseñadas en `../../documentacion/entregables/Pantallas_BenefitRack.pdf`.
+las pantallas de la fase 2 ya están diseñadas en `../../documentacion/entregables/Pantallas_SIBEA.pdf`.

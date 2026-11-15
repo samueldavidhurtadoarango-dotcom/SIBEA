@@ -17,7 +17,7 @@ $iniciales = mb_strtoupper(mb_substr($palabras[0] ?? '', 0, 1) . mb_substr($pala
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title><?= e($titulo) ?> · BenefitRack</title>
+    <title><?= e($titulo) ?> · SIBEA</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/css/bootstrap.min.css">

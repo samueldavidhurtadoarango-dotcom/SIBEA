@@ -53,7 +53,7 @@ final class Arranque
     private static function paginaDeError(): Respuesta
     {
         $html = '<!doctype html><html lang="es"><head><meta charset="utf-8">'
-            . '<meta name="viewport" content="width=device-width, initial-scale=1"><title>Error · BenefitRack</title></head>'
+            . '<meta name="viewport" content="width=device-width, initial-scale=1"><title>Error · SIBEA</title></head>'
             . '<body style="font-family: sans-serif; max-width: 32rem; margin: 4rem auto; padding: 0 1rem;">'
             . '<h1>Algo salió mal</h1>'
             . '<p>Tuvimos un problema de nuestro lado. Intenta de nuevo en unos minutos.</p>'

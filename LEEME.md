@@ -1,7 +1,10 @@
-# BenefitRack
+# SIBEA · Sistema de Información de Beneficios y Apoyos
 
 Aplicación web para gestionar los beneficios (alimentación, plan de datos, cívica) de los aprendices
 del SENA, Centro Textil y de Gestión Industrial. Proyecto formativo ADSO, ficha 3425429.
+
+> «BenefitRack» era el nombre de trabajo del proyecto y sigue apareciendo en nombres internos
+> (carpetas, código PHP, base de datos `benefitrack_v2`). Lo que ve una persona dice **SIBEA**.
 
 El proyecto está dividido en dos partes:
 
@@ -17,7 +20,7 @@ El proyecto está dividido en dos partes:
 | Carpeta | Qué tiene |
 |---|---|
 | `documentacion/entregables/` | Ficha del proyecto, matriz de requisitos y catálogo de pantallas (PDF). |
-| `documentacion/specs/` | Qué se acordó construir: `001` (base de datos) y `003` (la app). |
+| `documentacion/specs/` | Qué se acordó construir: `001` (base de datos), `003` (la app) y `005` (el nombre SIBEA). |
 | `documentacion/decisiones/` | Por qué la app se hizo en PHP puro por capas y no con Laravel. |
 
 ## Para ver la app funcionando

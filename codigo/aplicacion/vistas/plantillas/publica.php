@@ -7,14 +7,14 @@
  * Recibe: $contenido (HTML de la página, ya seguro), $mensajes, y opcional $titulo.
  */
 
-$titulo = $titulo ?? 'BenefitRack';
+$titulo = $titulo ?? 'SIBEA';
 ?>
 <!doctype html>
 <html lang="es">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title><?= e($titulo) ?> · BenefitRack</title>
+    <title><?= e($titulo) ?> · SIBEA</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/css/bootstrap.min.css">
@@ -26,7 +26,7 @@ $titulo = $titulo ?? 'BenefitRack';
         <div class="br-acceso__marca-centro">
             <div>
                 <div class="br-acceso__logo">Logo SENA</div>
-                <span class="br-acceso__nombre">BenefitRack</span>
+                <span class="br-acceso__nombre">SIBEA</span>
                 <p class="br-acceso__lema">Tus beneficios de alimentación, datos y transporte, en un solo lugar.</p>
             </div>
             <ul class="br-acceso__beneficios">
@@ -50,7 +50,7 @@ $titulo = $titulo ?? 'BenefitRack';
     <main class="br-acceso__lado">
         <div class="br-acceso__movil">
             <div class="br-acceso__logo">Logo SENA</div>
-            <span class="br-acceso__movil-nombre">BenefitRack</span>
+            <span class="br-acceso__movil-nombre">SIBEA</span>
         </div>
         <div class="br-acceso__tarjeta">
             <?php include __DIR__ . '/../parciales/alertas.php'; ?>
