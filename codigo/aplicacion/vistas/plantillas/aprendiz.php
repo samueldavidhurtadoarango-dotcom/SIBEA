@@ -14,7 +14,7 @@ $titulo = $titulo ?? 'Mi proceso';
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title><?= e($titulo) ?> · BenefitRack</title>
+    <title><?= e($titulo) ?> · SIBEA</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/css/bootstrap.min.css">
@@ -23,7 +23,7 @@ $titulo = $titulo ?? 'Mi proceso';
 <body>
 <header class="br-barra-aprendiz">
     <div class="br-barra-aprendiz__dentro">
-        <span class="br-barra-aprendiz__marca">BenefitRack</span>
+        <span class="br-barra-aprendiz__marca">SIBEA</span>
         <span class="br-barra-aprendiz__saludo">Hola, <?= e($usuarioNombre ?? '') ?></span>
         <!-- Salir cambia el estado de la sesión: es POST con token CSRF, no un enlace. -->
         <form method="post" action="/salir" class="br-salir-formulario">

@@ -20,7 +20,7 @@ $esActiva = static fn (string $url): bool => $rutaActual === $url || str_starts_
     <div class="br-lateral__marca">
         <div class="br-logo-sena">Logo SENA</div>
         <div>
-            <span class="br-lateral__nombre">BenefitRack</span>
+            <span class="br-lateral__nombre">SIBEA</span>
             <span class="br-lateral__sub">Bienestar al Aprendiz</span>
         </div>
     </div>
@@ -38,7 +38,7 @@ $esActiva = static fn (string $url): bool => $rutaActual === $url || str_starts_
 <div class="br-movil">
     <div class="br-movil__marca">
         <span class="br-movil__logo">SENA</span>
-        <span>BenefitRack</span>
+        <span>SIBEA</span>
     </div>
     <details>
         <summary aria-label="Abrir menú"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"></path></svg></summary>
