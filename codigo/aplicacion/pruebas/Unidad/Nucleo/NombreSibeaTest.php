@@ -67,6 +67,86 @@ final class NombreSibeaTest extends TestCase
         $this->assertStringNotContainsString('BenefitRack', $cuerpo);
     }
 
+    /** Spec 006 CA-A4: la pantalla de acceso dice qué significa la sigla, debajo de la marca (PC y celular). */
+    public function test_la_pantalla_de_acceso_muestra_el_significado_de_sibea(): void
+    {
+        $_SESSION = [];
+        $vista = new Vista(dirname(__DIR__, 3) . '/vistas', new Sesion());
+
+        $html = $vista->mostrar('acceso/ingresar', ['estado' => 'normal', 'tokenCsrf' => 'x'], 'publica');
+
+        $significado = 'Sistema de Información de Beneficios y Apoyos';
+        $this->assertSame(2, substr_count($html, $significado), 'Una vez en el panel de computador y otra en el encabezado del celular.');
+        $this->assertMatchesRegularExpression('#br-acceso__nombre">SIBEA</span>\s*<small[^>]*>' . $significado . '</small>#u', $html);
+        $this->assertMatchesRegularExpression('#br-acceso__movil-nombre">SIBEA</span>\s*<small[^>]*text-secondary[^>]*>' . $significado . '</small>#u', $html);
+    }
+
+    /** Spec 006 CA-A4: los tres textos de arranque empiezan con «SIBEA — Sistema de Información de Beneficios y Apoyos». */
+    public function test_los_documentos_de_arranque_abren_con_el_significado(): void
+    {
+        $raiz = dirname(__DIR__, 5);
+        $frase = 'SIBEA — Sistema de Información de Beneficios y Apoyos';
+
+        $this->assertStringStartsWith('# ' . $frase, (string) file_get_contents($raiz . '/LEEME.md'));
+        $this->assertStringStartsWith('# ' . $frase, (string) file_get_contents($raiz . '/codigo/aplicacion/LEEME.md'));
+        $this->assertMatchesRegularExpression('#/\*\*\R \* ' . $frase . '#u', (string) file_get_contents($raiz . '/codigo/aplicacion/public/index.php'));
+    }
+
+    /**
+     * Spec 006 CA-A5: en codigo/aplicacion (sin vendor/) no queda la palabra «benefitrack», sin importar
+     * mayúsculas, ni en el contenido ni en los nombres de archivo.
+     */
+    public function test_en_el_codigo_no_queda_la_palabra_benefitrack(): void
+    {
+        $encontrados = [];
+        foreach (self::archivosDelCodigo() as $archivo) {
+            $ruta = str_replace('\\', '/', $archivo);
+            if (stripos(basename($ruta), 'benefitrack') !== false) {
+                $encontrados[] = $ruta . ' (nombre del archivo)';
+                continue;
+            }
+            if (stripos(self::sinExcepciones((string) file_get_contents($archivo)), 'benefitrack') !== false) {
+                $encontrados[] = $ruta;
+            }
+        }
+
+        $this->assertSame([], $encontrados, 'Estos archivos aún dicen «benefitrack».');
+    }
+
+    /**
+     * Excepciones explícitas y únicas:
+     *  - benefitrack_v2 y benefitrack_app: nombres de la base y su usuario; se quitan en la Parte B (spec 006).
+     *  - TU_USUARIO/BenefitRack: la carpeta del proyecto en el LEEME (renombrarla está fuera de alcance).
+     */
+    private static function sinExcepciones(string $texto): string
+    {
+        return str_ireplace(['benefitrack_v2', 'benefitrack_app', 'TU_USUARIO/BenefitRack'], '', $texto);
+    }
+
+    /**
+     * Archivos de texto de codigo/aplicacion, sin vendor/ ni cachés. Esta misma prueba se omite: nombra la palabra a propósito.
+     *
+     * @return list<string>
+     */
+    private static function archivosDelCodigo(): array
+    {
+        $raiz = dirname(__DIR__, 3);
+        $extensiones = ['php', 'md', 'json', 'neon', 'xml', 'css', 'js', 'dist', 'sh', 'txt', 'html', 'yml', 'lock'];
+        $archivos = [];
+        $recorrido = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($raiz, RecursiveDirectoryIterator::SKIP_DOTS));
+        foreach ($recorrido as $archivo) {
+            $ruta = str_replace('\\', '/', $archivo->getPathname());
+            if (str_contains($ruta, '/vendor/') || str_contains($ruta, '/.phpunit.cache/') || $archivo->getFilename() === basename(__FILE__)) {
+                continue;
+            }
+            if ($archivo->isFile() && in_array(strtolower($archivo->getExtension()), $extensiones, true)) {
+                $archivos[] = $archivo->getPathname();
+            }
+        }
+
+        return $archivos;
+    }
+
     /**
      * Todos los archivos .php dentro de vistas/.
      *
