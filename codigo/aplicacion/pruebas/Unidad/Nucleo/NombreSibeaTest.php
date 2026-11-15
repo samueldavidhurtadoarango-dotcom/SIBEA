@@ -23,13 +23,20 @@ final class NombreSibeaTest extends TestCase
     {
         $encontrados = [];
         foreach (self::archivosDeVistas() as $archivo) {
-            $visible = self::textoVisible((string) file_get_contents($archivo));
-            if (str_contains($visible, 'BenefitRack')) {
+            if (self::muestraNombreViejo((string) file_get_contents($archivo))) {
                 $encontrados[] = $archivo;
             }
         }
 
         $this->assertSame([], $encontrados, 'Estas vistas aún muestran «BenefitRack».');
+    }
+
+    /** El detector no se deja engañar por mayúsculas, y no cuenta comentarios HTML ni las rutas internas. */
+    public function test_el_detector_ve_el_nombre_viejo_aunque_cambien_las_mayusculas(): void
+    {
+        $this->assertTrue(self::muestraNombreViejo('<h1>Bienvenido a BENEFITRACK</h1>'));
+        $this->assertTrue(self::muestraNombreViejo('<img alt="Logo de Benefitrack">'));
+        $this->assertFalse(self::muestraNombreViejo('<!-- lo activa benefitrack.js --><link href="/css/benefitrack.css">'));
     }
 
     /** CA-1: la pestaña del navegador dice «<título> · SIBEA» en los tres marcos. */
@@ -79,9 +86,18 @@ final class NombreSibeaTest extends TestCase
     }
 
     /**
+     * ¿El código de una vista muestra el nombre viejo? Busca «benefitrack» sin importar
+     * mayúsculas (BenefitRack, BENEFITRACK, Benefitrack...) solo en lo que llega a la pantalla.
+     */
+    private static function muestraNombreViejo(string $codigo): bool
+    {
+        return stripos(self::textoVisible($codigo), 'benefitrack') !== false;
+    }
+
+    /**
      * Se queda solo con lo que puede llegar a la pantalla: el HTML suelto y los textos entre comillas.
-     * Deja fuera comentarios y nombres de código (como `use BenefitRack\...`), y quita las rutas
-     * internas /css/benefitrack.css y /js/benefitrack.js.
+     * Deja fuera comentarios PHP y HTML (<!-- -->), nombres de código (como `use BenefitRack\...`)
+     * y las rutas internas /css/benefitrack.css y /js/benefitrack.js.
      */
     private static function textoVisible(string $codigo): string
     {
@@ -92,6 +108,8 @@ final class NombreSibeaTest extends TestCase
             }
         }
 
-        return str_ireplace(['/css/benefitrack.css', '/js/benefitrack.js'], '', $visible);
+        $sinComentarios = (string) preg_replace('/<!--.*?-->/s', '', $visible);
+
+        return str_ireplace(['/css/benefitrack.css', '/js/benefitrack.js'], '', $sinComentarios);
     }
 }

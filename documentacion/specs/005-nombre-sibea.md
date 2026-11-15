@@ -32,8 +32,13 @@ y como instructor quiero ver SIBEA en los documentos de entrega.
   `benefitrack_v2`, el usuario `benefitrack_app`, archivos `benefitrack.css`/`benefitrack.js`,
   prefijos `[BenefitRack]` de los registros de error, carpetas, scripts y pruebas de la BD.
 - Cualquier cambio en la base de datos.
-- Las specs 001 y 003 y el ADR 0001 (son historia: se dejan como se escribieron).
+- Las specs 001 y 003 y el ADR 0001 (son historia: se dejan como se escribieron), salvo las rutas a
+  archivos renombrados, para que ningún enlace quede roto.
 - Subir archivos al Drive.
+
+## Pendiente para Samuel
+- Las capturas dentro de `Pantallas_SIBEA.html/.pdf` son fotos de las maquetas viejas y siguen mostrando
+  «BenefitRack»: volver a tomarlas es una decisión aparte.
 
 ## Casos borde
 - Comentarios del código que dicen «BenefitRack» no se ven en pantalla: se dejan.
