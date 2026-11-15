@@ -93,8 +93,9 @@ final class NombreSibeaTest extends TestCase
     }
 
     /**
-     * Spec 006 CA-A5: en codigo/aplicacion (sin vendor/) no queda la palabra «benefitrack», sin importar
-     * mayúsculas, ni en el contenido ni en los nombres de archivo.
+     * Spec 006 CA-A5 y Parte B: en codigo/aplicacion (sin vendor/) y en codigo/base-de-datos no queda la
+     * palabra «benefitrack», sin importar mayúsculas, ni en el contenido ni en los nombres de archivo
+     * (la base ahora es sibea, su usuario sibea_app y el script sibea.sql).
      */
     public function test_en_el_codigo_no_queda_la_palabra_benefitrack(): void
     {
@@ -114,33 +115,38 @@ final class NombreSibeaTest extends TestCase
     }
 
     /**
-     * Excepciones explícitas y únicas:
-     *  - benefitrack_v2 y benefitrack_app: nombres de la base y su usuario; se quitan en la Parte B (spec 006).
-     *  - TU_USUARIO/BenefitRack: la carpeta del proyecto en el LEEME (renombrarla está fuera de alcance).
+     * Única excepción explícita: TU_USUARIO/BenefitRack, la carpeta del proyecto en el LEEME
+     * (renombrarla está fuera de alcance de la spec 006).
      */
     private static function sinExcepciones(string $texto): string
     {
-        return str_ireplace(['benefitrack_v2', 'benefitrack_app', 'TU_USUARIO/BenefitRack'], '', $texto);
+        return str_ireplace('TU_USUARIO/BenefitRack', '', $texto);
     }
 
     /**
-     * Archivos de texto de codigo/aplicacion, sin vendor/ ni cachés. Esta misma prueba se omite: nombra la palabra a propósito.
+     * Archivos de texto de codigo/aplicacion y codigo/base-de-datos, sin vendor/ ni cachés.
+     * Se omiten esta misma prueba (nombra la palabra a propósito) y config/config.local.php
+     * (la configuración propia de cada computador: está fuera de git y no es código del proyecto).
      *
      * @return list<string>
      */
     private static function archivosDelCodigo(): array
     {
-        $raiz = dirname(__DIR__, 3);
-        $extensiones = ['php', 'md', 'json', 'neon', 'xml', 'css', 'js', 'dist', 'sh', 'txt', 'html', 'yml', 'lock'];
+        // codigo/aplicacion y codigo/base-de-datos (la base, sus pruebas SQL y su README).
+        $raices = [dirname(__DIR__, 3), dirname(__DIR__, 4) . '/base-de-datos'];
+        $extensiones = ['php', 'md', 'json', 'neon', 'xml', 'css', 'js', 'dist', 'sh', 'txt', 'html', 'yml', 'lock', 'sql'];
+        $omitidos = [basename(__FILE__), 'config.local.php'];
         $archivos = [];
-        $recorrido = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($raiz, RecursiveDirectoryIterator::SKIP_DOTS));
-        foreach ($recorrido as $archivo) {
-            $ruta = str_replace('\\', '/', $archivo->getPathname());
-            if (str_contains($ruta, '/vendor/') || str_contains($ruta, '/.phpunit.cache/') || $archivo->getFilename() === basename(__FILE__)) {
-                continue;
-            }
-            if ($archivo->isFile() && in_array(strtolower($archivo->getExtension()), $extensiones, true)) {
-                $archivos[] = $archivo->getPathname();
+        foreach ($raices as $raiz) {
+            $recorrido = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($raiz, RecursiveDirectoryIterator::SKIP_DOTS));
+            foreach ($recorrido as $archivo) {
+                $ruta = str_replace('\\', '/', $archivo->getPathname());
+                if (str_contains($ruta, '/vendor/') || str_contains($ruta, '/.phpunit.cache/') || in_array($archivo->getFilename(), $omitidos, true)) {
+                    continue;
+                }
+                if ($archivo->isFile() && in_array(strtolower($archivo->getExtension()), $extensiones, true)) {
+                    $archivos[] = $archivo->getPathname();
+                }
             }
         }
 
