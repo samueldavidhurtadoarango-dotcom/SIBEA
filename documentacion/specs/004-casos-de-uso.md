@@ -52,7 +52,7 @@ matriz de requisitos v2 y el estilo de Alfasocial, para entregarlo y poder expli
   (es alternativa de aprobar, no variante).
 - El dibujo «Actores» y la portada «Modelo de casos de uso» se conservan tal como vienen en Alfasocial.
 - El archivo se compacta (formato Jet 3, igual a Alfasocial) para quitar restos de la plantilla.
-- El recuadro «SIBEA» del nivel 1 encierra los 8 módulos (en Alfasocial solo encerraba uno, por error).
+- El recuadro «SIBEA» del nivel 1 encierra los 9 módulos (en Alfasocial solo encerraba uno, por error).
 - No se copian los dibujos repetidos de borrador de Alfasocial.
 - No se usan óvalos «intermedios» con el mismo nombre del dibujo (como «Admin user» dentro de
   «Admin user» en Alfasocial): el actor se une directo al óvalo central, como en la mayoría
