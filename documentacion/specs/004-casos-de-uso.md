@@ -10,12 +10,12 @@ Como aprendiz que sustenta BenefitRack, quiero un diagrama de casos de uso que s
 matriz de requisitos v2 y el estilo de Alfasocial, para entregarlo y poder explicarlo.
 
 ## Criterios de aceptación
-- **CA-1** Dado el archivo `documentacion/entregables/BenefitRack_CasosDeUso.eap`, cuando
+- **CA-1** Dado el archivo `documentacion/entregables/SIBEA_CasosDeUso.eap`, cuando
   se abre en Enterprise Architect 8, entonces abre sin errores.
 - **CA-2** Dada la matriz v2 (46 requisitos, RF-1.0 a RF-9.2), cuando se cuentan los óvalos
   con nombre «RF-x.y …», entonces hay exactamente uno por cada requisito, con el mismo número.
 - **CA-3** Dado el dibujo «Casos de uso principales», entonces muestra al actor Admin y un óvalo
-  por módulo de la matriz (8), dentro del recuadro «BenefitRack», y cada óvalo de módulo
+  por módulo de la matriz (8), dentro del recuadro «SIBEA», y cada óvalo de módulo
   abre su propio dibujo (óvalo compuesto, icono ∞).
 - **CA-4** Dado «Gestión de usuarios», entonces tiene el paso intermedio de Alfasocial:
   «Administración de usuarios» (RF-1) y «Control de acceso» (RF-2), cada uno con su dibujo.
@@ -35,13 +35,14 @@ matriz de requisitos v2 y el estilo de Alfasocial, para entregarlo y poder expli
 - Subir el archivo al Drive (lo decide Samuel).
 
 ## Decisiones (de Samuel)
+- El sistema se llama SIBEA (Sistema de Información de Beneficios y Apoyos) desde el 2026-11-15; el recuadro y el archivo usan ese nombre.
 - Formato `.eap`, igual a Alfasocial.
 - Actores «Admin user», «Aprendiz user» y «Sistema user» dentro de los módulos; «Admin» en el nivel 1.
 - Se copian las flechas punteadas entre actores, aunque no son UML estricto, porque el instructor
   ya las aceptó en Alfasocial.
 
 ## Decisiones (de Claude, a revisar por Samuel)
-- El recuadro «BenefitRack» del nivel 1 encierra los 8 módulos (en Alfasocial solo encerraba uno, por error).
+- El recuadro «SIBEA» del nivel 1 encierra los 8 módulos (en Alfasocial solo encerraba uno, por error).
 - No se copian los dibujos repetidos de borrador de Alfasocial.
 - No se usan óvalos «intermedios» con el mismo nombre del dibujo (como «Admin user» dentro de
   «Admin user» en Alfasocial): el actor se une directo al óvalo central, como en la mayoría
