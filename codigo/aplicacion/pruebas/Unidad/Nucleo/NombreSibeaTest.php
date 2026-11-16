@@ -105,21 +105,12 @@ final class NombreSibeaTest extends TestCase
                 $encontrados[] = $ruta . ' (nombre del archivo)';
                 continue;
             }
-            if (stripos(self::sinExcepciones((string) file_get_contents($archivo)), 'benefitrack') !== false) {
+            if (stripos((string) file_get_contents($archivo), 'benefitrack') !== false) {
                 $encontrados[] = $ruta;
             }
         }
 
         $this->assertSame([], $encontrados, 'Estos archivos aún dicen «benefitrack».');
-    }
-
-    /**
-     * Única excepción explícita: TU_USUARIO/BenefitRack, la carpeta del proyecto en el LEEME
-     * (renombrarla está fuera de alcance de la spec 006).
-     */
-    private static function sinExcepciones(string $texto): string
-    {
-        return str_ireplace('TU_USUARIO/BenefitRack', '', $texto);
     }
 
     /**
