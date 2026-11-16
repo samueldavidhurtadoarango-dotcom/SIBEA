@@ -3,9 +3,6 @@
 Aplicación web para gestionar los beneficios (alimentación, plan de datos, cívica) de los aprendices
 del SENA, Centro Textil y de Gestión Industrial. Proyecto formativo ADSO, ficha 3425429.
 
-> La carpeta del proyecto (`BenefitRack`) conserva el nombre de trabajo anterior; el código y lo que ve una
-> persona dicen **SIBEA**. La base de datos se llama `sibea` y su usuario `sibea_app` (spec 006, Parte B).
-
 El proyecto está dividido en dos partes:
 
 ## `codigo/`: lo que hace funcionar la app (lo que se expone)
