@@ -94,8 +94,8 @@ exactamente `aplicacion/public`.
 Listen 8080
 <VirtualHost *:8080>
     ServerName localhost
-    DocumentRoot "C:/Users/TU_USUARIO/BenefitRack/codigo/aplicacion/public"
-    <Directory "C:/Users/TU_USUARIO/BenefitRack/codigo/aplicacion/public">
+    DocumentRoot "C:/Users/TU_USUARIO/SIBEA/codigo/aplicacion/public"
+    <Directory "C:/Users/TU_USUARIO/SIBEA/codigo/aplicacion/public">
         Require all granted
         # Toda dirección que no sea un archivo real (css, js) la atiende index.php.
         FallbackResource /index.php
