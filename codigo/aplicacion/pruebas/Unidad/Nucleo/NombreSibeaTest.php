@@ -13,8 +13,7 @@ use SIBEA\Nucleo\Vista;
 
 /**
  * Spec 005: el sistema se llama SIBEA en todo lo que ve una persona.
- * «BenefitRack» solo puede quedar en nombres internos (comentarios, espacio de nombres PHP,
- * benefitrack.css/js), nunca en un texto que se dibuje en pantalla.
+ * Spec 006: tampoco por dentro. «BenefitRack» solo queda en esta prueba, que lo busca a propósito.
  */
 final class NombreSibeaTest extends TestCase
 {
