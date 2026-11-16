@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Pruebas\Unidad\Nucleo;
+namespace SIBEA\Pruebas\Unidad\Nucleo;
 
 use PHPUnit\Framework\TestCase;
 
@@ -15,7 +15,7 @@ final class HojaDeEstilosTest extends TestCase
 {
     private function css(): string
     {
-        return (string) file_get_contents(dirname(__DIR__, 3) . '/public/css/benefitrack.css');
+        return (string) file_get_contents(dirname(__DIR__, 3) . '/public/css/sibea.css');
     }
 
     /** Devuelve el cuerpo de la regla de un selector exacto, o '' si no existe. */

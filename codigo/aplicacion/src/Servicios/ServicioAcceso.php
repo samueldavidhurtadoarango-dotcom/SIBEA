@@ -15,9 +15,9 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Servicios;
+namespace SIBEA\Servicios;
 
-use BenefitRack\Repositorios\RepositorioUsuarios;
+use SIBEA\Repositorios\RepositorioUsuarios;
 
 /** Lo que devuelve ServicioAcceso::ingresar(): entró, o falló con el nombre de la pantalla a mostrar. */
 final class ResultadoAcceso

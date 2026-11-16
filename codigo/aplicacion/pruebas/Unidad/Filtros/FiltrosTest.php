@@ -2,23 +2,23 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Pruebas\Unidad\Filtros;
+namespace SIBEA\Pruebas\Unidad\Filtros;
 
-use BenefitRack\Filtros\FiltroCsrf;
-use BenefitRack\Filtros\FiltroPrimerIngreso;
-use BenefitRack\Filtros\FiltroRol;
-use BenefitRack\Filtros\FiltroSesion;
-use BenefitRack\Nucleo\Aplicacion;
-use BenefitRack\Nucleo\Configuracion;
-use BenefitRack\Nucleo\Csrf;
-use BenefitRack\Nucleo\Enrutador;
-use BenefitRack\Nucleo\Fabrica;
-use BenefitRack\Nucleo\Peticion;
-use BenefitRack\Nucleo\Respuesta;
-use BenefitRack\Nucleo\Sesion;
-use BenefitRack\Nucleo\Vista;
-use BenefitRack\Repositorios\RepositorioUsuarios;
 use PHPUnit\Framework\TestCase;
+use SIBEA\Filtros\FiltroCsrf;
+use SIBEA\Filtros\FiltroPrimerIngreso;
+use SIBEA\Filtros\FiltroRol;
+use SIBEA\Filtros\FiltroSesion;
+use SIBEA\Nucleo\Aplicacion;
+use SIBEA\Nucleo\Configuracion;
+use SIBEA\Nucleo\Csrf;
+use SIBEA\Nucleo\Enrutador;
+use SIBEA\Nucleo\Fabrica;
+use SIBEA\Nucleo\Peticion;
+use SIBEA\Nucleo\Respuesta;
+use SIBEA\Nucleo\Sesion;
+use SIBEA\Nucleo\Vista;
+use SIBEA\Repositorios\RepositorioUsuarios;
 
 final class FiltrosTest extends TestCase
 {

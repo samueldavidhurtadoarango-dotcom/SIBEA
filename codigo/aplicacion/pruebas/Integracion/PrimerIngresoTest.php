@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Pruebas\Integracion;
+namespace SIBEA\Pruebas\Integracion;
 
-use BenefitRack\Nucleo\Aplicacion;
-use BenefitRack\Nucleo\Csrf;
-use BenefitRack\Nucleo\Enrutador;
-use BenefitRack\Nucleo\Fabrica;
-use BenefitRack\Nucleo\Peticion;
-use BenefitRack\Nucleo\Respuesta;
-use BenefitRack\Repositorios\RepositorioUsuarios;
-use BenefitRack\Servicios\ServicioContrasena;
+use SIBEA\Nucleo\Aplicacion;
+use SIBEA\Nucleo\Csrf;
+use SIBEA\Nucleo\Enrutador;
+use SIBEA\Nucleo\Fabrica;
+use SIBEA\Nucleo\Peticion;
+use SIBEA\Nucleo\Respuesta;
+use SIBEA\Repositorios\RepositorioUsuarios;
+use SIBEA\Servicios\ServicioContrasena;
 
 /** CA-2: la contraseña temporal obliga a elegir una propia; la base baja la marca a 0. */
 final class PrimerIngresoTest extends BaseDePrueba

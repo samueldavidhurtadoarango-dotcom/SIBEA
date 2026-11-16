@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Pruebas\Unidad\Validacion;
+namespace SIBEA\Pruebas\Unidad\Validacion;
 
 /**
  * Ayuda de las pruebas: crea archivos reales en la carpeta temporal del sistema y los

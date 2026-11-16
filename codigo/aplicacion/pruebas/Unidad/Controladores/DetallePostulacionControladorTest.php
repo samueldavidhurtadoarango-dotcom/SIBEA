@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Pruebas\Unidad\Controladores;
+namespace SIBEA\Pruebas\Unidad\Controladores;
 
-use BenefitRack\Controladores\PostulacionesAdminControlador;
-use BenefitRack\Nucleo\ErrorDeNegocio;
-use BenefitRack\Nucleo\Peticion;
-use BenefitRack\Nucleo\Sesion;
-use BenefitRack\Nucleo\Vista;
-use BenefitRack\Repositorios\RepositorioCatalogos;
-use BenefitRack\Repositorios\RepositorioPostulaciones;
-use BenefitRack\Servicios\ServicioRevision;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use SIBEA\Controladores\PostulacionesAdminControlador;
+use SIBEA\Nucleo\ErrorDeNegocio;
+use SIBEA\Nucleo\Peticion;
+use SIBEA\Nucleo\Sesion;
+use SIBEA\Nucleo\Vista;
+use SIBEA\Repositorios\RepositorioCatalogos;
+use SIBEA\Repositorios\RepositorioPostulaciones;
+use SIBEA\Servicios\ServicioRevision;
 
 /** La pantalla de detalle de una postulación y sus cuatro decisiones (sin base de datos: el servicio es un doble). */
 final class DetallePostulacionControladorTest extends TestCase

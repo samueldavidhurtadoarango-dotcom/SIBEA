@@ -14,15 +14,15 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Servicios;
+namespace SIBEA\Servicios;
 
-use BenefitRack\Nucleo\ErrorDeNegocio;
-use BenefitRack\Repositorios\RepositorioCatalogos;
-use BenefitRack\Repositorios\RepositorioMigraciones;
-use BenefitRack\Validacion\ValidadorUsuario;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Reader\Xlsx as LectorXlsx;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
+use SIBEA\Nucleo\ErrorDeNegocio;
+use SIBEA\Repositorios\RepositorioCatalogos;
+use SIBEA\Repositorios\RepositorioMigraciones;
+use SIBEA\Validacion\ValidadorUsuario;
 use Throwable;
 use ZipArchive;
 

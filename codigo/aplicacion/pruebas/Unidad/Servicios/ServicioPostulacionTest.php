@@ -2,20 +2,20 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Pruebas\Unidad\Servicios;
+namespace SIBEA\Pruebas\Unidad\Servicios;
 
-use BenefitRack\Nucleo\ErrorDeNegocio;
-use BenefitRack\Repositorios\RepositorioDocumentos;
-use BenefitRack\Repositorios\RepositorioPostulaciones;
-use BenefitRack\Repositorios\RepositorioUsuarios;
-use BenefitRack\Servicios\AlmacenDocumentos;
-use BenefitRack\Servicios\ServicioPostulacion;
 use DateTimeImmutable;
 use PDOException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
+use SIBEA\Nucleo\ErrorDeNegocio;
+use SIBEA\Repositorios\RepositorioDocumentos;
+use SIBEA\Repositorios\RepositorioPostulaciones;
+use SIBEA\Repositorios\RepositorioUsuarios;
+use SIBEA\Servicios\AlmacenDocumentos;
+use SIBEA\Servicios\ServicioPostulacion;
 
 /** Enviar la postulación: todo o nada. Los repositorios son dobles de prueba; el almacén de archivos es el real (en una carpeta temporal). */
 final class ServicioPostulacionTest extends TestCase

@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Pruebas\Unidad\Nucleo;
+namespace SIBEA\Pruebas\Unidad\Nucleo;
 
-use BenefitRack\Nucleo\Respuesta;
 use PHPUnit\Framework\TestCase;
+use SIBEA\Nucleo\Respuesta;
 
 /** Respuesta::archivo: descarga (attachment) por defecto y «en línea» solo cuando se pide. */
 final class RespuestaArchivoTest extends TestCase

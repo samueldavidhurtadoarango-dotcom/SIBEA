@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Pruebas\Unidad\Validacion;
+namespace SIBEA\Pruebas\Unidad\Validacion;
 
-use BenefitRack\Validacion\ValidadorUsuario;
 use PHPUnit\Framework\TestCase;
+use SIBEA\Validacion\ValidadorUsuario;
 
 /** Las reglas de los datos de un aprendiz nuevo (formulario y, después, Excel). */
 final class ValidadorUsuarioTest extends TestCase

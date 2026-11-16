@@ -16,7 +16,7 @@ Los guiones están en `pruebas/concurrencia/`:
 | `i1_resultado.sql` | Muestra pagos vigentes y estado de la asignación. |
 | `ejecutar.sh` | Recrea la base, prepara los datos y lanza A en segundo plano y B en primer plano. |
 
-> **Atención:** `ejecutar.sh` vuelve a crear la base `benefitrack_v2` (borra sus datos).
+> **Atención:** `ejecutar.sh` vuelve a crear la base `sibea` (borra sus datos).
 
 ## Por qué fallaba
 
@@ -32,7 +32,7 @@ lee lo último confirmado.
 
 Puede hacerse a mano abriendo dos consolas de `mysql` (por ejemplo, dos ventanas **Shell** de XAMPP):
 
-1. En cualquiera de las dos: ejecutar `benefitrack_v2.sql` y luego `preparar.sql`.
+1. En cualquiera de las dos: ejecutar `sibea.sql` y luego `preparar.sql`.
 2. **Prueba B1**
    1. Consola A: `source codigo/base-de-datos/pruebas/concurrencia/b1_sesion_a.sql` (queda esperando 4 s).
    2. Antes de que pasen los 4 s, consola B: `source codigo/base-de-datos/pruebas/concurrencia/b1_sesion_b.sql`.

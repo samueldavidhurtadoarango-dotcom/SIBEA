@@ -6,13 +6,13 @@
  * Paso 4 del recorrido. Las cuatro reglas son las de la maqueta
  * 02-contrasena/primer-ingreso: mínimo 8 caracteres, una letra mayúscula,
  * una minúscula y un número; además, las dos casillas deben coincidir.
- * (benefitrack.js repite estas reglas en vivo, pero la verdad la decide este
+ * (sibea.js repite estas reglas en vivo, pero la verdad la decide este
  * archivo: el JavaScript del navegador se puede saltar.)
  */
 
 declare(strict_types=1);
 
-namespace BenefitRack\Validacion;
+namespace SIBEA\Validacion;
 
 final class ValidadorContrasena extends Validador
 {

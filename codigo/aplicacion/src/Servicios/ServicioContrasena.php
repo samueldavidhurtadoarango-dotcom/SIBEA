@@ -11,11 +11,11 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Servicios;
+namespace SIBEA\Servicios;
 
-use BenefitRack\Repositorios\RepositorioUsuarios;
-use BenefitRack\Validacion\ResultadoValidacion;
-use BenefitRack\Validacion\ValidadorContrasena;
+use SIBEA\Repositorios\RepositorioUsuarios;
+use SIBEA\Validacion\ResultadoValidacion;
+use SIBEA\Validacion\ValidadorContrasena;
 
 final class ServicioContrasena
 {

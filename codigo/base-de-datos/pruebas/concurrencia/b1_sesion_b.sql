@@ -1,6 +1,6 @@
 -- B1, sesión B: empieza 1 s después de A (su transacción ya "leyó" la base
 -- antes del COMMIT de A) e intenta aprobar la postulación 2 del mismo cupo.
-USE benefitrack_v2;
+USE sibea;
 SET @app_id_usuario = 5;
 SELECT SLEEP(1) AS espera;
 START TRANSACTION WITH CONSISTENT SNAPSHOT;

@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Pruebas\Unidad\Validacion;
+namespace SIBEA\Pruebas\Unidad\Validacion;
 
-use BenefitRack\Validacion\ResultadoValidacion;
 use PHPUnit\Framework\TestCase;
+use SIBEA\Validacion\ResultadoValidacion;
 
 /** ResultadoValidacion: los datos solo salen si no hay errores. */
 final class ResultadoValidacionTest extends TestCase

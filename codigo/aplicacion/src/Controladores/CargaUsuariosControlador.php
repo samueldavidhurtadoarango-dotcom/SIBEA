@@ -14,16 +14,16 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Controladores;
+namespace SIBEA\Controladores;
 
-use BenefitRack\Nucleo\ErrorDeNegocio;
-use BenefitRack\Nucleo\Peticion;
-use BenefitRack\Nucleo\Respuesta;
-use BenefitRack\Nucleo\Sesion;
-use BenefitRack\Nucleo\Vista;
-use BenefitRack\Servicios\CargaInterrumpida;
-use BenefitRack\Servicios\ExportadorExcel;
-use BenefitRack\Servicios\ServicioCargaUsuarios;
+use SIBEA\Nucleo\ErrorDeNegocio;
+use SIBEA\Nucleo\Peticion;
+use SIBEA\Nucleo\Respuesta;
+use SIBEA\Nucleo\Sesion;
+use SIBEA\Nucleo\Vista;
+use SIBEA\Servicios\CargaInterrumpida;
+use SIBEA\Servicios\ExportadorExcel;
+use SIBEA\Servicios\ServicioCargaUsuarios;
 
 final class CargaUsuariosControlador
 {
@@ -125,7 +125,7 @@ final class CargaUsuariosControlador
             // Se conserva lo hecho (abajo, igual que si hubiera salido bien) y se avisa del error en la pantalla.
             $resultado = $interrupcion->resultado();
             $this->sesion->mensaje('error', 'La carga se interrumpió por un error inesperado. Las cuentas ya creadas están en el Excel de entrega; revisa la lista de usuarios antes de volver a cargar el resto.');
-            error_log('[BenefitRack] Carga interrumpida: ' . ($interrupcion->getPrevious()?->getMessage() ?? ''));
+            error_log('[SIBEA] Carga interrumpida: ' . ($interrupcion->getPrevious()?->getMessage() ?? ''));
         }
         // Las contraseñas van a la entrega pendiente de la sesión (la misma del resto de cuentas).
         foreach ($resultado['entrega'] as $fila) {

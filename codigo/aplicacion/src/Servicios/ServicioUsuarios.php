@@ -11,12 +11,12 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Servicios;
+namespace SIBEA\Servicios;
 
-use BenefitRack\Nucleo\ErrorDeNegocio;
-use BenefitRack\Nucleo\TraductorErroresBd;
-use BenefitRack\Repositorios\RepositorioUsuarios;
 use PDOException;
+use SIBEA\Nucleo\ErrorDeNegocio;
+use SIBEA\Nucleo\TraductorErroresBd;
+use SIBEA\Repositorios\RepositorioUsuarios;
 
 final class ServicioUsuarios
 {

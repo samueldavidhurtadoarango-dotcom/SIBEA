@@ -1,5 +1,5 @@
 -- I1, sesión B: 1 s después registra el pago 2 de 2 (el último).
-USE benefitrack_v2;
+USE sibea;
 SET @app_id_usuario = 5;
 SELECT id_asignacion INTO @asig FROM asignaciones_beneficio WHERE id_postulacion = 3;
 SELECT SLEEP(1) AS espera;

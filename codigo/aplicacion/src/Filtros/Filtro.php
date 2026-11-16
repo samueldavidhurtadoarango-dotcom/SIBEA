@@ -10,10 +10,10 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Filtros;
+namespace SIBEA\Filtros;
 
-use BenefitRack\Nucleo\Peticion;
-use BenefitRack\Nucleo\Respuesta;
+use SIBEA\Nucleo\Peticion;
+use SIBEA\Nucleo\Respuesta;
 
 interface Filtro
 {

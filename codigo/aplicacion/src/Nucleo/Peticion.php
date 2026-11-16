@@ -10,7 +10,7 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Nucleo;
+namespace SIBEA\Nucleo;
 
 final class Peticion
 {

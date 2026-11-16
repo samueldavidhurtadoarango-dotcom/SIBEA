@@ -10,7 +10,7 @@
  * Todo dato pasa por e(): los nombres vienen de lo que escribieron los aprendices.
  */
 
-use BenefitRack\Servicios\ResumenDocumentos;
+use SIBEA\Servicios\ResumenDocumentos;
 
 $filas = $pagina['filas'];
 $actual = $pagina['pagina'];

@@ -2,20 +2,20 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Pruebas\Integracion;
+namespace SIBEA\Pruebas\Integracion;
 
-use BenefitRack\Nucleo\Aplicacion;
-use BenefitRack\Nucleo\Csrf;
-use BenefitRack\Nucleo\Enrutador;
-use BenefitRack\Nucleo\ErrorDeNegocio;
-use BenefitRack\Nucleo\Fabrica;
-use BenefitRack\Nucleo\Peticion;
-use BenefitRack\Nucleo\Respuesta;
-use BenefitRack\Repositorios\RepositorioDocumentos;
-use BenefitRack\Repositorios\RepositorioPostulaciones;
-use BenefitRack\Repositorios\RepositorioUsuarios;
-use BenefitRack\Servicios\AlmacenDocumentos;
-use BenefitRack\Servicios\ServicioPostulacion;
+use SIBEA\Nucleo\Aplicacion;
+use SIBEA\Nucleo\Csrf;
+use SIBEA\Nucleo\Enrutador;
+use SIBEA\Nucleo\ErrorDeNegocio;
+use SIBEA\Nucleo\Fabrica;
+use SIBEA\Nucleo\Peticion;
+use SIBEA\Nucleo\Respuesta;
+use SIBEA\Repositorios\RepositorioDocumentos;
+use SIBEA\Repositorios\RepositorioPostulaciones;
+use SIBEA\Repositorios\RepositorioUsuarios;
+use SIBEA\Servicios\AlmacenDocumentos;
+use SIBEA\Servicios\ServicioPostulacion;
 
 /** M5b: enviar la postulación contra la base real (transacción, triggers y archivos). */
 final class PostulacionTest extends BaseDePrueba

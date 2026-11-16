@@ -5,7 +5,7 @@
  * Paso 5 del recorrido (la dibuja AccesoControlador dentro del marco "publica").
  * Reproduce la maqueta 00-existentes/login (6 estados):
  *   normal, validacion, datos-incorrectos, cuenta-bloqueada, cuenta-inactiva y
- *   cargando (este último lo activa benefitrack.js al enviar el formulario).
+ *   cargando (este último lo activa sibea.js al enviar el formulario).
  * Recibe: $estado, $correo (lo que escribió), $errores (mensajes por campo), $tokenCsrf.
  * La contraseña nunca se vuelve a dibujar. Todo dato pasa por e().
  */

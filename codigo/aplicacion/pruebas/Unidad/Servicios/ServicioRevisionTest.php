@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Pruebas\Unidad\Servicios;
+namespace SIBEA\Pruebas\Unidad\Servicios;
 
-use BenefitRack\Nucleo\ErrorDeNegocio;
-use BenefitRack\Repositorios\RepositorioDocumentos;
-use BenefitRack\Repositorios\RepositorioPostulaciones;
-use BenefitRack\Servicios\ServicioRevision;
 use PDOException;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use SIBEA\Nucleo\ErrorDeNegocio;
+use SIBEA\Repositorios\RepositorioDocumentos;
+use SIBEA\Repositorios\RepositorioPostulaciones;
+use SIBEA\Servicios\ServicioRevision;
 
 /** Las reglas de la revisión y la decisión de una postulación (sin base de datos: los repositorios son dobles). */
 final class ServicioRevisionTest extends TestCase

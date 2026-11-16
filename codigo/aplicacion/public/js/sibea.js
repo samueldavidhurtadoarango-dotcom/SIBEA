@@ -1,5 +1,5 @@
 /**
- * BenefitRack · JavaScript propio (se carga después de bootstrap.bundle.min.js).
+ * SIBEA · JavaScript propio (se carga después de bootstrap.bundle.min.js).
  *
  * Es lo mínimo: la aplicación funciona sin JavaScript. Aquí solo hay mejoras:
  *   1. Al enviar un formulario, el botón de envío se desactiva para evitar doble clic

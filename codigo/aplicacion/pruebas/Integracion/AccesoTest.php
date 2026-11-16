@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Pruebas\Integracion;
+namespace SIBEA\Pruebas\Integracion;
 
-use BenefitRack\Nucleo\Aplicacion;
-use BenefitRack\Nucleo\Csrf;
-use BenefitRack\Nucleo\Enrutador;
-use BenefitRack\Nucleo\Fabrica;
-use BenefitRack\Nucleo\Peticion;
-use BenefitRack\Nucleo\Respuesta;
-use BenefitRack\Repositorios\RepositorioUsuarios;
-use BenefitRack\Servicios\ServicioAcceso;
 use PDO;
+use SIBEA\Nucleo\Aplicacion;
+use SIBEA\Nucleo\Csrf;
+use SIBEA\Nucleo\Enrutador;
+use SIBEA\Nucleo\Fabrica;
+use SIBEA\Nucleo\Peticion;
+use SIBEA\Nucleo\Respuesta;
+use SIBEA\Repositorios\RepositorioUsuarios;
+use SIBEA\Servicios\ServicioAcceso;
 
 /** CA-1: bloqueo a los 3 intentos y desbloqueo a los 15 minutos, más el recorrido completo por HTTP. */
 final class AccesoTest extends BaseDePrueba
@@ -44,7 +44,7 @@ final class AccesoTest extends BaseDePrueba
 
     private function pdoRaiz(): PDO
     {
-        return new PDO('mysql:host=127.0.0.1;port=3398;dbname=benefitrack_v2;charset=utf8mb4', 'root', (string) getenv('BR_PRUEBA_BD_ROOT_CLAVE'), [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+        return new PDO('mysql:host=127.0.0.1;port=3398;dbname=sibea;charset=utf8mb4', 'root', (string) getenv('BR_PRUEBA_BD_ROOT_CLAVE'), [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
     }
 
     public function test_tres_claves_erradas_bloquean_y_la_cuarta_peticion_con_clave_correcta_sigue_bloqueada(): void

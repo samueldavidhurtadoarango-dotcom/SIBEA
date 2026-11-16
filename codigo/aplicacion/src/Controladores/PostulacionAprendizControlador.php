@@ -12,19 +12,19 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Controladores;
+namespace SIBEA\Controladores;
 
-use BenefitRack\Nucleo\ErrorDeNegocio;
-use BenefitRack\Nucleo\Peticion;
-use BenefitRack\Nucleo\Respuesta;
-use BenefitRack\Nucleo\Sesion;
-use BenefitRack\Nucleo\Vista;
-use BenefitRack\Repositorios\RepositorioCatalogos;
-use BenefitRack\Repositorios\RepositorioConvocatorias;
-use BenefitRack\Repositorios\RepositorioUsuarios;
-use BenefitRack\Servicios\AlmacenTemporal;
-use BenefitRack\Servicios\ServicioPostulacion;
-use BenefitRack\Validacion\ValidadorPostulacion;
+use SIBEA\Nucleo\ErrorDeNegocio;
+use SIBEA\Nucleo\Peticion;
+use SIBEA\Nucleo\Respuesta;
+use SIBEA\Nucleo\Sesion;
+use SIBEA\Nucleo\Vista;
+use SIBEA\Repositorios\RepositorioCatalogos;
+use SIBEA\Repositorios\RepositorioConvocatorias;
+use SIBEA\Repositorios\RepositorioUsuarios;
+use SIBEA\Servicios\AlmacenTemporal;
+use SIBEA\Servicios\ServicioPostulacion;
+use SIBEA\Validacion\ValidadorPostulacion;
 
 final class PostulacionAprendizControlador
 {

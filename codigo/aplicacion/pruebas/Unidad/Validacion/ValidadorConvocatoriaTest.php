@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Pruebas\Unidad\Validacion;
+namespace SIBEA\Pruebas\Unidad\Validacion;
 
-use BenefitRack\Validacion\ValidadorConvocatoria;
 use PHPUnit\Framework\TestCase;
+use SIBEA\Validacion\ValidadorConvocatoria;
 
 /** Reglas del formulario de convocatorias (la base de datos repite las de fondo). */
 final class ValidadorConvocatoriaTest extends TestCase

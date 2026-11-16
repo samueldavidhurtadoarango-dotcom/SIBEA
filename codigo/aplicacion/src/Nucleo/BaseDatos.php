@@ -5,14 +5,14 @@
  *
  * Paso 4 del recorrido: la usan los repositorios para hablar con MariaDB.
  * Se crea UNA conexión por petición (la Fabrica la reparte). Siempre entra con
- * el usuario benefitrack_app (nunca root), y después de conectar le dice a la
+ * el usuario sibea_app (nunca root), y después de conectar le dice a la
  * base quién es la persona que actúa (@app_id_usuario) para que el historial
  * y la auditoría guarden el autor correcto.
  */
 
 declare(strict_types=1);
 
-namespace BenefitRack\Nucleo;
+namespace SIBEA\Nucleo;
 
 use PDO;
 

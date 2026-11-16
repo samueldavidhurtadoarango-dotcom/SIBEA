@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Pruebas\Unidad\Servicios;
+namespace SIBEA\Pruebas\Unidad\Servicios;
 
-use BenefitRack\Repositorios\RepositorioConvocatorias;
-use BenefitRack\Repositorios\RepositorioPostulaciones;
-use BenefitRack\Servicios\ServicioMiProceso;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use SIBEA\Repositorios\RepositorioConvocatorias;
+use SIBEA\Repositorios\RepositorioPostulaciones;
+use SIBEA\Servicios\ServicioMiProceso;
 
 /** Cómo se arma «Mi proceso» del aprendiz (sin base de datos: los repositorios son dobles de prueba). */
 final class ServicioMiProcesoTest extends TestCase

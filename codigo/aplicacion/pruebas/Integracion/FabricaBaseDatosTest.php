@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Pruebas\Integracion;
+namespace SIBEA\Pruebas\Integracion;
 
-use BenefitRack\Nucleo\BaseDatos;
-use BenefitRack\Nucleo\Fabrica;
+use SIBEA\Nucleo\BaseDatos;
+use SIBEA\Nucleo\Fabrica;
 
 /** El inicio de sesión debe correr con @app_id_usuario = NULL aunque ya haya una sesión abierta. */
 final class FabricaBaseDatosTest extends BaseDePrueba

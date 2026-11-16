@@ -1,16 +1,16 @@
-# Base de datos de BenefitRack
+# Base de datos de SIBEA
 
 | Archivo | Qué es |
 |---|---|
-| `benefitrack_v2.sql` | El **único** script de instalación. Crea la base `benefitrack_v2` completa: tablas, reglas, triggers, catálogos iniciales (3 beneficios, 11 bancos, 5 programas, EPS…) y el usuario limitado de la aplicación, `benefitrack_app`, con sus permisos. |
+| `sibea.sql` | El **único** script de instalación. Crea la base `sibea` completa: tablas, reglas, triggers, catálogos iniciales (3 beneficios, 11 bancos, 5 programas, EPS…) y el usuario limitado de la aplicación, `sibea_app`, con sus permisos. |
 | `pruebas/pruebas_reglas.sql` | Pruebas de las reglas de negocio. Imprime OK o FALLO por cada caso. |
-| `pruebas/pruebas_usuario_aplicacion.sql` | Pruebas que se ejecutan conectado como el usuario limitado `benefitrack_app`. |
+| `pruebas/pruebas_usuario_aplicacion.sql` | Pruebas que se ejecutan conectado como el usuario limitado `sibea_app`. |
 | `pruebas/otro_usuario/` | Prueba de que un usuario distinto de `root` no puede gestionar sin `@app_id_usuario`. |
 | `pruebas/concurrencia.md` y `pruebas/concurrencia/` | Pruebas con dos conexiones al mismo tiempo (cupos y último pago). |
 
 Funciona en MariaDB 10.4 (la de XAMPP) y en MariaDB 11.x.
 
-> **Atención:** `benefitrack_v2.sql` empieza con `DROP DATABASE IF EXISTS benefitrack_v2`.
+> **Atención:** `sibea.sql` empieza con `DROP DATABASE IF EXISTS sibea`.
 > Si ya existe una base con ese nombre, **la borra con todos sus datos** y la crea de nuevo vacía.
 
 ---
@@ -23,29 +23,29 @@ Primero encienda MySQL en el panel de control de XAMPP (botón **Start** de MySQ
 
 1. Abra <http://localhost/phpmyadmin>.
 2. Sin seleccionar ninguna base, entre a la pestaña **Importar**.
-3. En **Archivo a importar** elija `codigo/base-de-datos/benefitrack_v2.sql`.
+3. En **Archivo a importar** elija `codigo/base-de-datos/sibea.sql`.
 4. Deje el conjunto de caracteres en `utf-8` y pulse **Importar** (abajo).
-5. Debe aparecer el mensaje de importación exitosa y, a la izquierda, la base `benefitrack_v2` con 23 tablas.
+5. Debe aparecer el mensaje de importación exitosa y, a la izquierda, la base `sibea` con 23 tablas.
 
 ### Opción B: línea de comandos
 
 Abra la consola (botón **Shell** de XAMPP, o `cmd`) y ejecute, desde la carpeta del proyecto:
 
 ```bat
-C:\xampp\mysql\bin\mysql.exe -u root --default-character-set=utf8mb4 < codigo\base-de-datos\benefitrack_v2.sql
+C:\xampp\mysql\bin\mysql.exe -u root --default-character-set=utf8mb4 < codigo\base-de-datos\sibea.sql
 ```
 
 Si su usuario `root` tiene contraseña, agregue `-p` y escríbala cuando la pida.
 Si no aparece ningún mensaje de error, el script terminó bien.
 
 **Un solo archivo, una sola vez, como `root`.** Es como armar un mueble que ya viene con todas las
-piezas en la misma caja: `benefitrack_v2.sql` crea las tablas y las reglas, carga los catálogos
-(beneficios, bancos, programas, EPS…) y crea el usuario `benefitrack_app` con el que se conecta la
+piezas en la misma caja: `sibea.sql` crea las tablas y las reglas, carga los catálogos
+(beneficios, bancos, programas, EPS…) y crea el usuario `sibea_app` con el que se conecta la
 aplicación. No hay que cargar nada más.
 
 ### Cambie la clave del usuario de la aplicación (obligatorio al instalar de verdad)
 
-El script crea `benefitrack_app` con una clave **de ejemplo**: `CAMBIE_ESTA_CLAVE`. Es como la
+El script crea `sibea_app` con una clave **de ejemplo**: `CAMBIE_ESTA_CLAVE`. Es como la
 llave que viene pegada a un candado nuevo: sirve para probar, pero cualquiera que lea el script la
 conoce. Al instalar de verdad, apenas termine de cargar el script:
 
@@ -53,13 +53,13 @@ conoce. Al instalar de verdad, apenas termine de cargar el script:
 2. Ejecute, conectado como `root` (en phpMyAdmin, pestaña **SQL**; o en `mysql.exe -u root`):
 
    ```sql
-   ALTER USER 'benefitrack_app'@'localhost' IDENTIFIED BY 'su-clave-larga-y-propia';
+   ALTER USER 'sibea_app'@'localhost' IDENTIFIED BY 'su-clave-larga-y-propia';
    ```
 
 3. Escriba **esa misma clave** en `codigo/aplicacion/config/config.local.php` (el archivo que no se
    sube a git). Si las dos no coinciden, la aplicación no puede entrar a la base.
 
-Si más adelante vuelve a cargar `benefitrack_v2.sql`, el usuario conserva la clave que usted le
+Si más adelante vuelve a cargar `sibea.sql`, el usuario conserva la clave que usted le
 puso (el script solo lo crea si no existe) y recibe otra vez sus permisos.
 
 La instalación, el mantenimiento y las pruebas se hacen con un usuario de MariaDB llamado
@@ -67,17 +67,17 @@ La instalación, el mantenimiento y las pruebas se hacen con un usuario de Maria
 
 ### Crear el primer administrador
 
-El script crea el usuario de MariaDB `benefitrack_app`, pero **no trae ninguna cuenta de la
+El script crea el usuario de MariaDB `sibea_app`, pero **no trae ninguna cuenta de la
 aplicación** (filas de la tabla `usuarios`), tampoco administradores. Como crear un Administrador exige
 un administrador activo, el primero se crea a mano **conectado como `root`** y con
-`@app_id_usuario` en `NULL` (en phpMyAdmin, pestaña **SQL** con la base `benefitrack_v2`
+`@app_id_usuario` en `NULL` (en phpMyAdmin, pestaña **SQL** con la base `sibea`
 seleccionada; o en la consola `mysql.exe -u root`):
 
 ```sql
-USE benefitrack_v2;
+USE sibea;
 SET @app_id_usuario = NULL;
 INSERT INTO usuarios (documento, nombre, apellido, correo, password_hash, id_rol, debe_cambiar_contrasena)
-VALUES ('1000000000', 'Administrador', 'Inicial', 'admin@benefitrack.local',
+VALUES ('1000000000', 'Administrador', 'Inicial', 'admin@sibea.local',
         '$2y$10$EJEMPLOEJEMPLOEJEMPLOuNoUseEsteHashEnProduccion000000',
         (SELECT id_rol FROM roles WHERE nombre = 'Administrador'), 0);
 ```
@@ -96,15 +96,15 @@ administrador crea los demás desde la aplicación.
 
 ## 2. Ejecutar las pruebas
 
-Las pruebas se ejecutan **después** de cargar `benefitrack_v2.sql` **dos veces** seguidas, sobre la base recién creada. La segunda carga
-comprueba que el script funciona aunque el usuario `benefitrack_app` ya exista; los casos R14 a R16
+Las pruebas se ejecutan **después** de cargar `sibea.sql` **dos veces** seguidas, sobre la base recién creada. La segunda carga
+comprueba que el script funciona aunque el usuario `sibea_app` ya exista; los casos R14 a R16
 comprueban que los catálogos quedan completos (3 beneficios, 11 bancos y 5 programas).
 Todos los datos de prueba se crean dentro de una transacción que se deshace al final,
 así que la base queda igual que antes y las pruebas se pueden repetir.
 
 ### Opción A: phpMyAdmin
 
-1. Seleccione la base `benefitrack_v2` a la izquierda.
+1. Seleccione la base `sibea` a la izquierda.
 2. Pestaña **Importar**, elija `codigo/base-de-datos/pruebas/pruebas_reglas.sql` y pulse **Importar**.
 3. El último resultado es la tabla de resumen: una fila por caso con `OK` o `FALLO`
    y, al final, la fila `TOTAL` con el veredicto (`TODAS LAS PRUEBAS PASAN`).
@@ -196,7 +196,7 @@ modificar esta cuenta bancaria`.
 
 **Si la variable es `NULL`.** Solo el usuario de mantenimiento `root` puede hacer acciones de
 gestión con la variable en `NULL` (se guarda `NULL`, decisión D9). Con **cualquier otro usuario de
-conexión** (`benefitrack_app` o cualquiera que usted cree), las acciones de gestión **se
+conexión** (`sibea_app` o cualquiera que usted cree), las acciones de gestión **se
 rechazan**: la aplicación debe mandar **siempre** `@app_id_usuario` en cada acción de gestión. La
 única excepción son el bloqueo y el desbloqueo automáticos del inicio de sesión (ver más abajo).
 Ojo: aun con `root`, cambiar el rol o el estado de un usuario exige justificación.
@@ -225,7 +225,7 @@ CALL pr_cambiar_estado_usuario(<id_usuario>, 'Inactivo', 'Retiro voluntario del 
 CALL pr_cambiar_rol_usuario(<id_usuario>, 'Administrador', 'Nuevo integrante de Bienestar');
 ```
 
-`benefitrack_app` tiene permiso `EXECUTE` sobre los dos (ver la sección 9 de `benefitrack_v2.sql`). Los
+`sibea_app` tiene permiso `EXECUTE` sobre los dos (ver la sección 9 de `sibea.sql`). Los
 procedimientos responden con un error claro, y dejan `@app_justificacion` en `NULL`, si:
 
 - el estado no es `Activo`, `Inactivo` ni `Bloqueado` (o es `NULL`): `Estado no válido: ...`;
@@ -346,7 +346,7 @@ Por eso la aplicación **no debe conectarse como `root`**, sino con un usuario q
 - **no** puede insertar ni borrar en `asignaciones_beneficio` (solo cambiar su estado);
 - **no** puede borrar postulaciones, pagos, novedades ni notificaciones.
 
-Ese usuario es `benefitrack_app` y lo crea la sección 9 de `benefitrack_v2.sql`, al final del
+Ese usuario es `sibea_app` y lo crea la sección 9 de `sibea.sql`, al final del
 script (los permisos se dan después de crear las tablas y los procedimientos). **Cambie su
 contraseña** (`CAMBIE_ESTA_CLAVE`) como se explica en la sección 1 y guárdela en
 `codigo/aplicacion/config/config.local.php`, nunca en el repositorio.
@@ -354,13 +354,13 @@ contraseña** (`CAMBIE_ESTA_CLAVE`) como se explica en la sección 1 y guárdela
 Los triggers siguen funcionando con ese usuario, porque se ejecutan con los permisos de quien los
 creó (`root@localhost`). Si el usuario intenta escribir directamente en una tabla protegida, MariaDB
 responde con el error 1142, por ejemplo:
-`INSERT command denied to user 'benefitrack_app'@'localhost' for table 'auditoria'`.
+`INSERT command denied to user 'sibea_app'@'localhost' for table 'auditoria'`.
 
-Para comprobar los controles con ese usuario (después de `benefitrack_v2.sql` y
+Para comprobar los controles con ese usuario (después de `sibea.sql` y
 `pruebas\concurrencia\preparar.sql`, como `root`):
 
 ```bat
-C:\xampp\mysql\bin\mysql.exe -u benefitrack_app -p --default-character-set=utf8mb4 --force --table < codigo\base-de-datos\pruebas\pruebas_usuario_aplicacion.sql
+C:\xampp\mysql\bin\mysql.exe -u sibea_app -p --default-character-set=utf8mb4 --force --table < codigo\base-de-datos\pruebas\pruebas_usuario_aplicacion.sql
 ```
 
 Los `ERROR 1644` que aparecen son los rechazos esperados; las filas U1 a U14 deben decir `OK` (también aparecen un `ERROR 1142`, el rechazo esperado de U9, y un `ERROR 1644` «Un documento nuevo debe empezar en estado Pendiente», el rechazo esperado de U12).
@@ -374,15 +374,15 @@ dos conexiones al mismo tiempo. El procedimiento y los resultados reales están 
 `pruebas/concurrencia.md`.
 
 > **Atención:** `pruebas/concurrencia/ejecutar.sh` **borra y vuelve a crear** la base
-> `benefitrack_v2`. La salida de la segunda sesión va a un archivo temporal del sistema (fuera del
+> `sibea`. La salida de la segunda sesión va a un archivo temporal del sistema (fuera del
 > proyecto) que se borra al terminar, así que el guion no deja archivos en el repositorio.
 
 ---
 
-## 6. Prueba con un usuario que no es `root` ni `benefitrack_app`
+## 6. Prueba con un usuario que no es `root` ni `sibea_app`
 
 Comprueba que, con `@app_id_usuario` en `NULL`, **cualquier** usuario distinto de `root` queda
-rechazado en las acciones de gestión (no solo `benefitrack_app`). Necesita la base ya creada; no la
+rechazado en las acciones de gestión (no solo `sibea_app`). Necesita la base ya creada; no la
 borra. Desde la carpeta `codigo/base-de-datos` (con Git Bash o cualquier `sh`):
 
 ```sh
@@ -391,10 +391,10 @@ sh pruebas/otro_usuario/ejecutar.sh "C:/xampp/mysql/bin/mysql.exe" 127.0.0.1 330
 
 Los argumentos son, por separado: la ruta de `mysql.exe`, el host y el puerto (los dos últimos son
 opcionales; por defecto `127.0.0.1` y `3306`). El guion se conecta como `root`; si root tiene
-contraseña, póngala en la variable de entorno `BENEFITRACK_ROOT_PASSWORD` (no en la línea de
+contraseña, póngala en la variable de entorno `SIBEA_ROOT_PASSWORD` (no en la línea de
 comandos).
 
-El guion crea el usuario temporal `benefitrack_otro` para `localhost` y para `127.0.0.1` con una
+El guion crea el usuario temporal `sibea_otro` para `localhost` y para `127.0.0.1` con una
 **contraseña aleatoria** (que solo se guarda en un archivo temporal que se borra al terminar) y
 permisos mínimos (leer `id_usuario`, `documento` e `id_rol` de `usuarios`, leer `roles` y
 cambiar solo `id_rol`). Crea también un aprendiz de prueba (`PRUEBA-OTRO`) e intenta darle el rol

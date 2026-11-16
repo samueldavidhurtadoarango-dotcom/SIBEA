@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Pruebas\Unidad\Servicios;
+namespace SIBEA\Pruebas\Unidad\Servicios;
 
-use BenefitRack\Repositorios\RepositorioUsuarios;
-use BenefitRack\Servicios\ServicioAcceso;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use SIBEA\Repositorios\RepositorioUsuarios;
+use SIBEA\Servicios\ServicioAcceso;
 
 /** Reglas de inicio de sesión con un repositorio falso (sin base de datos). */
 final class ServicioAccesoTest extends TestCase

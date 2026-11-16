@@ -1,6 +1,7 @@
 <?php
 
 /**
+ * SIBEA — Sistema de Información de Beneficios y Apoyos.
  * PUNTO DE ENTRADA: toda petición del navegador llega primero aquí.
  * Carga las librerías y le pasa la carpeta de la aplicación a Arranque, que arma todo, atiende la petición
  * y, si el arranque falla, responde una página 500 sencilla (el detalle va solo al error_log).
@@ -9,7 +10,7 @@
 
 declare(strict_types=1);
 
-use BenefitRack\Nucleo\Arranque;
+use SIBEA\Nucleo\Arranque;
 
 $raiz = dirname(__DIR__);
 require $raiz . '/vendor/autoload.php';

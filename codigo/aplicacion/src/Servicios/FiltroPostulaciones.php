@@ -12,10 +12,10 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Servicios;
+namespace SIBEA\Servicios;
 
-use BenefitRack\Nucleo\Peticion;
 use DateTimeImmutable;
+use SIBEA\Nucleo\Peticion;
 
 final class FiltroPostulaciones
 {

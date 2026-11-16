@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Pruebas\Unidad\Nucleo;
+namespace SIBEA\Pruebas\Unidad\Nucleo;
 
-use BenefitRack\Nucleo\Sesion;
 use PHPUnit\Framework\TestCase;
+use SIBEA\Nucleo\Sesion;
 
 final class SesionTest extends TestCase
 {

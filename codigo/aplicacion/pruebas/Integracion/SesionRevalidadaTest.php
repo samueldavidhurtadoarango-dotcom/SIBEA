@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Pruebas\Integracion;
+namespace SIBEA\Pruebas\Integracion;
 
-use BenefitRack\Nucleo\Aplicacion;
-use BenefitRack\Nucleo\Csrf;
-use BenefitRack\Nucleo\Enrutador;
-use BenefitRack\Nucleo\Fabrica;
-use BenefitRack\Nucleo\Peticion;
-use BenefitRack\Nucleo\Respuesta;
-use BenefitRack\Repositorios\RepositorioUsuarios;
+use SIBEA\Nucleo\Aplicacion;
+use SIBEA\Nucleo\Csrf;
+use SIBEA\Nucleo\Enrutador;
+use SIBEA\Nucleo\Fabrica;
+use SIBEA\Nucleo\Peticion;
+use SIBEA\Nucleo\Respuesta;
+use SIBEA\Repositorios\RepositorioUsuarios;
 
 /** M1: la sesión se revalida contra la base en cada petición (necesita la base temporal del puerto 3398). */
 final class SesionRevalidadaTest extends BaseDePrueba

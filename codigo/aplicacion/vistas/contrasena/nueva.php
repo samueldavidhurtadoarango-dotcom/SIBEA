@@ -6,7 +6,7 @@
  * Reproduce la maqueta 02-contrasena/primer-ingreso y error-validacion.
  * Recibe: $errores (mensaje por campo: 'nueva', 'confirmar'), $nombre y $tokenCsrf.
  * Las contraseñas NUNCA se vuelven a dibujar: si hay errores, se escribe de nuevo.
- * Las reglas se marcan en vivo con benefitrack.js (atributos data-reglas y data-regla).
+ * Las reglas se marcan en vivo con sibea.js (atributos data-reglas y data-regla).
  */
 
 $errores = $errores ?? [];

@@ -11,7 +11,7 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Servicios;
+namespace SIBEA\Servicios;
 
 use RuntimeException;
 use Throwable;

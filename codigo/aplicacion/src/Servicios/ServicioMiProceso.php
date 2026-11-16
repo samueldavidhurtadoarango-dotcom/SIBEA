@@ -18,10 +18,10 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Servicios;
+namespace SIBEA\Servicios;
 
-use BenefitRack\Repositorios\RepositorioConvocatorias;
-use BenefitRack\Repositorios\RepositorioPostulaciones;
+use SIBEA\Repositorios\RepositorioConvocatorias;
+use SIBEA\Repositorios\RepositorioPostulaciones;
 
 class ServicioMiProceso
 {

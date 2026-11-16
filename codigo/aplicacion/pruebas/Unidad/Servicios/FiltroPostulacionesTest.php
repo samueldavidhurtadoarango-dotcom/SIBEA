@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Pruebas\Unidad\Servicios;
+namespace SIBEA\Pruebas\Unidad\Servicios;
 
-use BenefitRack\Nucleo\Peticion;
-use BenefitRack\Servicios\FiltroPostulaciones;
 use PHPUnit\Framework\TestCase;
+use SIBEA\Nucleo\Peticion;
+use SIBEA\Servicios\FiltroPostulaciones;
 
 /** Los filtros de la lista de postulaciones: lo que no sirve se ignora, nunca falla. */
 final class FiltroPostulacionesTest extends TestCase

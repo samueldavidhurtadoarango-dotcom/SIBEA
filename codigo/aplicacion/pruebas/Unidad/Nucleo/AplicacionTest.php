@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Pruebas\Unidad\Nucleo;
+namespace SIBEA\Pruebas\Unidad\Nucleo;
 
-use BenefitRack\Filtros\Filtro;
-use BenefitRack\Nucleo\Aplicacion;
-use BenefitRack\Nucleo\Configuracion;
-use BenefitRack\Nucleo\Enrutador;
-use BenefitRack\Nucleo\Fabrica;
-use BenefitRack\Nucleo\Peticion;
-use BenefitRack\Nucleo\Respuesta;
-use BenefitRack\Nucleo\Vista;
 use PHPUnit\Framework\TestCase;
+use SIBEA\Filtros\Filtro;
+use SIBEA\Nucleo\Aplicacion;
+use SIBEA\Nucleo\Configuracion;
+use SIBEA\Nucleo\Enrutador;
+use SIBEA\Nucleo\Fabrica;
+use SIBEA\Nucleo\Peticion;
+use SIBEA\Nucleo\Respuesta;
+use SIBEA\Nucleo\Vista;
 
 final class AplicacionTest extends TestCase
 {

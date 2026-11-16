@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Pruebas\Unidad\Controladores;
+namespace SIBEA\Pruebas\Unidad\Controladores;
 
-use BenefitRack\Controladores\MiProcesoControlador;
-use BenefitRack\Nucleo\Peticion;
-use BenefitRack\Nucleo\Sesion;
-use BenefitRack\Nucleo\Vista;
-use BenefitRack\Servicios\ServicioMiProceso;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use SIBEA\Controladores\MiProcesoControlador;
+use SIBEA\Nucleo\Peticion;
+use SIBEA\Nucleo\Sesion;
+use SIBEA\Nucleo\Vista;
+use SIBEA\Servicios\ServicioMiProceso;
 
 /** Las pantallas de «Mi proceso» (sin base de datos: el servicio es un doble de prueba). */
 final class MiProcesoControladorTest extends TestCase

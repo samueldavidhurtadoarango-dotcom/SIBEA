@@ -2,19 +2,18 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Pruebas\Unidad\Nucleo;
+namespace SIBEA\Pruebas\Unidad\Nucleo;
 
-use BenefitRack\Nucleo\Arranque;
-use BenefitRack\Nucleo\Sesion;
-use BenefitRack\Nucleo\Vista;
 use PHPUnit\Framework\TestCase;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
+use SIBEA\Nucleo\Arranque;
+use SIBEA\Nucleo\Sesion;
+use SIBEA\Nucleo\Vista;
 
 /**
  * Spec 005: el sistema se llama SIBEA en todo lo que ve una persona.
- * «BenefitRack» solo puede quedar en nombres internos (comentarios, espacio de nombres PHP,
- * benefitrack.css/js), nunca en un texto que se dibuje en pantalla.
+ * Spec 006: tampoco por dentro. «BenefitRack» solo queda en esta prueba, que lo busca a propósito.
  */
 final class NombreSibeaTest extends TestCase
 {
@@ -67,6 +66,92 @@ final class NombreSibeaTest extends TestCase
         $this->assertStringNotContainsString('BenefitRack', $cuerpo);
     }
 
+    /** Spec 006 CA-A4: la pantalla de acceso dice qué significa la sigla, debajo de la marca (PC y celular). */
+    public function test_la_pantalla_de_acceso_muestra_el_significado_de_sibea(): void
+    {
+        $_SESSION = [];
+        $vista = new Vista(dirname(__DIR__, 3) . '/vistas', new Sesion());
+
+        $html = $vista->mostrar('acceso/ingresar', ['estado' => 'normal', 'tokenCsrf' => 'x'], 'publica');
+
+        $significado = 'Sistema de Información de Beneficios y Apoyos';
+        $this->assertSame(2, substr_count($html, $significado), 'Una vez en el panel de computador y otra en el encabezado del celular.');
+        $this->assertMatchesRegularExpression('#br-acceso__nombre">SIBEA</span>\s*<small[^>]*>' . $significado . '</small>#u', $html);
+        $this->assertMatchesRegularExpression('#br-acceso__movil-nombre">SIBEA</span>\s*<small[^>]*text-secondary[^>]*>' . $significado . '</small>#u', $html);
+    }
+
+    /** Spec 006 CA-A4: los tres textos de arranque empiezan con «SIBEA — Sistema de Información de Beneficios y Apoyos». */
+    public function test_los_documentos_de_arranque_abren_con_el_significado(): void
+    {
+        $raiz = dirname(__DIR__, 5);
+        $frase = 'SIBEA — Sistema de Información de Beneficios y Apoyos';
+
+        $this->assertStringStartsWith('# ' . $frase, (string) file_get_contents($raiz . '/LEEME.md'));
+        $this->assertStringStartsWith('# ' . $frase, (string) file_get_contents($raiz . '/codigo/aplicacion/LEEME.md'));
+        $this->assertMatchesRegularExpression('#/\*\*\R \* ' . $frase . '#u', (string) file_get_contents($raiz . '/codigo/aplicacion/public/index.php'));
+    }
+
+    /**
+     * Spec 006 CA-A5 y Parte B: en codigo/aplicacion (sin vendor/) y en codigo/base-de-datos no queda la
+     * palabra «benefitrack», sin importar mayúsculas, ni en el contenido ni en los nombres de archivo
+     * (la base ahora es sibea, su usuario sibea_app y el script sibea.sql).
+     */
+    public function test_en_el_codigo_no_queda_la_palabra_benefitrack(): void
+    {
+        $encontrados = [];
+        foreach (self::archivosDelCodigo() as $archivo) {
+            $ruta = str_replace('\\', '/', $archivo);
+            if (stripos(basename($ruta), 'benefitrack') !== false) {
+                $encontrados[] = $ruta . ' (nombre del archivo)';
+                continue;
+            }
+            if (stripos(self::sinExcepciones((string) file_get_contents($archivo)), 'benefitrack') !== false) {
+                $encontrados[] = $ruta;
+            }
+        }
+
+        $this->assertSame([], $encontrados, 'Estos archivos aún dicen «benefitrack».');
+    }
+
+    /**
+     * Única excepción explícita: TU_USUARIO/BenefitRack, la carpeta del proyecto en el LEEME
+     * (renombrarla está fuera de alcance de la spec 006).
+     */
+    private static function sinExcepciones(string $texto): string
+    {
+        return str_ireplace('TU_USUARIO/BenefitRack', '', $texto);
+    }
+
+    /**
+     * Archivos de texto de codigo/aplicacion y codigo/base-de-datos, sin vendor/ ni cachés.
+     * Se omiten esta misma prueba (nombra la palabra a propósito) y config/config.local.php
+     * (la configuración propia de cada computador: está fuera de git y no es código del proyecto).
+     *
+     * @return list<string>
+     */
+    private static function archivosDelCodigo(): array
+    {
+        // codigo/aplicacion y codigo/base-de-datos (la base, sus pruebas SQL y su README).
+        $raices = [dirname(__DIR__, 3), dirname(__DIR__, 4) . '/base-de-datos'];
+        $extensiones = ['php', 'md', 'json', 'neon', 'xml', 'css', 'js', 'dist', 'sh', 'txt', 'html', 'yml', 'lock', 'sql'];
+        $omitidos = [basename(__FILE__), 'config.local.php'];
+        $archivos = [];
+        foreach ($raices as $raiz) {
+            $recorrido = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($raiz, RecursiveDirectoryIterator::SKIP_DOTS));
+            foreach ($recorrido as $archivo) {
+                $ruta = str_replace('\\', '/', $archivo->getPathname());
+                if (str_contains($ruta, '/vendor/') || str_contains($ruta, '/.phpunit.cache/') || in_array($archivo->getFilename(), $omitidos, true)) {
+                    continue;
+                }
+                if ($archivo->isFile() && in_array(strtolower($archivo->getExtension()), $extensiones, true)) {
+                    $archivos[] = $archivo->getPathname();
+                }
+            }
+        }
+
+        return $archivos;
+    }
+
     /**
      * Todos los archivos .php dentro de vistas/.
      *
@@ -96,7 +181,7 @@ final class NombreSibeaTest extends TestCase
 
     /**
      * Se queda solo con lo que puede llegar a la pantalla: el HTML suelto y los textos entre comillas.
-     * Deja fuera comentarios PHP y HTML (<!-- -->), nombres de código (como `use BenefitRack\...`)
+     * Deja fuera comentarios PHP y HTML (<!-- -->), nombres de código (como `use SIBEA\...`)
      * y las rutas internas /css/benefitrack.css y /js/benefitrack.js.
      */
     private static function textoVisible(string $codigo): string

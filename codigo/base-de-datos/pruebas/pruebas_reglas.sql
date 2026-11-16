@@ -1,11 +1,11 @@
 -- =====================================================================
--- BenefitRack - Pruebas de las reglas de negocio en la base de datos
+-- SIBEA - Pruebas de las reglas de negocio en la base de datos
 -- =====================================================================
 -- Cubre los criterios de aceptación de documentacion/specs/001-correccion-entregables.md
 -- y las decisiones D1-D12 que se fuerzan con triggers y restricciones.
 --
 -- Cómo funciona:
---   * Ejecutar DESPUÉS de benefitrack_v2.sql, sobre la base recién creada.
+--   * Ejecutar DESPUÉS de sibea.sql, sobre la base recién creada.
 --   * Todos los datos de prueba se crean dentro de una transacción que se
 --     deshace (ROLLBACK) al final: la base queda igual que antes.
 --   * Cada caso guarda OK o FALLO en una tabla temporal MEMORY (que no se
@@ -16,7 +16,7 @@
 -- =====================================================================
 
 SET NAMES utf8mb4;
-USE benefitrack_v2;
+USE sibea;
 
 -- ---------------------------------------------------------------------
 -- Utilidades de prueba
@@ -95,7 +95,7 @@ DELIMITER ;
 
 -- Cuántos datos iniciales hay ANTES de que las pruebas creen los suyos
 -- (los casos R14 a R16 los comparan). Antes de ejecutar este archivo se
--- carga benefitrack_v2.sql DOS veces (ver README.md): trae los catálogos.
+-- carga sibea.sql DOS veces (ver README.md): trae los catálogos.
 SELECT COUNT(*) INTO @ini_beneficios FROM beneficios;
 SELECT COUNT(*) INTO @ini_bancos     FROM entidades_bancarias;
 SELECT COUNT(*) INTO @ini_programas  FROM programas;
@@ -238,25 +238,25 @@ SELECT id_institucion INTO @inst FROM instituciones ORDER BY id_institucion LIMI
 
 -- Administrador con id 5 (criterio: "cambio hecho con @app_id_usuario = 5").
 INSERT INTO usuarios (id_usuario, documento, nombre, apellido, fecha_nacimiento, correo, password_hash, id_rol)
-VALUES (5, 'PRUEBA-ADM', 'Ana', 'Administradora', '1990-01-01', 'admin.pruebas@benefitrack.test', 'hash', @rol_admin);
+VALUES (5, 'PRUEBA-ADM', 'Ana', 'Administradora', '1990-01-01', 'admin.pruebas@sibea.test', 'hash', @rol_admin);
 
 INSERT INTO programas (id_institucion, nombre) VALUES (@inst, 'ADSO - pruebas');
 SET @prog = LAST_INSERT_ID();
 
 INSERT INTO usuarios (documento, nombre, apellido, fecha_nacimiento, correo, password_hash, id_rol, id_programa, ficha)
-VALUES ('PRUEBA-A1', 'Aprendiz', 'Uno',    '2005-01-01', 'a1@benefitrack.test', 'hash', @rol_aprendiz, @prog, '2900001');
+VALUES ('PRUEBA-A1', 'Aprendiz', 'Uno',    '2005-01-01', 'a1@sibea.test', 'hash', @rol_aprendiz, @prog, '2900001');
 SET @a1 = LAST_INSERT_ID();
 INSERT INTO usuarios (documento, nombre, apellido, fecha_nacimiento, correo, password_hash, id_rol, id_programa, ficha)
-VALUES ('PRUEBA-A2', 'Aprendiz', 'Dos',    '2005-01-01', 'a2@benefitrack.test', 'hash', @rol_aprendiz, @prog, '2900001');
+VALUES ('PRUEBA-A2', 'Aprendiz', 'Dos',    '2005-01-01', 'a2@sibea.test', 'hash', @rol_aprendiz, @prog, '2900001');
 SET @a2 = LAST_INSERT_ID();
 INSERT INTO usuarios (documento, nombre, apellido, fecha_nacimiento, correo, password_hash, id_rol, id_programa, ficha)
-VALUES ('PRUEBA-A3', 'Aprendiz', 'Tres',   '2005-01-01', 'a3@benefitrack.test', 'hash', @rol_aprendiz, @prog, '2900001');
+VALUES ('PRUEBA-A3', 'Aprendiz', 'Tres',   '2005-01-01', 'a3@sibea.test', 'hash', @rol_aprendiz, @prog, '2900001');
 SET @a3 = LAST_INSERT_ID();
 INSERT INTO usuarios (documento, nombre, apellido, fecha_nacimiento, correo, password_hash, id_rol, id_programa, ficha)
-VALUES ('PRUEBA-A4', 'Aprendiz', 'Cuatro', '2005-01-01', 'a4@benefitrack.test', 'hash', @rol_aprendiz, @prog, '2900001');
+VALUES ('PRUEBA-A4', 'Aprendiz', 'Cuatro', '2005-01-01', 'a4@sibea.test', 'hash', @rol_aprendiz, @prog, '2900001');
 SET @a4 = LAST_INSERT_ID();
 INSERT INTO usuarios (documento, nombre, apellido, fecha_nacimiento, correo, password_hash, id_rol, id_programa, ficha)
-VALUES ('PRUEBA-A5', 'Aprendiz', 'Cinco',  '2005-01-01', 'a5@benefitrack.test', 'hash', @rol_aprendiz, @prog, '2900001');
+VALUES ('PRUEBA-A5', 'Aprendiz', 'Cinco',  '2005-01-01', 'a5@sibea.test', 'hash', @rol_aprendiz, @prog, '2900001');
 SET @a5 = LAST_INSERT_ID();
 
 INSERT INTO beneficios (id_institucion, nombre, descripcion, categoria)
@@ -631,7 +631,7 @@ CALL pr_verificar('F07', 'D8: hay notificación al registrar una novedad (manual
 
 CALL pr_verificar('F08', 'D8: las notificaciones van al correo del aprendiz y quedan sin leer y pendientes de envío',
   (SELECT COUNT(*) FROM notificaciones
-    WHERE id_usuario = @a1 AND (destinatario <> 'a1@benefitrack.test' OR leida <> 0 OR estado_correo <> 'Pendiente')) = 0
+    WHERE id_usuario = @a1 AND (destinatario <> 'a1@sibea.test' OR leida <> 0 OR estado_correo <> 'Pendiente')) = 0
   AND (SELECT COUNT(*) FROM notificaciones WHERE id_usuario = @a1) > 0,
   'notificaciones.destinatario / leida / estado_correo');
 
@@ -864,7 +864,7 @@ CALL pr_verificar('I00', 'Existen fn_es_administrador y pr_exigir_administrador'
 
 SET @app_id_usuario = NULL;
 INSERT INTO usuarios (documento, nombre, apellido, correo, password_hash, id_rol, estado)
-VALUES ('PRUEBA-ADM-INACTIVO', 'Admin', 'Inactivo', 'adm.inactivo@benefitrack.test', 'hash', @rol_admin, 'Inactivo');
+VALUES ('PRUEBA-ADM-INACTIVO', 'Admin', 'Inactivo', 'adm.inactivo@sibea.test', 'hash', @rol_admin, 'Inactivo');
 SET @adm_inactivo = LAST_INSERT_ID();
 INSERT INTO postulaciones (id_usuario, id_convocatoria, datos_formulario) VALUES (@a5, @conv2, '{}');
 SET @q5 = LAST_INSERT_ID();
@@ -1028,7 +1028,7 @@ SET @app_id_usuario = 5;
 -- =====================================================================
 SET @app_id_usuario = NULL;
 INSERT INTO usuarios (documento, nombre, apellido, fecha_nacimiento, correo, password_hash, id_rol, id_programa, ficha)
-VALUES ('PRUEBA-A6', 'Aprendiz', 'Seis', '2005-01-01', 'a6@benefitrack.test', 'hash', @rol_aprendiz, @prog, '2900001');
+VALUES ('PRUEBA-A6', 'Aprendiz', 'Seis', '2005-01-01', 'a6@sibea.test', 'hash', @rol_aprendiz, @prog, '2900001');
 SET @a6 = LAST_INSERT_ID();
 INSERT INTO postulaciones (id_usuario, id_convocatoria, datos_formulario) VALUES (@a6, @conv2, '{}');
 SET @r1 = LAST_INSERT_ID();
@@ -1074,7 +1074,7 @@ SET @app_id_usuario = @a1;
 CALL pr_esperar_error('J10', 'Un aprendiz bloqueado no puede desbloquearse solo',
   "UPDATE usuarios SET estado = 'Activo', intentos_fallidos = 0 WHERE id_usuario = @a1", 'Solo un administrador activo puede');
 CALL pr_esperar_error('J11', 'Escalada: un aprendiz no puede crear un usuario Administrador',
-  "INSERT INTO usuarios (documento, nombre, apellido, correo, password_hash, id_rol) VALUES ('PRUEBA-FALSO', 'Falso', 'Admin', 'falso@benefitrack.test', 'hash', @rol_admin)",
+  "INSERT INTO usuarios (documento, nombre, apellido, correo, password_hash, id_rol) VALUES ('PRUEBA-FALSO', 'Falso', 'Admin', 'falso@sibea.test', 'hash', @rol_admin)",
   'Solo un administrador activo puede');
 SET @app_id_usuario = @adm_inactivo;
 CALL pr_esperar_error('J12', 'Un administrador inactivo no puede reactivarse solo',
@@ -1085,16 +1085,16 @@ CALL pr_esperar_exito('J13', 'Un administrador activo puede desbloquear a un apr
 CALL pr_esperar_exito('J14', 'Un administrador activo puede reactivar a otro administrador',
   "UPDATE usuarios SET estado = 'Activo' WHERE id_usuario = @adm_inactivo");
 CALL pr_esperar_exito('J15', 'Un administrador activo puede crear un usuario Administrador',
-  "INSERT INTO usuarios (documento, nombre, apellido, correo, password_hash, id_rol) VALUES ('PRUEBA-ADM2', 'Otro', 'Admin', 'adm2@benefitrack.test', 'hash', @rol_admin)");
+  "INSERT INTO usuarios (documento, nombre, apellido, correo, password_hash, id_rol) VALUES ('PRUEBA-ADM2', 'Otro', 'Admin', 'adm2@sibea.test', 'hash', @rol_admin)");
 SET @app_id_usuario = NULL;
 CALL pr_esperar_exito('J16', 'El registro de un aprendiz nuevo (sin sesión) se permite',
-  "INSERT INTO usuarios (documento, nombre, apellido, correo, password_hash, id_rol) VALUES ('PRUEBA-A7', 'Aprendiz', 'Siete', 'a7@benefitrack.test', 'hash', @rol_aprendiz)");
+  "INSERT INTO usuarios (documento, nombre, apellido, correo, password_hash, id_rol) VALUES ('PRUEBA-A7', 'Aprendiz', 'Siete', 'a7@sibea.test', 'hash', @rol_aprendiz)");
 
 -- Desbloqueo automático a los 15 minutos (ronda 4). Aquí @a1 está Activo.
 -- "Sin administrador" = el inicio de sesión: @app_id_usuario NULL y sin
 -- justificación (ronda 8). Con root, un cambio que NO es automático pide
 -- justificación (por eso esos casos esperan ese mensaje); con
--- benefitrack_app pide administrador (U5 y U6 en pruebas_usuario_aplicacion.sql).
+-- sibea_app pide administrador (U5 y U6 en pruebas_usuario_aplicacion.sql).
 SET @app_id_usuario = NULL;
 SET @app_justificacion = NULL;
 CALL pr_esperar_exito('J17', 'Bloqueo por intentos: pasar a Bloqueado con fecha_bloqueo = ahora',
@@ -1148,10 +1148,10 @@ VALUES (@ben, 'Convocatoria 5 de pruebas', CURDATE() - INTERVAL 10 DAY, CURDATE(
 SET @conv5 = LAST_INSERT_ID();
 SET @app_id_usuario = NULL;
 INSERT INTO usuarios (documento, nombre, apellido, correo, password_hash, id_rol)
-VALUES ('PRUEBA-A8', 'Aprendiz', 'Ocho', 'a8@benefitrack.test', 'hash', @rol_aprendiz);
+VALUES ('PRUEBA-A8', 'Aprendiz', 'Ocho', 'a8@sibea.test', 'hash', @rol_aprendiz);
 SET @a8 = LAST_INSERT_ID();
 INSERT INTO usuarios (documento, nombre, apellido, correo, password_hash, id_rol)
-VALUES ('PRUEBA-A9', 'Aprendiz', 'Nueve', 'a9@benefitrack.test', 'hash', @rol_aprendiz);
+VALUES ('PRUEBA-A9', 'Aprendiz', 'Nueve', 'a9@sibea.test', 'hash', @rol_aprendiz);
 SET @a9 = LAST_INSERT_ID();
 INSERT INTO postulaciones (id_usuario, id_convocatoria, datos_formulario) VALUES (@a8, @conv5, '{}');
 SET @r8 = LAST_INSERT_ID();
@@ -1211,11 +1211,11 @@ CALL pr_esperar_error('K10', 'I1: Bloqueado con fecha_bloqueo NULL no se desbloq
 SET @app_justificacion = 'Cambio hecho por las pruebas automáticas';
 SET @app_id_usuario = @a1;
 CALL pr_esperar_error('K11', 'I1: crear un usuario que no esté Activo exige administrador',
-  "INSERT INTO usuarios (documento, nombre, apellido, correo, password_hash, id_rol, estado) VALUES ('PRUEBA-A10', 'Aprendiz', 'Diez', 'a10@benefitrack.test', 'hash', @rol_aprendiz, 'Bloqueado')",
+  "INSERT INTO usuarios (documento, nombre, apellido, correo, password_hash, id_rol, estado) VALUES ('PRUEBA-A10', 'Aprendiz', 'Diez', 'a10@sibea.test', 'hash', @rol_aprendiz, 'Bloqueado')",
   'Solo un administrador activo puede');
 SET @app_id_usuario = 5;
 CALL pr_esperar_exito('K12', 'I1: un administrador activo sí crea un usuario Bloqueado',
-  "INSERT INTO usuarios (documento, nombre, apellido, correo, password_hash, id_rol, estado) VALUES ('PRUEBA-A11', 'Aprendiz', 'Once', 'a11@benefitrack.test', 'hash', @rol_aprendiz, 'Bloqueado')");
+  "INSERT INTO usuarios (documento, nombre, apellido, correo, password_hash, id_rol, estado) VALUES ('PRUEBA-A11', 'Aprendiz', 'Once', 'a11@sibea.test', 'hash', @rol_aprendiz, 'Bloqueado')");
 CALL pr_verificar('K13', 'I1: al crearlo Bloqueado sin fecha, la base pone la hora actual',
   (SELECT fecha_bloqueo >= NOW() - INTERVAL 1 MINUTE FROM usuarios WHERE documento = 'PRUEBA-A11'),
   (SELECT CONCAT('fecha_bloqueo=', IFNULL(fecha_bloqueo, 'NULL')) FROM usuarios WHERE documento = 'PRUEBA-A11'));
@@ -1225,7 +1225,7 @@ SET @app_id_usuario = 5;
 -- Ronda 6: la base ignora la fecha_bloqueo recibida al crear un Activo.
 SET @app_id_usuario = NULL;
 CALL pr_esperar_exito('K14', 'Registro de un aprendiz Activo que trae fecha_bloqueo = 2000-01-01',
-  "INSERT INTO usuarios (documento, nombre, apellido, correo, password_hash, id_rol, fecha_bloqueo) VALUES ('PRUEBA-A12', 'Aprendiz', 'Doce', 'a12@benefitrack.test', 'hash', @rol_aprendiz, '2000-01-01')");
+  "INSERT INTO usuarios (documento, nombre, apellido, correo, password_hash, id_rol, fecha_bloqueo) VALUES ('PRUEBA-A12', 'Aprendiz', 'Doce', 'a12@sibea.test', 'hash', @rol_aprendiz, '2000-01-01')");
 CALL pr_verificar('K15', 'Un usuario creado Activo queda con fecha_bloqueo NULL',
   (SELECT fecha_bloqueo IS NULL FROM usuarios WHERE documento = 'PRUEBA-A12'),
   (SELECT CONCAT('fecha_bloqueo=', IFNULL(fecha_bloqueo, 'NULL')) FROM usuarios WHERE documento = 'PRUEBA-A12'));
@@ -1461,7 +1461,7 @@ CALL pr_verificar('M06', 'B1: el bloqueo automático queda con id_usuario NULL y
 SET @app_id_usuario = 5;
 SET @app_justificacion = 'Alta de administrador';
 INSERT INTO usuarios (documento, nombre, apellido, correo, password_hash, id_rol)
-VALUES ('PRUEBA-ADM3', 'Tercer', 'Admin', 'adm3@benefitrack.test', 'hash', @rol_admin);
+VALUES ('PRUEBA-ADM3', 'Tercer', 'Admin', 'adm3@sibea.test', 'hash', @rol_admin);
 SET @adm3 = LAST_INSERT_ID();
 SET @app_id_usuario = @adm3;
 SET @app_justificacion = 'Me voy de vacaciones';
@@ -1621,7 +1621,7 @@ CALL pr_verificar('O07', 'La novedad queda registrada por el usuario de sesión'
 -- Postulación Pendiente propia para este bloque.
 SET @app_id_usuario = NULL;
 INSERT INTO usuarios (documento, nombre, apellido, correo, password_hash, id_rol)
-VALUES ('PRUEBA-A13', 'Aprendiz', 'Trece', 'a13@benefitrack.test', 'hash', @rol_aprendiz);
+VALUES ('PRUEBA-A13', 'Aprendiz', 'Trece', 'a13@sibea.test', 'hash', @rol_aprendiz);
 SET @a13 = LAST_INSERT_ID();
 INSERT INTO postulaciones (id_usuario, id_convocatoria, datos_formulario) VALUES (@a13, @conv2, '{}');
 SET @q13 = LAST_INSERT_ID();
@@ -1840,13 +1840,13 @@ SET @app_justificacion = 'Cambio hecho por las pruebas automáticas';
 -- dos aprendices nuevos, un segundo administrador y una convocatoria abierta.
 SET @app_id_usuario = NULL;
 INSERT INTO usuarios (documento, nombre, apellido, correo, password_hash, id_rol)
-VALUES ('PRUEBA-R11-A1', 'Aprendiz', 'Once Uno', 'r11a1@benefitrack.test', 'hash-a1', @rol_aprendiz);
+VALUES ('PRUEBA-R11-A1', 'Aprendiz', 'Once Uno', 'r11a1@sibea.test', 'hash-a1', @rol_aprendiz);
 SET @r11a1 = LAST_INSERT_ID();
 INSERT INTO usuarios (documento, nombre, apellido, correo, password_hash, id_rol)
-VALUES ('PRUEBA-R11-A2', 'Aprendiz', 'Once Dos', 'r11a2@benefitrack.test', 'hash-a2', @rol_aprendiz);
+VALUES ('PRUEBA-R11-A2', 'Aprendiz', 'Once Dos', 'r11a2@sibea.test', 'hash-a2', @rol_aprendiz);
 SET @r11a2 = LAST_INSERT_ID();
 INSERT INTO usuarios (documento, nombre, apellido, correo, password_hash, id_rol)
-VALUES ('PRUEBA-R11-ADM', 'Admin', 'Segundo', 'r11adm@benefitrack.test', 'hash-adm', @rol_admin);
+VALUES ('PRUEBA-R11-ADM', 'Admin', 'Segundo', 'r11adm@sibea.test', 'hash-adm', @rol_admin);
 SET @r11adm = LAST_INSERT_ID();
 SET @app_id_usuario = 5;
 INSERT INTO convocatorias (id_beneficio, nombre, fecha_inicio, fecha_cierre, cupos, requisitos,
@@ -1889,7 +1889,7 @@ CALL pr_esperar_error('Q09', 'Un aprendiz no cambia la contraseña de un adminis
   "UPDATE usuarios SET password_hash = 'hash-robado' WHERE id_usuario = 5",
   'Solo un administrador activo puede modificar los datos de la cuenta de otro usuario');
 CALL pr_esperar_error('Q10', 'Un aprendiz no cambia el correo ni el teléfono de otro aprendiz',
-  "UPDATE usuarios SET correo = 'robado@benefitrack.test', telefono = '1' WHERE id_usuario = @r11a2",
+  "UPDATE usuarios SET correo = 'robado@sibea.test', telefono = '1' WHERE id_usuario = @r11a2",
   'Solo un administrador activo puede modificar los datos de la cuenta de otro usuario');
 CALL pr_esperar_error('Q11', 'Un aprendiz no suma intentos fallidos a otro usuario',
   "UPDATE usuarios SET intentos_fallidos = intentos_fallidos + 1 WHERE id_usuario = @r11a2",
@@ -1901,7 +1901,7 @@ CALL pr_esperar_error('Q13', 'Un administrador no cambia la contraseña de otro 
   "UPDATE usuarios SET password_hash = 'hash-impuesto' WHERE id_usuario = @r11adm",
   'Un administrador no puede cambiar la contraseña ni el correo de otro administrador');
 CALL pr_esperar_error('Q14', 'Un administrador no cambia el correo de otro administrador',
-  "UPDATE usuarios SET correo = 'otro@benefitrack.test' WHERE id_usuario = @r11adm",
+  "UPDATE usuarios SET correo = 'otro@sibea.test' WHERE id_usuario = @r11adm",
   'Un administrador no puede cambiar la contraseña ni el correo de otro administrador');
 CALL pr_esperar_exito('Q15', 'Un administrador sí corrige el teléfono de otro administrador',
   "UPDATE usuarios SET telefono = '3009990000' WHERE id_usuario = @r11adm");
@@ -1917,7 +1917,7 @@ CALL pr_verificar('Q19', 'Las contraseñas quedaron como deben',
   (SELECT password_hash FROM usuarios WHERE id_usuario = 5) = 'hash'
   AND (SELECT password_hash FROM usuarios WHERE id_usuario = @r11a1) = 'hash-a1-nuevo'
   AND (SELECT password_hash FROM usuarios WHERE id_usuario = @r11adm) = 'hash-adm-nuevo'
-  AND (SELECT correo FROM usuarios WHERE id_usuario = @r11a2) = 'r11a2@benefitrack.test',
+  AND (SELECT correo FROM usuarios WHERE id_usuario = @r11a2) = 'r11a2@sibea.test',
   (SELECT GROUP_CONCAT(id_usuario, '=', password_hash ORDER BY id_usuario) FROM usuarios
     WHERE id_usuario IN (5, @r11a1, @r11a2, @r11adm)));
 
@@ -1965,14 +1965,14 @@ CALL pr_esperar_exito('Q29', 'Un administrador sube un documento a la postulaci�
 -- administrador; el aprendiz solo marca como leídas las suyas.
 SET @app_id_usuario = @r11a1;
 CALL pr_esperar_error('Q30', 'Un aprendiz no crea notificaciones',
-  "INSERT INTO notificaciones (id_usuario, destinatario, evento, asunto, cuerpo) VALUES (@r11a2, 'r11a2@benefitrack.test', 'Pago', 'Pago falso', 'x')",
+  "INSERT INTO notificaciones (id_usuario, destinatario, evento, asunto, cuerpo) VALUES (@r11a2, 'r11a2@sibea.test', 'Pago', 'Pago falso', 'x')",
   'Solo un administrador activo puede');
 SET @app_id_usuario = 5;
 CALL pr_esperar_exito('Q31', 'Al validar la postulación, el sistema crea la notificación del aprendiz',
   "UPDATE postulaciones SET estado = 'Validada' WHERE id_postulacion = @r11p1");
 SELECT MAX(id_notificacion) INTO @r11n FROM notificaciones WHERE id_usuario = @r11a1;
 CALL pr_esperar_exito('Q32', 'Un administrador crea una notificación a mano',
-  "INSERT INTO notificaciones (id_usuario, destinatario, evento, asunto, cuerpo) VALUES (@r11a2, 'r11a2@benefitrack.test', 'Novedad', 'Aviso', 'Aviso del administrador')");
+  "INSERT INTO notificaciones (id_usuario, destinatario, evento, asunto, cuerpo) VALUES (@r11a2, 'r11a2@sibea.test', 'Novedad', 'Aviso', 'Aviso del administrador')");
 SET @app_id_usuario = @r11a2;
 CALL pr_esperar_error('Q33', 'Un aprendiz no marca como leída la notificación de otro',
   "UPDATE notificaciones SET leida = 1, fecha_lectura = NOW() WHERE id_notificacion = @r11n",
@@ -2028,10 +2028,10 @@ SET @app_justificacion = 'Cambio hecho por las pruebas automáticas';
 -- Dos aprendices nuevos, creados por root sin sesión (como la semilla).
 SET @app_id_usuario = NULL;
 INSERT INTO usuarios (documento, nombre, apellido, correo, password_hash, id_rol)
-VALUES ('PRUEBA-R20-A1', 'Aprendiz', 'Veinte Uno', 'r20a1@benefitrack.test', 'hash-vieja', @rol_aprendiz);
+VALUES ('PRUEBA-R20-A1', 'Aprendiz', 'Veinte Uno', 'r20a1@sibea.test', 'hash-vieja', @rol_aprendiz);
 SET @r20a1 = LAST_INSERT_ID();
 INSERT INTO usuarios (documento, nombre, apellido, correo, password_hash, id_rol)
-VALUES ('PRUEBA-R20-A2', 'Aprendiz', 'Veinte Dos', 'r20a2@benefitrack.test', 'hash-vieja', @rol_aprendiz);
+VALUES ('PRUEBA-R20-A2', 'Aprendiz', 'Veinte Dos', 'r20a2@sibea.test', 'hash-vieja', @rol_aprendiz);
 SET @r20a2 = LAST_INSERT_ID();
 
 CALL pr_verificar('R01', 'Un usuario nuevo nace con debe_cambiar_contrasena = 1',
@@ -2040,7 +2040,7 @@ CALL pr_verificar('R01', 'Un usuario nuevo nace con debe_cambiar_contrasena = 1'
 
 -- Primer administrador: root sin sesión puede crearlo sin obligación de cambiar la clave.
 INSERT INTO usuarios (documento, nombre, apellido, correo, password_hash, id_rol, debe_cambiar_contrasena)
-VALUES ('PRUEBA-R20-ADM', 'Admin', 'Primero', 'r20adm@benefitrack.test', 'hash-adm', @rol_admin, 0);
+VALUES ('PRUEBA-R20-ADM', 'Admin', 'Primero', 'r20adm@sibea.test', 'hash-adm', @rol_admin, 0);
 SET @r20adm = LAST_INSERT_ID();
 CALL pr_verificar('R02', 'root, sin sesión, crea el primer administrador con debe_cambiar_contrasena = 0',
   (SELECT debe_cambiar_contrasena = 0 FROM usuarios WHERE id_usuario = @r20adm),
@@ -2049,7 +2049,7 @@ CALL pr_verificar('R02', 'root, sin sesión, crea el primer administrador con de
 -- Un administrador con sesión no puede saltarse el primer ingreso de un aprendiz.
 SET @app_id_usuario = 5;
 INSERT INTO usuarios (documento, nombre, apellido, correo, password_hash, id_rol, debe_cambiar_contrasena)
-VALUES ('PRUEBA-R20-A3', 'Aprendiz', 'Veinte Tres', 'r20a3@benefitrack.test', 'hash-vieja', @rol_aprendiz, 0);
+VALUES ('PRUEBA-R20-A3', 'Aprendiz', 'Veinte Tres', 'r20a3@sibea.test', 'hash-vieja', @rol_aprendiz, 0);
 SET @r20a3 = LAST_INSERT_ID();
 CALL pr_verificar('R03', 'Con sesión, un usuario nuevo nace con debe_cambiar_contrasena = 1 aunque llegue en 0',
   (SELECT debe_cambiar_contrasena = 1 FROM usuarios WHERE id_usuario = @r20a3),
@@ -2101,19 +2101,19 @@ CALL pr_verificar('R13', 'Cambiar el teléfono no vuelve a poner debe_cambiar_co
   'Se lee debe_cambiar_contrasena después de cambiar el teléfono');
 SET @app_id_usuario = NULL;
 
--- Datos iniciales: benefitrack_v2.sql deja los catálogos completos. (Se carga dos
+-- Datos iniciales: sibea.sql deja los catálogos completos. (Se carga dos
 -- veces antes de las pruebas para comprobar que funciona con el usuario ya creado.)
-CALL pr_verificar('R14', 'benefitrack_v2.sql deja exactamente 3 beneficios',
+CALL pr_verificar('R14', 'sibea.sql deja exactamente 3 beneficios',
   @ini_beneficios = 3 AND (SELECT COUNT(*) FROM beneficios
                             WHERE nombre IN ('Alimentación','Plan de datos','Cívica')) = 3,
   CONCAT('Beneficios antes de las pruebas: ', @ini_beneficios));
-CALL pr_verificar('R15', 'benefitrack_v2.sql deja exactamente 11 bancos',
+CALL pr_verificar('R15', 'sibea.sql deja exactamente 11 bancos',
   @ini_bancos = 11 AND (SELECT COUNT(*) FROM entidades_bancarias
                          WHERE nombre IN ('Bancolombia','Banco de Bogotá','Davivienda','BBVA Colombia',
                                           'Banco de Occidente','Banco Popular','Banco Caja Social',
                                           'Banco AV Villas','Banco Agrario','Nequi','Daviplata')) = 11,
   CONCAT('Bancos antes de las pruebas: ', @ini_bancos));
-CALL pr_verificar('R16', 'benefitrack_v2.sql deja exactamente 5 programas del Centro Textil',
+CALL pr_verificar('R16', 'sibea.sql deja exactamente 5 programas del Centro Textil',
   @ini_programas = 5 AND (SELECT COUNT(*) FROM programas
                            WHERE id_institucion = 1
                              AND nombre IN ('Análisis y Desarrollo de Software','Confección Industrial',

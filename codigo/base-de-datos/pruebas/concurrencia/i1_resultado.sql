@@ -1,4 +1,4 @@
-USE benefitrack_v2;
+USE sibea;
 SELECT a.numero_pagos,
        (SELECT COUNT(*) FROM pagos p WHERE p.id_asignacion = a.id_asignacion AND p.estado = 'Registrado') AS pagos_vigentes,
        a.estado,

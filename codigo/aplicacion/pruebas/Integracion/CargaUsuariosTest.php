@@ -2,25 +2,25 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Pruebas\Integracion;
+namespace SIBEA\Pruebas\Integracion;
 
-use BenefitRack\Controladores\CargaUsuariosControlador;
-use BenefitRack\Nucleo\Aplicacion;
-use BenefitRack\Nucleo\Csrf;
-use BenefitRack\Nucleo\Enrutador;
-use BenefitRack\Nucleo\Fabrica;
-use BenefitRack\Nucleo\Peticion;
-use BenefitRack\Nucleo\Respuesta;
-use BenefitRack\Repositorios\RepositorioCatalogos;
-use BenefitRack\Repositorios\RepositorioMigraciones;
-use BenefitRack\Repositorios\RepositorioUsuarios;
-use BenefitRack\Servicios\CargaInterrumpida;
-use BenefitRack\Servicios\ServicioCargaUsuarios;
-use BenefitRack\Servicios\ServicioUsuarios;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use SIBEA\Controladores\CargaUsuariosControlador;
+use SIBEA\Nucleo\Aplicacion;
+use SIBEA\Nucleo\Csrf;
+use SIBEA\Nucleo\Enrutador;
+use SIBEA\Nucleo\Fabrica;
+use SIBEA\Nucleo\Peticion;
+use SIBEA\Nucleo\Respuesta;
+use SIBEA\Repositorios\RepositorioCatalogos;
+use SIBEA\Repositorios\RepositorioMigraciones;
+use SIBEA\Repositorios\RepositorioUsuarios;
+use SIBEA\Servicios\CargaInterrumpida;
+use SIBEA\Servicios\ServicioCargaUsuarios;
+use SIBEA\Servicios\ServicioUsuarios;
 
 /** M3b: confirmar la carga crea las cuentas y deja el rastro en `migraciones`. */
 final class CargaUsuariosTest extends BaseDePrueba
@@ -102,7 +102,7 @@ final class CargaUsuariosTest extends BaseDePrueba
     // ---------- Un fallo inesperado a la mitad de la confirmación ----------
 
     /** Un repositorio que falla al crear la SEGUNDA cuenta (como un corte de la base a mitad de carga). */
-    private function servicioQueFallaEnLaSegunda(\BenefitRack\Nucleo\BaseDatos $bd): ServicioCargaUsuarios
+    private function servicioQueFallaEnLaSegunda(\SIBEA\Nucleo\BaseDatos $bd): ServicioCargaUsuarios
     {
         $repositorio = new class ($bd) extends RepositorioUsuarios {
             private int $llamadas = 0;

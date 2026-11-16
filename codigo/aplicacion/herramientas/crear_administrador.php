@@ -31,8 +31,8 @@ if (PHP_SAPI !== 'cli') {
 
 require dirname(__DIR__) . '/vendor/autoload.php';
 
-use BenefitRack\Nucleo\Configuracion;
-use BenefitRack\Validacion\ValidadorContrasena;
+use SIBEA\Nucleo\Configuracion;
+use SIBEA\Validacion\ValidadorContrasena;
 
 /** Pregunta un dato por consola y devuelve lo que se escribió (sin espacios sobrantes). */
 function preguntar(string $pregunta): string

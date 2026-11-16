@@ -2,22 +2,22 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Pruebas\Unidad\Controladores;
+namespace SIBEA\Pruebas\Unidad\Controladores;
 
-use BenefitRack\Controladores\PostulacionAprendizControlador;
-use BenefitRack\Nucleo\ErrorDeNegocio;
-use BenefitRack\Nucleo\Peticion;
-use BenefitRack\Nucleo\Sesion;
-use BenefitRack\Nucleo\Vista;
-use BenefitRack\Pruebas\Unidad\Servicios\AlmacenTemporalDePrueba;
-use BenefitRack\Pruebas\Unidad\Validacion\ArchivosDePrueba;
-use BenefitRack\Repositorios\RepositorioCatalogos;
-use BenefitRack\Repositorios\RepositorioConvocatorias;
-use BenefitRack\Repositorios\RepositorioUsuarios;
-use BenefitRack\Servicios\ServicioPostulacion;
-use BenefitRack\Validacion\ValidadorPostulacion;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use SIBEA\Controladores\PostulacionAprendizControlador;
+use SIBEA\Nucleo\ErrorDeNegocio;
+use SIBEA\Nucleo\Peticion;
+use SIBEA\Nucleo\Sesion;
+use SIBEA\Nucleo\Vista;
+use SIBEA\Pruebas\Unidad\Servicios\AlmacenTemporalDePrueba;
+use SIBEA\Pruebas\Unidad\Validacion\ArchivosDePrueba;
+use SIBEA\Repositorios\RepositorioCatalogos;
+use SIBEA\Repositorios\RepositorioConvocatorias;
+use SIBEA\Repositorios\RepositorioUsuarios;
+use SIBEA\Servicios\ServicioPostulacion;
+use SIBEA\Validacion\ValidadorPostulacion;
 
 /** Mostrar y validar la postulación (sin base de datos: los repositorios son dobles de prueba). */
 final class PostulacionAprendizControladorTest extends TestCase

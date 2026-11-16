@@ -11,14 +11,14 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Controladores;
+namespace SIBEA\Controladores;
 
-use BenefitRack\Nucleo\Peticion;
-use BenefitRack\Nucleo\Respuesta;
-use BenefitRack\Nucleo\Sesion;
-use BenefitRack\Nucleo\Vista;
-use BenefitRack\Servicios\ResultadoAcceso;
-use BenefitRack\Servicios\ServicioAcceso;
+use SIBEA\Nucleo\Peticion;
+use SIBEA\Nucleo\Respuesta;
+use SIBEA\Nucleo\Sesion;
+use SIBEA\Nucleo\Vista;
+use SIBEA\Servicios\ResultadoAcceso;
+use SIBEA\Servicios\ServicioAcceso;
 
 final class AccesoControlador
 {

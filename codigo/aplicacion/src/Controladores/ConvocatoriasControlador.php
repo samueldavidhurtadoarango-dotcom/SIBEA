@@ -11,16 +11,16 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Controladores;
+namespace SIBEA\Controladores;
 
-use BenefitRack\Nucleo\ErrorDeNegocio;
-use BenefitRack\Nucleo\Peticion;
-use BenefitRack\Nucleo\Respuesta;
-use BenefitRack\Nucleo\Sesion;
-use BenefitRack\Nucleo\Vista;
-use BenefitRack\Repositorios\RepositorioCatalogos;
-use BenefitRack\Servicios\ServicioConvocatorias;
-use BenefitRack\Validacion\ValidadorConvocatoria;
+use SIBEA\Nucleo\ErrorDeNegocio;
+use SIBEA\Nucleo\Peticion;
+use SIBEA\Nucleo\Respuesta;
+use SIBEA\Nucleo\Sesion;
+use SIBEA\Nucleo\Vista;
+use SIBEA\Repositorios\RepositorioCatalogos;
+use SIBEA\Servicios\ServicioConvocatorias;
+use SIBEA\Validacion\ValidadorConvocatoria;
 
 final class ConvocatoriasControlador
 {

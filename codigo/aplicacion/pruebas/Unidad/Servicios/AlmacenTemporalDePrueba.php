@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Pruebas\Unidad\Servicios;
+namespace SIBEA\Pruebas\Unidad\Servicios;
 
-use BenefitRack\Servicios\AlmacenTemporal;
+use SIBEA\Servicios\AlmacenTemporal;
 
 /**
  * AlmacenTemporal de prueba: con PHP por consola move_uploaded_file() siempre falla (no hubo subida real

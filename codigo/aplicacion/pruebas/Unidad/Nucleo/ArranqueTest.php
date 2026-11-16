@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Pruebas\Unidad\Nucleo;
+namespace SIBEA\Pruebas\Unidad\Nucleo;
 
-use BenefitRack\Nucleo\Arranque;
 use PHPUnit\Framework\TestCase;
+use SIBEA\Nucleo\Arranque;
 
 /** B7: si el arranque falla (por ejemplo, falta la configuración) la persona ve una página 500 sencilla, sin detalles. */
 final class ArranqueTest extends TestCase
@@ -43,7 +43,7 @@ final class ArranqueTest extends TestCase
         Arranque::atender(sys_get_temp_dir() . '/br-sin-config-' . bin2hex(random_bytes(4)));
 
         $texto = (string) file_get_contents($this->registro);
-        $this->assertStringContainsString('[BenefitRack] Falló el arranque', $texto);
+        $this->assertStringContainsString('[SIBEA] Falló el arranque', $texto);
         $this->assertStringContainsString('config.local.php', $texto);
     }
 

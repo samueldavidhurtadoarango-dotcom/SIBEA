@@ -13,9 +13,9 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Repositorios;
+namespace SIBEA\Repositorios;
 
-use BenefitRack\Nucleo\BaseDatos;
+use SIBEA\Nucleo\BaseDatos;
 
 final class RepositorioMigraciones
 {

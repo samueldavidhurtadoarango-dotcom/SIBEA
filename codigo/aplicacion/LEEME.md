@@ -1,9 +1,9 @@
-# SIBEA · aplicación web (MVP 3.0.0)
+# SIBEA — Sistema de Información de Beneficios y Apoyos (aplicación web, MVP 3.0.0)
 
-SIBEA es el Sistema de Información de Beneficios y Apoyos. «BenefitRack» es su nombre de trabajo
-interno: por eso lo verás en el código (el espacio de nombres `BenefitRack`), en la base de datos y en las carpetas.
+SIBEA es el Sistema de Información de Beneficios y Apoyos. El código PHP (espacio de nombres `SIBEA`) y los
+archivos de la aplicación ya usan ese nombre; solo la carpeta del proyecto conserva el nombre de trabajo anterior.
 
-Aplicación en PHP puro con el patrón MVC, sobre la base de datos MariaDB `benefitrack_v2`
+Aplicación en PHP puro con el patrón MVC, sobre la base de datos MariaDB `sibea`
 (ver `../base-de-datos/README.md`). Es un proyecto del SENA (ADSO): cada línea está pensada
 para poder explicarse.
 
@@ -30,19 +30,19 @@ centro, cafés): usa solo tu computador o el servidor de prueba de PHP (sección
 ### 1.2 La base de datos (un solo archivo)
 
 Abre el panel de XAMPP, enciende **MySQL** y entra a phpMyAdmin (o usa la consola `mysql`).
-Carga **un solo archivo**, una sola vez y como `root`: `../base-de-datos/benefitrack_v2.sql`
+Carga **un solo archivo**, una sola vez y como `root`: `../base-de-datos/sibea.sql`
 (en phpMyAdmin, pestaña **Importar**). Ese archivo lo trae todo, como una caja con todas las piezas:
 
 - crea las tablas, los triggers y las reglas (los cimientos);
 - carga beneficios, bancos, EPS y programas de ejemplo (sin esto no se puede crear una convocatoria
   ni llenar el formulario);
-- crea el usuario `benefitrack_app`, con el que la aplicación se conecta (la aplicación **nunca**
+- crea el usuario `sibea_app`, con el que la aplicación se conecta (la aplicación **nunca**
   usa `root`).
 
 > **Cambia la contraseña del usuario de la aplicación.** El script trae una clave de ejemplo
 > (`CAMBIE_ESTA_CLAVE`). Antes de usar la aplicación de verdad, cámbiala en phpMyAdmin
-> (Cuentas de usuario → `benefitrack_app` → Cambiar contraseña) o con
-> `ALTER USER 'benefitrack_app'@'localhost' IDENTIFIED BY 'una-clave-larga-y-propia';`
+> (Cuentas de usuario → `sibea_app` → Cambiar contraseña) o con
+> `ALTER USER 'sibea_app'@'localhost' IDENTIFIED BY 'una-clave-larga-y-propia';`
 > y escribe esa misma clave en el paso 1.4.
 
 ### 1.3 PHP y Composer
@@ -66,7 +66,7 @@ Carga **un solo archivo**, una sola vez y como `root`: `../base-de-datos/benefit
 
 1. Copia `config/config.ejemplo.php` y llama a la copia `config/config.local.php`.
 2. Ábrelo y pon los datos reales: host `127.0.0.1`, puerto `3306` (el de tu XAMPP), base
-   `benefitrack_v2`, usuario `benefitrack_app` y **la clave que elegiste** en el paso 1.2.
+   `sibea`, usuario `sibea_app` y **la clave que elegiste** en el paso 1.2.
    Deja `depuracion` en `false` (en `true` se muestran detalles de los errores: solo en tu computador).
 3. `config.local.php` no se sube a git porque tiene una clave.
 4. **Zona horaria.** `app.zona_horaria` (por defecto `America/Bogota`) fija la hora de PHP al arrancar. Importa
@@ -154,7 +154,7 @@ plato a tu mesa (`Vista` y `Respuesta`).
 | 6 | `src/Controladores/AccesoControlador.php` | El **recepcionista**: lee el correo y la clave de la `Peticion`, revisa lo mínimo (¿parece un correo?, ¿la clave no está vacía?) y le pasa el trabajo real al servicio. **No** tiene reglas de negocio. |
 | 7 | `src/Servicios/ServicioAcceso.php` | La **regla de negocio**: busca al usuario, verifica la contraseña con `password_verify`, cuenta los intentos fallidos (3 bloquean la cuenta 15 minutos) y decide: entra, datos incorrectos, cuenta bloqueada o inactiva. Responde lo mismo si el correo no existe o la clave es mala, para no revelar qué correos están registrados. |
 | 8 | `src/Repositorios/RepositorioUsuarios.php` | La **única** que escribe SQL del usuario, siempre con consultas preparadas (`?`), nunca pegando texto del usuario dentro del SQL. |
-| 9 | `src/Nucleo/BaseDatos.php` → MariaDB | Abre la conexión con el usuario `benefitrack_app`. En cada petición manda `SET @app_id_usuario = ?, @app_ip = ?` para que los triggers de la BD sepan **quién** hace el cambio y lo anoten en la auditoría. En el login todavía no hay nadie con sesión, así que el id va como `NULL` (`Fabrica::baseDatosParaIngreso()`); es el único caso permitido. |
+| 9 | `src/Nucleo/BaseDatos.php` → MariaDB | Abre la conexión con el usuario `sibea_app`. En cada petición manda `SET @app_id_usuario = ?, @app_ip = ?` para que los triggers de la BD sepan **quién** hace el cambio y lo anoten en la auditoría. En el login todavía no hay nadie con sesión, así que el id va como `NULL` (`Fabrica::baseDatosParaIngreso()`); es el único caso permitido. |
 | 10 | `AccesoControlador::abrirSesion()` + `src/Nucleo/Sesion.php` | Si entró: se guarda en la sesión quién es (y se **renueva el id de sesión** para que nadie reutilice uno viejo) y se redirige: administrador a `/admin/postulaciones`, aprendiz a `/mi-proceso`, y a `/contrasena/nueva` si tiene contraseña temporal. |
 | 11 | `src/Nucleo/Vista.php` + `vistas/acceso/ingresar.php` | Si **no** entró, se dibuja el formulario otra vez con su mensaje. El HTML vive **solo** en `vistas/`, y todo dato que se dibuja pasa por `e()` (escapa los símbolos peligrosos contra XSS). |
 | 12 | `src/Nucleo/Respuesta.php` | Empaqueta el resultado (código 200, 302 de redirección, 403...). `index.php` llama `->enviar()` y el navegador recibe la página. Fin del recorrido. |
@@ -195,7 +195,7 @@ los pasos de seguridad, las reglas de negocio y las llamadas a la BD.
 - Cookie de sesión `HttpOnly`, `SameSite=Lax`, modo estricto, y el id de sesión se renueva al ingresar.
 - Todo formulario que cambia datos es `POST` con token `_csrf` (comparado con `hash_equals`).
 - Todo dato que se dibuja pasa por `e()` (escape contra XSS).
-- La conexión usa `benefitrack_app` (nunca `root`) con consultas preparadas de verdad.
+- La conexión usa `sibea_app` (nunca `root`) con consultas preparadas de verdad.
 - Los documentos se aceptan solo PDF, JPG o PNG, máximo 5 MB, se comprueba el tipo real con `finfo` y se
   guardan con nombre aleatorio fuera de `public/`.
 - En el Excel exportado, toda celda de texto que empiece por `=`, `+`, `-` o `@` se escribe como texto

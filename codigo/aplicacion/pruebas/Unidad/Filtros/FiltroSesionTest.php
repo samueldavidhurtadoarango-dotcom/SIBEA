@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Pruebas\Unidad\Filtros;
+namespace SIBEA\Pruebas\Unidad\Filtros;
 
-use BenefitRack\Filtros\FiltroSesion;
-use BenefitRack\Nucleo\Peticion;
-use BenefitRack\Nucleo\Sesion;
-use BenefitRack\Repositorios\RepositorioUsuarios;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use SIBEA\Filtros\FiltroSesion;
+use SIBEA\Nucleo\Peticion;
+use SIBEA\Nucleo\Sesion;
+use SIBEA\Repositorios\RepositorioUsuarios;
 
 /** M1 y B1: el filtro de sesión revalida contra la base (repositorio falso) y aplica la expiración. */
 final class FiltroSesionTest extends TestCase

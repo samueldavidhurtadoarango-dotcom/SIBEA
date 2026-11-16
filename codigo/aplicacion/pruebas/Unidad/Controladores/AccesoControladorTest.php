@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Pruebas\Unidad\Controladores;
+namespace SIBEA\Pruebas\Unidad\Controladores;
 
-use BenefitRack\Controladores\AccesoControlador;
-use BenefitRack\Nucleo\Peticion;
-use BenefitRack\Nucleo\Sesion;
-use BenefitRack\Nucleo\Vista;
-use BenefitRack\Repositorios\RepositorioUsuarios;
-use BenefitRack\Servicios\ServicioAcceso;
 use PHPUnit\Framework\TestCase;
+use SIBEA\Controladores\AccesoControlador;
+use SIBEA\Nucleo\Peticion;
+use SIBEA\Nucleo\Sesion;
+use SIBEA\Nucleo\Vista;
+use SIBEA\Repositorios\RepositorioUsuarios;
+use SIBEA\Servicios\ServicioAcceso;
 
 /** Pantalla de ingreso: lo que se decide sin tocar la base de datos. */
 final class AccesoControladorTest extends TestCase

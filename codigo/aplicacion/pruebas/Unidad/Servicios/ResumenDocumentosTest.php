@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Pruebas\Unidad\Servicios;
+namespace SIBEA\Pruebas\Unidad\Servicios;
 
-use BenefitRack\Servicios\ResumenDocumentos;
 use PHPUnit\Framework\TestCase;
+use SIBEA\Servicios\ResumenDocumentos;
 
 /** El texto de la columna «Documentos» de la lista de postulaciones (spec 002, vista 3). */
 final class ResumenDocumentosTest extends TestCase

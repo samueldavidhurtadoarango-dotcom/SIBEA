@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace BenefitRack\Pruebas\Unidad\Controladores;
+namespace SIBEA\Pruebas\Unidad\Controladores;
 
-use BenefitRack\Nucleo\Aplicacion;
-use BenefitRack\Nucleo\Configuracion;
-use BenefitRack\Nucleo\Enrutador;
-use BenefitRack\Nucleo\Fabrica;
-use BenefitRack\Nucleo\Peticion;
-use BenefitRack\Repositorios\RepositorioUsuarios;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use SIBEA\Nucleo\Aplicacion;
+use SIBEA\Nucleo\Configuracion;
+use SIBEA\Nucleo\Enrutador;
+use SIBEA\Nucleo\Fabrica;
+use SIBEA\Nucleo\Peticion;
+use SIBEA\Repositorios\RepositorioUsuarios;
 
 /**
  * Quién puede entrar al detalle de una postulación y a sus decisiones. No necesita base de datos: los filtros
